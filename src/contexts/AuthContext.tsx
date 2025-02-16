@@ -5,7 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 interface AuthContextType {
   session: Session | null;
   user: User | null;
-  userRoles: ('admin' | 'staff' )[];
+  userRoles: ("admin" | "staff" | "manager")[];
   signOut: () => Promise<void>;
 }
 
@@ -19,7 +19,7 @@ const AuthContext = createContext<AuthContextType>({
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [session, setSession] = useState<Session | null>(null);
   const [user, setUser] = useState<User | null>(null);
-  const [userRoles, setUserRoles] = useState<('admin' | 'staff')[]>([]);
+  const [userRoles, setUserRoles] = useState<("admin" | "staff" | "manager")[]>([]);
 
   useEffect(() => {
     // Get initial session
@@ -49,16 +49,16 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
   const fetchUserRoles = async (userId: string) => {
     const { data, error } = await supabase
-      .from('user_roles')
-      .select('role')
-      .eq('user_id', userId);
+      .from("user_roles")
+      .select("role")
+      .eq("user_id", userId);
 
     if (error) {
-      console.error('Error fetching user roles:', error);
+      console.error("Error fetching user roles:", error);
       return;
     }
 
-    setUserRoles(data.map(r => r.role));
+    setUserRoles(data.map((r) => r.role));
   };
 
   const signOut = async () => {
