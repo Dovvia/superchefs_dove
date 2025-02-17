@@ -16,6 +16,14 @@ export interface Inventory {
   created_at: string;
   updated_at: string;
   material?: Material;
+  opening_stock?: number;
+  procurement: number;
+  transfer_in: number;
+  transfer_out: number;
+  usage: number;
+  damages: number;
+  closing_stock: number;
+  request_order: number;
 }
 
 export interface InventoryTransaction {

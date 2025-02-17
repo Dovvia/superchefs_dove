@@ -7,10 +7,15 @@ import { Button } from "@/components/ui/button";
 import { Plus } from "lucide-react";
 import { AddMaterialDialog } from "@/components/inventory/AddMaterialDialog";
 import { StockMovementDialog } from "@/components/inventory/StockMovementDialog";
+import currency from "currency.js";
 
 const Inventory = () => {
+  const naira = (value: number) => currency(value, { symbol: "₦", precision: 2, separator:",", }).format();
+
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [selectedInventory, setSelectedInventory] = useState<InventoryType | null>(null);
+  const [filterName, setFilterName] = useState("");
+  const [filterDate, setFilterDate] = useState("");
 
   const { data: inventory, refetch } = useQuery({
     queryKey: ["inventory"],
@@ -24,47 +29,93 @@ const Inventory = () => {
         .order("created_at", { ascending: false });
 
       if (error) throw error;
-      return data as InventoryType[];
+      return data as unknown as InventoryType[];
     },
   });
 
   return (
-    <div className="space-y-6 p-6">
+    <div className="space-y-4 p-3 bg-white rounded-lg shadow-md w-full mx-auto margin-100 ">
       <div className="flex justify-between items-center">
-        <h2 className="text-3xl font-bold tracking-tight">Inventory</h2>
-        <Button onClick={() => setIsAddDialogOpen(true)}>
-          <Plus className="mr-2 h-4 w-4" />
-          Add Material
-        </Button>
+      <h2 className="text-3xl font-bold tracking-tight">Inventory</h2>
+      <Button onClick={() => setIsAddDialogOpen(true)}>
+        <Plus className="mr-2 h-4 w-4" />
+        Add Material
+      </Button>
       </div>
 
-      <div className="border rounded-lg">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Material</TableHead>
-              <TableHead>Quantity</TableHead>
-              <TableHead>Actions</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {inventory?.map((item) => (
-              <TableRow key={item.id}>
-                <TableCell>{item.material?.name}</TableCell>
-                <TableCell>{item.quantity}</TableCell>
-                <TableCell>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setSelectedInventory(item)}
-                  >
-                    Record Movement
-                  </Button>
-                </TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
+      <div className="flex space-x-4">
+      <input
+        type="text"
+        placeholder="Search material"
+        className="border p-2 rounded h-8"
+        onChange={(e) => setFilterName(e.target.value)}
+      />
+      <input
+        type="date"
+        className="border p-2 rounded h-8"
+        onChange={(e) => setFilterDate(e.target.value)}
+      />
+      </div>
+
+      <div className="border rounded-lg mt-4">
+      <Table>
+        <TableHeader>
+        <TableRow className="bg-gray-200">
+          <TableHead>Material</TableHead>
+          <TableHead>Unit</TableHead>
+          <TableHead>Opening Stock</TableHead>
+          <TableHead>PROC.</TableHead>
+          <TableHead>TRF IN</TableHead>
+          <TableHead>TRF OUT</TableHead>
+          <TableHead>Usage</TableHead>
+          <TableHead>Damages</TableHead>
+          <TableHead>Closing Stock</TableHead>
+          <TableHead>Reorder</TableHead>
+          <TableHead>Request</TableHead>
+          <TableHead>Unit Cost</TableHead>
+          <TableHead>Non-close Cost</TableHead>
+          <TableHead>Close cost</TableHead>
+          <TableHead>Actions</TableHead>
+        </TableRow>
+        </TableHeader>
+        <TableBody>
+        {inventory
+          ?.filter(
+          (item) =>
+            (!filterName || item.material?.name.toLowerCase().includes(filterName.toLowerCase())) &&
+            (!filterDate || new Date(item.created_at).toDateString() === new Date(filterDate).toDateString())
+          )
+          .map((item, index) => (
+          <TableRow key={item.id} className={index % 2 === 0 ? "bg-white" : "bg-gray-100"}>
+            <TableCell><strong>{item.material?.name}</strong></TableCell>
+            <TableCell>{item.material?.unit}</TableCell>
+            <TableCell>{item.opening_stock}</TableCell>
+            <TableCell>{item.procurement}</TableCell>
+            <TableCell>{item.transfer_in}</TableCell>
+            <TableCell>{item.transfer_out}</TableCell>
+            <TableCell>{item.usage}</TableCell>
+            <TableCell>{item.damages}</TableCell>
+            <TableCell style={{ color: item.closing_stock < item.material?.minimum_stock ? 'red' : 'green' }}>
+            {item.closing_stock}
+            </TableCell>
+            <TableCell>{item.material?.minimum_stock}</TableCell>
+            <TableCell>{item.request_order}</TableCell>
+            <TableCell>{naira(item.material?.unit_price)}</TableCell>
+            <TableCell>{naira((item.usage + item.damages) * item.material?.unit_price)}</TableCell>
+            <TableCell>{naira(item.material?.unit_price * item.closing_stock)}</TableCell>
+            <TableCell>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setSelectedInventory(item)}
+            >
+              record
+            </Button>
+            </TableCell>
+          </TableRow>
+          ))}
+        </TableBody>
+      </Table>
       </div>
 
       <AddMaterialDialog
@@ -86,3 +137,4 @@ const Inventory = () => {
 };
 
 export default Inventory;
+

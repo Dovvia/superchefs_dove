@@ -18,12 +18,17 @@ export const AddMaterialDialog = ({ open, onOpenChange, onSuccess }: AddMaterial
   const handleSubmit = async (values: Material) => {
     try {
       setIsLoading(true);
-      const { error } = await supabase.from("materials").insert([values]);
+      const { data, error } = await supabase.from("materials").insert([values]).select("id").single();
       if (error) throw error;
+
+      const materialId = data.id;
+      const { error: inventoryError } = await supabase.from("inventory").insert([{ material_id: materialId }]);
+      if (inventoryError) throw inventoryError;
 
       toast({
         title: "Success",
         description: "Material added successfully",
+        variant: "default",
       });
       onSuccess();
       onOpenChange(false);
