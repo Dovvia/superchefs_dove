@@ -10,7 +10,7 @@
             window.top &&
               (window.top.postMessage(
                 { type: "URL_CHANGED", url: document.location.href },
-                "https://lovable.dev"
+                "https://superchefs-dove.vercel.app"
               ),
               window.top.postMessage(
                 { type: "URL_CHANGED", url: document.location.href },
@@ -25,9 +25,8 @@
       HIGHLIGHT_COLOR: "#0da2e7",
       HIGHLIGHT_BG: "#0da2e71a",
       ALLOWED_ORIGINS: [
-        "https://gptengineer.app",
         "http://localhost:3000",
-        "https://lovable.dev",
+        
       ],
       DEBOUNCE_DELAY: 10,
       Z_INDEX: 1e4,
@@ -41,7 +40,7 @@
       },
       SELECTED_ATTR: "data-lov-selected",
       HOVERED_ATTR: "data-lov-hovered",
-      OVERRIDE_STYLESHEET_ID: "lovable-override",
+      OVERRIDE_STYLESHEET_ID: "local-override",
     },
     y = (e) => {
       a.ALLOWED_ORIGINS.forEach((t) => {
@@ -914,9 +913,9 @@
         };
     };
   var z = () => {
-    if (window.location.search.includes("lov-override-script")) {
-      let e = "http://localhost:8001/gptengineer.js";
-      console.log("Overriding gptengineer.js script with:", e);
+    if (window.location.search.includes("local-override-script")) {
+      let e = "http://localhost:3000";
+      console.log("Overriding script with:", e);
       let t = document.createElement("script");
       (t.src = e), document.body.appendChild(t);
       return;
