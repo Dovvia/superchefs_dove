@@ -21,6 +21,13 @@
     };
     window.addEventListener("load", e);
   };
+
+  if('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('/service-worker.js')
+    .then(() => console.log('Service worker registered'))
+    .catch((error) => console.log('Error registering service worker:', error));
+  }
+  
   var a = {
       HIGHLIGHT_COLOR: "#0da2e7",
       HIGHLIGHT_BG: "#0da2e71a",
