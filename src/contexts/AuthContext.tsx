@@ -19,7 +19,9 @@ const AuthContext = createContext<AuthContextType>({
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [session, setSession] = useState<Session | null>(null);
   const [user, setUser] = useState<User | null>(null);
-  const [userRoles, setUserRoles] = useState<("admin" | "staff" | "manager")[]>([]);
+  const [userRoles, setUserRoles] = useState<("admin" | "staff" | "manager")[]>(
+    []
+  );
 
   useEffect(() => {
     // Get initial session

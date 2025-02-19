@@ -3,10 +3,13 @@ import { useAuth } from "@/contexts/AuthContext";
 
 interface RoleProtectedRouteProps {
   children: React.ReactNode;
-  allowedRoles: ('admin' | 'staff')[];
+  allowedRoles: Array<"admin" | "staff" | "manager">;
 }
 
-const RoleProtectedRoute = ({ children, allowedRoles }: RoleProtectedRouteProps) => {
+const RoleProtectedRoute = ({
+  children,
+  allowedRoles,
+}: RoleProtectedRouteProps) => {
   const { session, userRoles } = useAuth();
   const location = useLocation();
 
@@ -14,8 +17,10 @@ const RoleProtectedRoute = ({ children, allowedRoles }: RoleProtectedRouteProps)
     return <Navigate to="/auth" state={{ from: location }} replace />;
   }
 
-  const hasRequiredRole = userRoles?.some(role => allowedRoles.includes(role));
-  
+  const hasRequiredRole = userRoles?.some((role) =>
+    allowedRoles.includes(role)
+  );
+
   if (!hasRequiredRole) {
     return <Navigate to="/" replace />;
   }
