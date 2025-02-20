@@ -75,7 +75,7 @@ const Inventory = () => {
           <TableHead>Unit Cost</TableHead>
           <TableHead>Non-close Cost</TableHead>
           <TableHead>Close cost</TableHead>
-          <TableHead>Actions</TableHead>
+          {/* <TableHead>Actions</TableHead> */}
         </TableRow>
         </TableHeader>
         <TableBody>
@@ -103,7 +103,7 @@ const Inventory = () => {
             <TableCell>{naira(item.material?.unit_price)}</TableCell>
             <TableCell>{naira((item.usage + item.damages) * item.material?.unit_price)}</TableCell>
             <TableCell>{naira(item.material?.unit_price * item.closing_stock)}</TableCell>
-            <TableCell>
+            {/* <TableCell>
             <Button
               variant="outline"
               size="sm"
@@ -111,7 +111,7 @@ const Inventory = () => {
             >
               record
             </Button>
-            </TableCell>
+            </TableCell> */}
           </TableRow>
           ))}
         </TableBody>
