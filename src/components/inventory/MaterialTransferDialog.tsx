@@ -28,6 +28,7 @@ interface MaterialTransferDialogProps {
   material: Material | null;
   fromBranchId: string;
   branches: { id: string; name: string }[];
+
 }
 
 const MaterialTransferDialog = ({
