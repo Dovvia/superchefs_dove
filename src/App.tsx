@@ -16,6 +16,7 @@ import Procurement from "./pages/Procurement";
 import Users from "./pages/Users";
 import Branches from "./pages/Branches";
 import Production from "./pages/Production";
+import Damages from "./pages/Damages";
 import Recipes from "./pages/Recipes";
 import Accounts from "./pages/Accounts";
 import Settings from "./pages/Settings";
@@ -44,6 +45,7 @@ function App() {
                 <Route path="products" element={<Products />} />
                 <Route path="sales" element={<Sales />} />
                 <Route path="procurement" element={<Procurement />} />
+                <Route path="damages" element={<Damages />} />
                 <Route path="users" element={<Users />} />
                 <Route path="accounts" element={<Accounts />} />
                 <Route path="branches" element={<Branches />} />
@@ -51,11 +53,6 @@ function App() {
                 <Route path="recipes" element={<Recipes />} />
                 <Route path="settings" element={<Settings />} />
                 <Route path="*" element={<NotFound />} />
-
-
-
-
-
 
                 {/* <Route 
                   path="users" 
@@ -82,7 +79,6 @@ function App() {
                     </RoleProtectedRoute>
                   } 
                 /> */}
-                
               </Route>
             </Routes>
           </BrowserRouter>

@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useAuth } from "@/contexts/AuthContext";
+import { useAuth } from "@/hooks/auth";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -70,7 +70,7 @@ const Settings = () => {
   return (
     <div className="container max-w-2xl py-6">
       <h1 className="text-2xl font-bold mb-6">Settings</h1>
-      
+
       <form onSubmit={handleUpdateProfile} className="space-y-6">
         <div className="space-y-4">
           <div className="grid grid-cols-2 gap-4">

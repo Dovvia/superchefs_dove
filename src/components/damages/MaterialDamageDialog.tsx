@@ -1,0 +1,77 @@
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import MaterialDamageForm from "./MaterialDamageForm";
+import { useState } from "react";
+import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
+
+interface MaterialDamageDialogProps {
+  onOpenChange: (open: boolean) => void;
+  branchId: string;
+  userId: string;
+}
+
+export const MaterialDamageDialog = ({
+  onOpenChange,
+  branchId,
+  userId,
+}: MaterialDamageDialogProps) => {
+  const [isLoading, setIsLoading] = useState(false);
+  const { toast } = useToast();
+
+  const handleSubmit = async (values: {
+    material: string;
+    quantity: string;
+    reason: string;
+    branch: string;
+    user: string;
+  }) => {
+    console.log(values, "values");
+    try {
+      setIsLoading(true);
+      const { error } = await supabase.from("damaged_materials").insert([
+        {
+          material_id: values?.material,
+          branch_id: values?.branch,
+          user_id: values?.user,
+          quantity: Number(values?.quantity),
+          reason: values?.reason,
+        },
+      ]);
+      if (error) throw error;
+
+      toast({
+        title: "Success",
+        description: "Material damage recorded successfully",
+      });
+      // onSuccess?.();
+      onOpenChange(false);
+    } catch (error) {
+      console.error("Error recording material damage:", error);
+      toast({
+        title: "Error",
+        description: "Failed to record material damage",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  return (
+    <DialogContent aria-describedby="material damage">
+      <DialogHeader>
+        <DialogTitle>Record Material Damage</DialogTitle>
+      </DialogHeader>
+      <MaterialDamageForm
+        onSubmit={handleSubmit}
+        isLoading={isLoading}
+        onCancel={() => onOpenChange(false)}
+      />
+    </DialogContent>
+  );
+};
