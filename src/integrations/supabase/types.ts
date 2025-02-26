@@ -86,6 +86,7 @@ export type Database = {
           material_id: string;
           quantity: number;
           reason: string;
+          user_id: string;
         };
         Insert: {
           branch_id: string;
@@ -94,6 +95,7 @@ export type Database = {
           material_id: string;
           quantity: number;
           reason: string;
+          user_id: string;
         };
         Update: {
           branch_id?: string;
@@ -102,6 +104,7 @@ export type Database = {
           material_id?: string;
           quantity?: number;
           reason?: string;
+          user_id: string;
         };
         Relationships: [
           {
@@ -315,6 +318,7 @@ export type Database = {
           unit: string;
           unit_price: number;
           updated_at: string;
+          branch_id: string;
         };
         Insert: {
           created_at?: string;
@@ -325,6 +329,7 @@ export type Database = {
           unit: string;
           unit_price?: number;
           updated_at?: string;
+          branch_id: string;
         };
         Update: {
           created_at?: string;
@@ -335,8 +340,17 @@ export type Database = {
           unit?: string;
           unit_price?: number;
           updated_at?: string;
+          branch_id: string;
         };
-        Relationships: [];
+        Relationships: [
+          {
+            foreignKeyName: "materials_branch_id_fkey";
+            columns: ["branch_id"];
+            isOneToOne: false;
+            referencedRelation: "branches";
+            referencedColumns: ["id"];
+          }
+        ];
       };
       notifications: {
         Row: {
