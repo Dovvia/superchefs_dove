@@ -3,7 +3,9 @@ import {
   LayoutDashboard,
   Package,
   ShoppingCart,
-  Boxes, Luggage, Utensils,
+  Boxes,
+  Luggage,
+  Utensils,
   Users,
   Building2,
   Factory,
@@ -11,6 +13,7 @@ import {
   PackageSearch,
   DollarSign,
   X,
+  PackageMinusIcon,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
@@ -47,6 +50,11 @@ const Sidebar = ({ isOpen, onClose }: SidebarProps) => {
       icon: Boxes,
     },
     {
+      name: "Damages",
+      href: "/damages",
+      icon: PackageMinusIcon,
+    },
+    {
       name: "Accounts",
       href: "/accounts",
       icon: DollarSign,
@@ -79,25 +87,18 @@ const Sidebar = ({ isOpen, onClose }: SidebarProps) => {
         isOpen ? "translate-x-0" : "-translate-x-full"
       } lg:`}
     >
-      <div 
-      className="space-y-4 py-4 bg-white h-full shadow-lg"
-      >
-        <div 
-        className="flex items-center justify-between px-3 lg:"
-        >
-          <img src="/superchefs-logo.png" style={{width:"40px", height:"50px"}}/>
-          <Button variant="secondary" size="icon" onClick={onClose} >
-            <X 
-            className="h-4 w-4" 
-            />
+      <div className="space-y-4 py-4 bg-white h-full shadow-lg">
+        <div className="flex items-center justify-between px-3 lg:">
+          <img
+            src="/superchefs-logo.png"
+            style={{ width: "40px", height: "50px" }}
+          />
+          <Button variant="secondary" size="icon" onClick={onClose}>
+            <X className="h-4 w-4" />
           </Button>
         </div>
-        <div 
-        className="px-3 py-2"
-        >
-          <div 
-          className="space-y-3"
-          >
+        <div className="px-3 py-2">
+          <div className="space-y-3">
             {navigation.map((item) => (
               <NavLink
                 key={item.name}
@@ -109,9 +110,7 @@ const Sidebar = ({ isOpen, onClose }: SidebarProps) => {
                   }`
                 }
               >
-                <item.icon 
-                className="mr-3 h-4 w-4"
-                 />
+                <item.icon className="mr-3 h-4 w-4" />
                 {item.name}
               </NavLink>
             ))}
