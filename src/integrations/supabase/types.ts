@@ -513,6 +513,13 @@ export type Database = {
             isOneToOne: false;
             referencedRelation: "products";
             referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "product_recipes_material_id_fkey";
+            columns: ["material_id"];
+            isOneToOne: false;
+            referencedRelation: "materials";
+            referencedColumns: ["id"];
           }
         ];
       };
