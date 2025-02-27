@@ -62,7 +62,7 @@ const MaterialDamageForm = ({
   });
 
   const { user } = useAuth();
-  const { data: materials, refetch } = useQuery({
+  const { data: materials } = useQuery({
     queryKey: ["materials"],
     queryFn: async () => {
       const { data, error } = await supabase.from("materials").select(`
