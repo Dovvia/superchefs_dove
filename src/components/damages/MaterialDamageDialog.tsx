@@ -1,5 +1,5 @@
+import { RefetchOptions, QueryObserverResult } from "@tanstack/react-query";
 import {
-  Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
@@ -8,17 +8,17 @@ import MaterialDamageForm from "./MaterialDamageForm";
 import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-
+import { Damage } from "@/types/damages";
 interface MaterialDamageDialogProps {
   onOpenChange: (open: boolean) => void;
-  branchId: string;
-  userId: string;
+  refetch: (
+    options?: RefetchOptions
+  ) => Promise<QueryObserverResult<Damage[], Error>>;
 }
 
 export const MaterialDamageDialog = ({
   onOpenChange,
-  branchId,
-  userId,
+  refetch,
 }: MaterialDamageDialogProps) => {
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
@@ -30,7 +30,6 @@ export const MaterialDamageDialog = ({
     branch: string;
     user: string;
   }) => {
-    console.log(values, "values");
     try {
       setIsLoading(true);
       const { error } = await supabase.from("damaged_materials").insert([
@@ -48,7 +47,7 @@ export const MaterialDamageDialog = ({
         title: "Success",
         description: "Material damage recorded successfully",
       });
-      // onSuccess?.();
+      await refetch();
       onOpenChange(false);
     } catch (error) {
       console.error("Error recording material damage:", error);
