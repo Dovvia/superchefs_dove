@@ -12,47 +12,27 @@ import {
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Plus } from "lucide-react";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
+import { Dialog, DialogTrigger } from "@/components/ui/dialog";
 import { MaterialDamageDialog } from "@/components/damages/MaterialDamageDialog";
-import { useToast } from "@/components/ui/use-toast";
 import { format } from "date-fns";
 
 const Damages = () => {
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
-  const [userAndBranch, setUserAndBranch] = useState({
-    user: null,
-    branch: null,
-  });
-  const { toast } = useToast();
 
-  //   const { data: products } = useQuery({
-  //     queryKey: ["products"],
-  //     queryFn: async () => {
-  //       const { data, error } = await supabase
-  //         .from("products")
-  //         .select("*")
-  //         .eq("is_active", true)
-  //         .order("name");
-
-  //       if (error) throw error;
-  //       return data as Product[];
-  //     },
-  //   });
-
-  const { data: damages, refetch: refetchDamages } = useQuery({
+  const {
+    data: damages,
+    refetch: refetchDamages,
+    isLoading,
+  } = useQuery({
     queryKey: ["damaged_materials"],
     queryFn: async () => {
       const { data, error } = await supabase
         .from("damaged_materials")
         .select(
-          `
-          *
+          `*,
+          material:material_id(name, unit, unit_price),
+          branch:branch_id(name),
+          user:user_id(first_name, last_name)
         `
         )
         .order("created_at", { ascending: false });
@@ -61,42 +41,6 @@ const Damages = () => {
       return data as Damage[];
     },
   });
-
-  const getUserAndBranch = async (user_id: string, branch_id: string) => {
-    try {
-      if (!user_id || !branch_id)
-        throw new Error("Please enter both user id and branch id");
-      // Fetch user
-      const { data: user, error: userError } = await supabase
-        .from("profiles")
-        .select("*")
-        .eq("id", user_id) // Filter by user_id
-        .single(); // Ensures only one result is returned;
-
-      if (userError) throw userError;
-
-      // Fetch branch
-      const { data: branch, error: branchError } = await supabase
-        .from("branches")
-        .select("*")
-        .eq("id", branch_id) // Filter by branch_id
-        .single(); // Ensures only one result is returned;
-
-      if (branchError) throw branchError;
-
-      setUserAndBranch({
-        user,
-        branch,
-      });
-    } catch (error) {
-      console.error("Error getting user or branch:", error);
-      toast({
-        title: "Error",
-        description: "Failed to fetch user or branch.",
-        variant: "destructive",
-      });
-    }
-  };
 
   return (
     <div className="space-y-6 p-6">
@@ -111,8 +55,7 @@ const Damages = () => {
           </DialogTrigger>
           <MaterialDamageDialog
             onOpenChange={setIsAddDialogOpen}
-            branchId={""}
-            userId={""}
+            refetch={refetchDamages}
           />
         </Dialog>
       </div>
@@ -121,28 +64,54 @@ const Damages = () => {
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>Id</TableHead>
-              <TableHead>Branch</TableHead>
-              <TableHead>Recorded By</TableHead>
+              <TableHead>Material Name</TableHead>
+              <TableHead>Unit</TableHead>
+              <TableHead>Price ( per unit)</TableHead>
               <TableHead>Quantity</TableHead>
-              <TableHead className="text-right">Reason</TableHead>
+              <TableHead>Reason</TableHead>
+              <TableHead>Recorded By</TableHead>
+              <TableHead>Branch</TableHead>
+              <TableHead>Date</TableHead>
             </TableRow>
           </TableHeader>
-          <TableBody>
-            {damages?.map((damage) => (
-              <TableRow key={damage.id}>
-                <TableCell>
-                  {format(new Date(damage.created_at), "MMM d, yyyy h:mm a")}
+          {damages?.length && !isLoading ? (
+            <TableBody>
+              {damages?.map((damage) => (
+                <TableRow key={damage.id}>
+                  <TableCell>{damage?.material?.name}</TableCell>
+                  <TableCell>{damage?.material?.unit}</TableCell>
+                  <TableCell>{damage?.material?.unit_price}</TableCell>
+                  <TableCell>{damage?.quantity}</TableCell>
+                  <TableCell>{damage?.reason}</TableCell>
+                  <TableCell className="capitalize">
+                    {damage?.user
+                      ? `${damage?.user?.first_name} ${damage?.user?.last_name}`
+                      : "N / A"}
+                  </TableCell>
+                  <TableCell>{damage?.branch?.name ?? "N / A"}</TableCell>
+                  <TableCell>
+                    {format(new Date(damage.created_at), "MMM d, yyyy h:mm a")}
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          ) : !damages?.length && !isLoading ? (
+            <TableBody>
+              <TableRow>
+                <TableCell colSpan={5} className="text-center">
+                  No damages recorded yet
                 </TableCell>
-                <TableCell>{userAndBranch?.branch?.name ?? "N / A"}</TableCell>
-                <TableCell className="capitalize">
-                  {userAndBranch?.user?.user_id ?? "N / A"}
-                </TableCell>
-                <TableCell>{damage.quantity}</TableCell>
-                <TableCell className="text-right">${damage.reason}</TableCell>
               </TableRow>
-            ))}
-          </TableBody>
+            </TableBody>
+          ) : (
+            <TableBody>
+              <TableRow>
+                <TableCell colSpan={5} className="text-center">
+                  Loading, please wait...
+                </TableCell>
+              </TableRow>
+            </TableBody>
+          )}
         </Table>
       </div>
     </div>

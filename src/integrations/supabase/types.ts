@@ -120,6 +120,13 @@ export type Database = {
             isOneToOne: false;
             referencedRelation: "materials";
             referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "damaged_materials_user_id_fkey";
+            columns: ["user_id"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
           }
         ];
       };
