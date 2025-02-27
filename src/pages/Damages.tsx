@@ -42,6 +42,9 @@ const Damages = () => {
     },
   });
 
+  const calculateTotalCost = (quantity: number, unitPrice: number) =>
+    quantity * unitPrice;
+
   return (
     <div className="space-y-6 p-6">
       <div className="flex justify-between items-center">
@@ -66,8 +69,9 @@ const Damages = () => {
             <TableRow>
               <TableHead>Material Name</TableHead>
               <TableHead>Unit</TableHead>
-              <TableHead>Price ( per unit)</TableHead>
+              <TableHead>Cost</TableHead>
               <TableHead>Quantity</TableHead>
+              <TableHead>Total cost</TableHead>
               <TableHead>Reason</TableHead>
               <TableHead>Recorded By</TableHead>
               <TableHead>Branch</TableHead>
@@ -82,6 +86,12 @@ const Damages = () => {
                   <TableCell>{damage?.material?.unit}</TableCell>
                   <TableCell>{damage?.material?.unit_price}</TableCell>
                   <TableCell>{damage?.quantity}</TableCell>
+                  <TableCell>
+                    {calculateTotalCost(
+                      damage?.material?.unit_price,
+                      damage?.quantity
+                    )}
+                  </TableCell>
                   <TableCell>{damage?.reason}</TableCell>
                   <TableCell className="capitalize">
                     {damage?.user
