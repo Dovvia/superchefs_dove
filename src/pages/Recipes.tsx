@@ -21,7 +21,9 @@ import CreateRecipeDialog from "@/components/products/CreateRecipeDialog";
 import {
   Dialog,
   DialogContent,
-  DialogDescription,
+  DialogClose,
+  DialogTrigger,
+  X,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
@@ -35,6 +37,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Unit } from "@/components/ui/unit";
 
 interface RecipeMaterial {
   id: string;
@@ -143,7 +146,9 @@ const Recipes = () => {
                 <div className="flex items-center gap-2">
                   <ScrollText className="h-5 w-5" />
                   <CardTitle>{recipe.product.name}</CardTitle>
-                  <Button onClick={() => handleEdit(recipe)} size="sm">
+                  <Button
+                  style={{ marginLeft: "auto" }}
+                  onClick={() => handleEdit(recipe)} size="sm">
                     <Edit className="h-4 w-4" />
                   </Button>
                 </div>
@@ -155,7 +160,6 @@ const Recipes = () => {
                 <Accordion type="single" collapsible>
                   <AccordionItem value="materials">
                     <AccordionTrigger className="flex items-center gap-2">
-                      <Layers className="h-4 w-4" />
                       Materials Required
                     </AccordionTrigger>
                     <AccordionContent>
@@ -194,18 +198,68 @@ const Recipes = () => {
         }}
       />
       {editingRecipe && (
-        <Dialog open={Boolean(editingRecipe)}>
-          <DialogHeader>
+        <Dialog open={Boolean(editingRecipe)} onOpenChange={(open) => open ? null : setEditingRecipe(null)}>
+          <DialogHeader className="flex items-center justify-between">
             <DialogTitle>Edit Recipe</DialogTitle>
+            <DialogClose asChild>
+              <Button onClick={() => setEditingRecipe(null)}>
+                <X className="h-4 w-4" />
+              </Button>
+            </DialogClose>
           </DialogHeader>
           <DialogContent>
+            
             <Input
+              className="w-2/3"
               value={editingRecipe.name}
-              onChange={(e) =>
-                setEditingRecipe({ ...editingRecipe, name: e.target.value })
-              }
+              readOnly={true}
               placeholder="Recipe Name"
             />
+            <div className="mt-4">
+              <h2 className="text-lg font-bold">Materials</h2>
+              <div className="space-y-2">
+                {editingRecipe.recipe_materials.map((material) => (
+                  <div
+                    key={material.id}
+                    className="flex justify-between items-center py-1 border-b"
+                  >
+                    <span>{material.material.name} <Unit unit={material.material.unit} /></span>
+                    <div className="w-1/4">
+                      <Input
+                        type="number"
+                        value={material.quantity}
+                        onChange={(e) =>
+                          setEditingRecipe({
+                            ...editingRecipe,
+                            recipe_materials: editingRecipe.recipe_materials.map(
+                              (m) =>
+                                m.id === material.id
+                                  ? { ...m, quantity: Number(e.target.value) }
+                                  : m
+                            ),
+                          })
+                        }
+                      />
+                    </div>
+                  </div>
+                ))}
+              </div>
+              <div className="flex items-center justify-center w-1/2 gap-1 mt-4">
+                Yield{" "}
+                <strong className="w-1/3">
+                  <Input
+                    type="number"
+                    value={editingRecipe.yield}
+                    onChange={(e) =>
+                      setEditingRecipe({
+                        ...editingRecipe,
+                        yield: Number(e.target.value),
+                      })
+                    }
+                  />
+                </strong>
+              </div>
+            </div>
             <Button onClick={handleUpdate} className="mt-4">
               Update Recipe
             </Button>

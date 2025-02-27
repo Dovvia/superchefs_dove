@@ -18,6 +18,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Product } from "@/types/products";
 import { Material } from "@/types/inventory";
 import { toast } from "sonner";
+import { Unit } from "../ui/unit";
 
 interface RecipeMaterial {
   id: string;
@@ -257,7 +258,7 @@ const CreateRecipeDialog: React.FC<CreateRecipeDialogProps> = ({
                   <SelectContent style={{ zIndex: 1500 }}>
                     {materials.map((mat) => (
                       <SelectItem key={mat.id} value={mat.id}>
-                        {mat.name} <span className="text-muted-foreground">({mat.unit})</span> 
+                        {mat.name} <Unit unit={mat.unit} /> 
                       </SelectItem>
                     ))}
                   </SelectContent>
