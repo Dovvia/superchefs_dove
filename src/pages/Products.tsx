@@ -32,18 +32,43 @@ const Products = () => {
   const [addDamageOpen, setAddDamageOpen] = useState(false);
   const [addTransferOpen, setAddTransferOpen] = useState(false);
 
-  const { data: products, refetch } = useQuery({
+  const {
+    data: products,
+    refetch,
+    isLoading,
+  } = useQuery({
     queryKey: ["products"],
     queryFn: async () => {
       const { data, error } = await supabase
         .from("products")
-        .select("*")
+        .select(`*, product_damages:damages_id(*)`)
+        .eq("is_active", true)
         .order("created_at", { ascending: false });
 
       if (error) throw error;
-      return data as Product[];
+      return data;
     },
   });
+
+  const handleOnSuccess = async (id: string, damages_id: string) => {
+    try {
+      const { error } = await supabase
+        .from("products")
+        .update({ damages_id })
+        .eq("id", id)
+        .select("id");
+
+      if (error) throw error;
+      await refetch();
+    } catch (error) {
+      console.error("Error fetching products:", error);
+      toast({
+        title: "Error",
+        description: "Failed to update products",
+        variant: "destructive",
+      });
+    }
+  };
 
   const handleAddProduct = async (values: Partial<Product>) => {
     try {
@@ -131,8 +156,7 @@ const Products = () => {
           <ProductDamageDialog
             open={addDamageOpen}
             onOpenChange={setAddDamageOpen}
-            product={undefined}
-            branchId={""}
+            onSuccess={handleOnSuccess}
           />
         )}
 
@@ -168,29 +192,47 @@ const Products = () => {
               <TableHead>Status</TableHead>
             </TableRow>
           </TableHeader>
-          <TableBody>
-            {products?.map((product) => (
-              <TableRow key={product.id}>
-                <TableCell className="font-medium">{product.name}</TableCell>
-                <TableCell>{product.category}</TableCell>
-                <TableCell>{product.openingStock}</TableCell>
-                <TableCell>{product.producedStock}</TableCell>
-                <TableCell>{product.transferIn}</TableCell>
-                <TableCell>{product.transferOut}</TableCell>
-                <TableCell>{product.complimentary}</TableCell>
-                <TableCell>{product.damages}</TableCell>
-                <TableCell>{product.sales}</TableCell>
-                <TableCell>{product.closingStock}</TableCell>
-                <TableCell>
-                  {product.is_active ? (
-                    <span className="text-green-600">Profitable</span>
-                  ) : (
-                    <span className="text-red-600">Loss</span>
-                  )}
+          {products?.length && !isLoading ? (
+            <TableBody>
+              {products?.map((product) => (
+                <TableRow key={product.id}>
+                  <TableCell className="font-medium">{product.name}</TableCell>
+                  <TableCell>{product.category}</TableCell>
+                  <TableCell>{product.openingStock}</TableCell>
+                  <TableCell>{product.producedStock}</TableCell>
+                  <TableCell>{product.transferIn}</TableCell>
+                  <TableCell>{product.transferOut}</TableCell>
+                  <TableCell>{product.complimentary}</TableCell>
+                  <TableCell>{product?.product_damages?.quantity}</TableCell>
+                  <TableCell>{product.sales}</TableCell>
+                  <TableCell>{product.closingStock}</TableCell>
+                  <TableCell>
+                    {product.is_active ? (
+                      <span className="text-green-600">Profitable</span>
+                    ) : (
+                      <span className="text-red-600">Loss</span>
+                    )}
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          ) : products?.length === 0 && !isLoading ? (
+            <TableBody>
+              <TableRow>
+                <TableCell colSpan={5} className="text-center">
+                  No damages recorded yet
                 </TableCell>
               </TableRow>
-            ))}
-          </TableBody>
+            </TableBody>
+          ) : (
+            <TableBody>
+              <TableRow>
+                <TableCell colSpan={5} className="text-center">
+                  Loading, please wait...
+                </TableCell>
+              </TableRow>
+            </TableBody>
+          )}
         </Table>
       </div>
     </div>
