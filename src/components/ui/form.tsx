@@ -7,7 +7,6 @@ import {
   FieldPath,
   FieldValues,
   FormProvider,
-  useFormContext,
 } from "react-hook-form";
 
 import { cn } from "@/lib/utils";
@@ -86,7 +85,9 @@ FormItem.displayName = "FormItem";
 
 const FormLabel = React.forwardRef<
   React.ElementRef<typeof LabelPrimitive.Root>,
-  React.ComponentPropsWithoutRef<typeof LabelPrimitive.Root>
+  React.ComponentPropsWithoutRef<typeof LabelPrimitive.Root> & {
+    withAsterisk?: boolean;
+  }
 >(({ className, ...props }, ref) => {
   const { error, formItemId } = useFormField();
   return (

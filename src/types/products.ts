@@ -1,3 +1,5 @@
+import { ProductDamage } from "./damages";
+
 export interface Product {
   id: string;
   name: string;
@@ -16,6 +18,8 @@ export interface Product {
   damages: number;
   sales: number;
   closingStock: number;
+  branch_id: string;
+  damages_id: string;
 }
 
 export interface Sale {
@@ -26,7 +30,6 @@ export interface Sale {
   status: string;
   created_at: string;
   updated_at: string;
-  
 }
 
 export interface SaleItem {

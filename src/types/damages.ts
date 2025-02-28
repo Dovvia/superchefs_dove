@@ -19,3 +19,13 @@ export interface Damage {
     unit_price: number;
   };
 }
+
+export interface ProductDamage {
+  branch_id: string;
+  created_at: string;
+  id: string;
+  product_id: string;
+  quantity: number;
+  reason: string;
+  updated_at: string;
+}
