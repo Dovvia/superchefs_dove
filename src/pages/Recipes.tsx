@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import {
   Card,
@@ -14,30 +14,20 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from "@/components/ui/accordion";
-import { ScrollText, Layers, UserPlus, Edit } from "lucide-react";
-import { Product } from "@/types/products";
-import { Material } from "@/types/inventory";
+import { ScrollText, UserPlus, Edit } from "lucide-react";
 import CreateRecipeDialog from "@/components/products/CreateRecipeDialog";
 import {
   Dialog,
   DialogContent,
   DialogClose,
-  DialogTrigger,
   X,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Unit } from "@/components/ui/unit";
+import { useToast } from "@/hooks/use-toast";
 
 interface RecipeMaterial {
   id: string;
@@ -65,13 +55,14 @@ interface Recipe {
     name: string;
     id: string;
   };
-  recipe_materials: RecipeMaterial[];
+  recipe_materials: RecipeMaterial[]; 
 }
 
 const Recipes = () => {
   const queryClient = useQueryClient();
   const [isCreateRecipeOpen, setIsCreateRecipeOpen] = useState(false);
   const [editingRecipe, setEditingRecipe] = useState<Recipe | null>(null);
+  const { toast } = useToast(); // Use the useToast hook
 
   const {
     data: recipes,
@@ -81,7 +72,9 @@ const Recipes = () => {
   } = useQuery({
     queryKey: ["recipes"],
     queryFn: async () => {
-      const { data, error } = await supabase.from("product_recipes").select(`
+      const { data, error } = await supabase
+        .from("product_recipes")
+        .select(`
           *,
           product:products(name),
           recipe_materials(
@@ -100,12 +93,42 @@ const Recipes = () => {
 
   const updateRecipeMutation = useMutation<Recipe, Error, Recipe>({
     mutationFn: async (updatedRecipe: Recipe): Promise<Recipe> => {
-      const { error } = await supabase
+      const { data, error } = await supabase
         .from("product_recipes")
-        .update(updatedRecipe)
-        .eq("id", updatedRecipe.id);
+        .update({
+          name: updatedRecipe.name,
+          description: updatedRecipe.description,
+          yield: updatedRecipe.yield,
+        })
+        .eq("id", updatedRecipe.id)
+        .select()
+        .single();
+
       if (error) throw error;
-      return updatedRecipe;
+
+      const { error: rmError } = await supabase
+        .from("recipe_materials")
+        .delete()
+        .eq("recipe_id", updatedRecipe.id);
+
+      if (rmError) throw rmError;
+
+      const materialInserts = updatedRecipe.recipe_materials.map((material) => ({
+        recipe_id: updatedRecipe.id,
+        material_id: material.material_id,
+        quantity: material.quantity,
+        yield: material.yield,
+      }));
+
+      const { error: insertError } = await supabase
+        .from("recipe_materials")
+        .insert(materialInserts)
+        .select()
+        .single();
+
+      if (insertError) throw insertError;
+
+      return { ...updatedRecipe, ...data };
     },
     onSuccess: (updatedRecipe) => {
       queryClient.setQueryData<Recipe[]>(["recipes"], (oldRecipes) =>
@@ -114,6 +137,13 @@ const Recipes = () => {
         )
       );
       setEditingRecipe(null);
+      queryClient.invalidateQueries({ queryKey: ["recipes"] });
+      toast({ title: "Success", description: "Recipe updated successfully" }); // Show success toast
+    },
+    onError: (error) => {
+      console.error("Error updating recipe:", error);
+      
+      toast({ title: "Error", description: `Error updating recipe: ${error.message}`, variant: "destructive" }); // Show error toast
     },
   });
 
@@ -194,7 +224,8 @@ const Recipes = () => {
         onOpenChange={(open) => setIsCreateRecipeOpen(open)}
         onError={(error) => {
           console.error("Dialog error:", error);
-          alert("An error occurred. Please try again.");
+          
+          toast({ title: "Error", description: "An error occurred. Please try again.",  }); // Show error toast
         }}
       />
       {editingRecipe && (
@@ -260,7 +291,11 @@ const Recipes = () => {
                 </strong>
               </div>
             </div>
-            <Button onClick={handleUpdate} className="mt-4">
+            <Button onClick={() => {
+              handleUpdate();
+              setEditingRecipe(null);
+              queryClient.invalidateQueries({ queryKey: ["recipes"] });
+            }} className="mt-4">
               Update Recipe
             </Button>
           </DialogContent>
@@ -271,4 +306,3 @@ const Recipes = () => {
 };
 
 export default Recipes;
-

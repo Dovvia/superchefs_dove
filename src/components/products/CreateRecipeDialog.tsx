@@ -17,7 +17,7 @@ import { Button } from "@mui/material";
 import { supabase } from "@/integrations/supabase/client";
 import { Product } from "@/types/products";
 import { Material } from "@/types/inventory";
-import { toast } from "sonner";
+import { useToast } from "@/hooks/use-toast";
 import { Unit } from "../ui/unit";
 
 interface RecipeMaterial {
@@ -43,6 +43,7 @@ const CreateRecipeDialog: React.FC<CreateRecipeDialogProps> = ({
   onOpenChange,
   onError,
 }) => {
+  const { toast } = useToast();
   const [products, setProducts] = useState<Product[]>([]);
   const [materials, setMaterials] = useState<Material[]>([]);
   const [selectedProduct, setSelectedProduct] = useState<string>("");
@@ -154,7 +155,12 @@ const CreateRecipeDialog: React.FC<CreateRecipeDialogProps> = ({
 
     if (recipeError) {
       console.log("Error inserting recipe:", recipeError.message);
-      toast.error("An error occurred while creating the recipe");
+      toast({
+        title: "Error",
+        description: "An error occurred while creating the recipe",
+        variant: "destructive",
+
+      });
       return;
     }
 
@@ -167,7 +173,11 @@ const CreateRecipeDialog: React.FC<CreateRecipeDialogProps> = ({
 
     if (recipeIdError || !recipeData || recipeData.length === 0) {
       console.log("Error retrieving recipe ID:", recipeIdError?.message);
-      toast.error("An error occurred while creating the recipe");
+      toast({
+        title: "Error",
+       description: "An error occurred while retrieving the recipe ID",
+        variant: "destructive",
+      });
       return;
     }
 
@@ -181,14 +191,21 @@ const CreateRecipeDialog: React.FC<CreateRecipeDialogProps> = ({
         yield: material.yield,
       }))
     );
-
+ 
     if (recipeMaterialsError) {
       console.log("Error inserting recipe materials:", recipeMaterialsError.message);
-      toast.error("An error occurred while adding materials to the recipe");
+      toast({
+        title: "Error",
+        description: "An error occurred while inserting materials to the recipe",
+        variant: "destructive",
+      })
       return;
     }
 
-    toast.success("Recipe created successfully");
+    toast({
+      title: "Success",
+      description: "Recipe created successfully",
+    })
     setSelectedMaterials([
       {
         id: "",
