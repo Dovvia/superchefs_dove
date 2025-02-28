@@ -618,6 +618,8 @@ export type Database = {
           damages: number;
           sales: number;
           closingStock: number;
+          branch_id: string;
+          damages_id: string;
         };
         Insert: {
           category?: string | null;
@@ -637,6 +639,7 @@ export type Database = {
           damages: number;
           sales: number;
           closingStock: number;
+          damages_id?: string;
         };
         Update: {
           category?: string | null;
@@ -648,16 +651,25 @@ export type Database = {
           name?: string;
           price?: number;
           updated_at?: string;
-          openingStock: number;
-          producedStock: number;
-          transferIn: number;
-          transferOut: number;
-          complimentary: number;
-          damages: number;
-          sales: number;
-          closingStock: number;
+          openingStock?: number;
+          producedStock?: number;
+          transferIn?: number;
+          transferOut?: number;
+          complimentary?: number;
+          damages?: number;
+          sales?: number;
+          closingStock?: number;
+          damages_id?: string;
         };
-        Relationships: [];
+        Relationships: [
+          {
+            foreignKeyName: "products_damages_id_fkey";
+            columns: ["damages_id"];
+            isOneToOne: false;
+            referencedRelation: "product_damages";
+            referencedColumns: ["id"];
+          }
+        ];
       };
       profiles: {
         Row: {

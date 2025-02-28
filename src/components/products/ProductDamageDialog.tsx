@@ -1,4 +1,9 @@
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { ProductDamageForm } from "./ProductDamageForm";
 import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
@@ -8,41 +13,45 @@ import { Product } from "@/types/products";
 interface ProductDamageDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  product: Product; 
-  branchId: string;
-  onSuccess?: () => void;
+  onSuccess?: (id: string, damages_id: string) => void;
 }
 
 export const ProductDamageDialog = ({
   open,
   onOpenChange,
-  product,
-  branchId,
   onSuccess,
 }: ProductDamageDialogProps) => {
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
 
   const handleSubmit = async (values: {
+    product: string;
     quantity: number;
     reason: string;
+    branch: string;
   }) => {
     try {
       setIsLoading(true);
-      const { error } = await supabase.from("product_damages").insert([
-        {
-          product_id: product.id,
-          branch_id: branchId,
-          ...values,
-        },
-      ]);
+      const { data, error } = await supabase
+        .from("product_damages")
+        .insert([
+          {
+            branch_id: values?.branch,
+            product_id: values?.product,
+            quantity: values?.quantity,
+            reason: values?.reason,
+          },
+        ])
+        .select("product_id, id");
       if (error) throw error;
 
       toast({
         title: "Success",
         description: "Product damage recorded successfully",
       });
-      onSuccess?.();
+      if (data && data?.length > 0) {
+        onSuccess?.(data[0]?.product_id, data[0]?.id);
+      }
       onOpenChange(false);
     } catch (error) {
       console.error("Error recording product damage:", error);
@@ -63,7 +72,6 @@ export const ProductDamageDialog = ({
           <DialogTitle>Record Product Damage</DialogTitle>
         </DialogHeader>
         <ProductDamageForm
-          product={product}
           onSubmit={handleSubmit}
           isLoading={isLoading}
           onCancel={() => onOpenChange(false)}
