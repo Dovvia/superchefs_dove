@@ -1,3 +1,5 @@
+import { NumberDomain } from "recharts/types/util/types";
+
 export interface Material {
   id: string;
   name: string;
@@ -20,7 +22,7 @@ export interface Inventory {
   procurement: number;
   transfer_in: number;
   transfer_out: number;
-  usage: number;
+  usage?: number;
   damages: number;
   closing_stock: number;
   request_order: number;
@@ -29,7 +31,7 @@ export interface Inventory {
 export interface InventoryTransaction {
   id: string;
   inventory_id: string;
-  transaction_type: 'in' | 'out';
+  transaction_type: "in" | "out";
   quantity: number;
   notes: string | null;
   created_at: string;
@@ -40,7 +42,7 @@ export interface MaterialRequest {
   branch_id: string;
   material_id: string;
   quantity: number;
-  status: 'pending' | 'approved' | 'rejected';
+  status: "pending" | "approved" | "rejected";
   notes: string | null;
   created_at: string;
   updated_at: string;
@@ -52,7 +54,7 @@ export interface MaterialTransfer {
   to_branch_id: string;
   material_id: string;
   quantity: number;
-  status: 'pending' | 'completed' | 'cancelled';
+  status: "pending" | "completed" | "cancelled";
   notes: string | null;
   created_at: string;
   updated_at: string;
@@ -65,4 +67,24 @@ export interface DamagedMaterial {
   quantity: number;
   reason: string;
   created_at: string;
+}
+
+export interface ProductInventory {
+  id: string;
+  name: string;
+  category: string;
+  product_id: string;
+  branch_id: string;
+  opening_stock: number;
+  production?: number;
+  transfer_in: number;
+  transfer_out: number;
+  damages: number;
+  complimentary: number;
+  sales: Number;
+  closing_stock: number;
+  ucrr: number;
+  scrr: number;
+  created_at: string;
+  updated_at: string;
 }

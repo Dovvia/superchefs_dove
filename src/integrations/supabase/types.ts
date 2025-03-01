@@ -671,6 +671,82 @@ export type Database = {
           }
         ];
       };
+      product_inventory: {
+        Row: {
+            id: string;
+            name: string;
+            category: string;
+            product_id: string;
+            branch_id: string;
+            opening_stock: number;
+            production: number;
+            transfer_in: number;
+            transfer_out: number;
+            damages: number;
+            complimentary: number;
+            sales: Number;
+            closing_stock: number;
+            ucrr: number;
+            scrr: number;
+            created_at: string;
+            updated_at: string;
+          
+        };
+        Insert: {
+          id: string;
+            name: string;
+            category: string;
+            product_id: string;
+            branch_id: string;
+            opening_stock: number;
+            production: number;
+            transfer_in: number;
+            transfer_out: number;
+            damages: number;
+            complimentary: number;
+            sales: Number;
+            closing_stock: number;
+            ucrr: number;
+            scrr: number;
+            created_at: string;
+            updated_at: string;
+        };
+        Update: {
+          id: string;
+            name: string;
+            category: string;
+            product_id: string;
+            branch_id: string;
+            opening_stock: number;
+            production: number;
+            transfer_in: number;
+            transfer_out: number;
+            damages: number;
+            complimentary: number;
+            sales: Number;
+            closing_stock: number;
+            ucrr: number;
+            scrr: number;
+            created_at: string;
+            updated_at: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "product_inventory_product_id_fkey";
+            columns: ["product_id"];
+            isOneToOne: false;
+            referencedRelation: "products";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "product_inventory_branch_id_fkey";
+            columns: ["branch_id"];
+            isOneToOne: false;
+            referencedRelation: "branches";
+            referencedColumns: ["id"];
+          }
+        ];
+      };
       profiles: {
         Row: {
           created_at: string;
