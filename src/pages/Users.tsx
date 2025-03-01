@@ -57,6 +57,7 @@ const Users = () => {
       return usersWithRolesAndBranches as (Profile & { user_roles: { role: string }[]; branch: any })[];
     },
   });
+  
 
   const filteredUsers = users?.filter((user) => {
     const matchesRole = selectedRole ? user.user_roles.some((role) => role.role === selectedRole) : true;

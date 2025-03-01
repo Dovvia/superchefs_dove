@@ -1,3 +1,11 @@
+import { useState } from "react";
+import {
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogTitle,
+  DialogContentText,
+} from "@mui/material";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import {
@@ -7,9 +15,10 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import {
   Accordion,
-  AccordionContent, 
+  AccordionContent,
   AccordionItem,
   AccordionTrigger,
 } from "@/components/ui/accordion";
@@ -28,6 +37,7 @@ interface RecipeMaterial {
 interface Recipe {
   id: string;
   name: string;
+  yield: number;
   description: string | null;
   product: {
     name: string;
@@ -39,9 +49,7 @@ const Production = () => {
   const { data: recipes } = useQuery({
     queryKey: ["recipes"],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("product_recipes")
-        .select(`
+      const { data, error } = await supabase.from("product_recipes").select(`
           *,
           product:products(name),
           recipe_materials(
@@ -53,9 +61,22 @@ const Production = () => {
         `);
 
       if (error) throw error;
-      return data as Recipe[];
+      return data as unknown as Recipe[];
     },
   });
+
+  const [openDialog, setOpenDialog] = useState(false);
+  const [selectedProduct, setSelectedProduct] = useState(null);
+
+  const createDialog = (production: Recipe) => {
+    setSelectedProduct(production);
+    setOpenDialog(true);
+  };
+
+  const handleClose = () => {
+    setOpenDialog(false);
+    setSelectedProduct(null);
+  };
 
   return (
     <div className="space-y-6">
@@ -72,10 +93,9 @@ const Production = () => {
             <CardHeader>
               <div className="flex items-center gap-2">
                 <Package className="h-5 w-5" />
-                <CardTitle>{recipe.name}</CardTitle>
+                <CardTitle>{recipe.product.name}</CardTitle>
               </div>
               <CardDescription>
-                Product: {recipe.product.name}
                 {recipe.description && <p>{recipe.description}</p>}
               </CardDescription>
             </CardHeader>
@@ -100,6 +120,30 @@ const Production = () => {
                         </div>
                       ))}
                     </div>
+                    <div className="flex items-end justify-between w-full gap-1">
+                      <div
+                        className="flex gap-1"
+                        style={{
+                          position: "relative",
+                          bottom: "-1rem",
+                          left: "1rem",
+                        }}
+                      >
+                        Yield = <strong>{recipe.yield}</strong>
+                        {recipe.product.name}s
+                      </div>
+                      <Button
+                        onClick={() => createDialog(recipe.product as Recipe)}
+                        style={{
+                          position: "relative",
+                          bottom: "-1rem",
+                          right: "1rem",
+                        }}
+                        variant="outline"
+                      >
+                        produce
+                      </Button>
+                    </div>
                   </AccordionContent>
                 </AccordionItem>
               </Accordion>
@@ -107,6 +151,27 @@ const Production = () => {
           </Card>
         ))}
       </div>
+      <Dialog open={openDialog} onClose={handleClose}>
+        <DialogTitle>Produce {selectedProduct?.name}</DialogTitle>
+        <DialogContent>
+          <DialogContentText>
+            Are you sure you want to produce {selectedProduct?.name}?
+          </DialogContentText>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={handleClose} variant="destructive">
+            Cancel
+          </Button>
+          <Button
+            onClick={() => {
+              /* logic */ handleClose();
+            }}
+            variant="default"
+          >
+            Produce
+          </Button>
+        </DialogActions>
+      </Dialog>
     </div>
   );
 };

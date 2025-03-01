@@ -22,6 +22,7 @@ import {
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/auth";
+import { Unit } from "../ui/unit";
 
 const formSchema = z.object({
   material: z.string().min(1, "Please select a material"),
@@ -100,7 +101,7 @@ const MaterialDamageForm = ({
                       // ?.filter((mat) => mat.id !== material?.id)
                       ?.map((mat) => (
                         <SelectItem key={mat.id} value={mat.id}>
-                          {mat.name}
+                          {mat.name} <Unit unit={mat.unit} />
                         </SelectItem>
                       ))}
                   </SelectContent>
