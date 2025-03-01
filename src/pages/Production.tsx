@@ -23,6 +23,8 @@ import {
   AccordionTrigger,
 } from "@/components/ui/accordion";
 import { Package, Layers, Utensils } from "lucide-react";
+import { sendNotification } from "@/utils/notifications";
+import type { ProductInventory, Inventory } from "@/types/inventory";
 
 interface RecipeMaterial {
   id: string;
@@ -66,7 +68,7 @@ const Production = () => {
   });
 
   const [openDialog, setOpenDialog] = useState(false);
-  const [selectedProduct, setSelectedProduct] = useState(null);
+  const [selectedProduct, setSelectedProduct] = useState<Recipe | null>(null);
 
   const createDialog = (production: Recipe) => {
     setSelectedProduct(production);
@@ -77,6 +79,42 @@ const Production = () => {
     setOpenDialog(false);
     setSelectedProduct(null);
   };
+
+  const handleProduce = async () => {
+    if (!selectedProduct) return;
+    try {
+      // Insert material quantities into "usage" column of inventory table
+      for (const material of selectedProduct.recipe_materials) {
+        await supabase
+          .from("inventory")
+          .update({ usage: material.quantity })
+          .eq("material_id", material.material_id);
+      }
+      // Insert yield into "production" column in product_inventory table
+      await supabase
+        .from("product_inventory")
+        .update({
+          production: selectedProduct.yield,
+          id: "", name: "", category: "", product_id: "", branch_id: "", opening_stock: 0, transfer_in: 0, transfer_out: 0, damages: 0, complimentary: 0, sales: undefined, closing_stock: 0, ucrr: 0, scrr: 0, created_at: "", updated_at: ""
+        })
+        .eq("product_id", selectedProduct.id);
+      // Send notification that the product is being produced
+      const { data: user } = await supabase.auth.getUser();
+      const branchId = user?.user?.user_metadata?.branch_id;
+
+      if (branchId) {
+        await sendNotification(
+          "Production Started",
+          `Producing ${selectedProduct.name}`,
+          branchId
+        );
+      }
+      handleClose();
+    } catch (error) {
+      console.error("Error producing product:", error);
+    }
+  };
+
 
   return (
     <div className="space-y-6">
@@ -133,7 +171,7 @@ const Production = () => {
                         {recipe.product.name}s
                       </div>
                       <Button
-                        onClick={() => createDialog(recipe.product as Recipe)}
+                        onClick={() => createDialog(recipe)}
                         style={{
                           position: "relative",
                           bottom: "-1rem",
@@ -162,12 +200,7 @@ const Production = () => {
           <Button onClick={handleClose} variant="destructive">
             Cancel
           </Button>
-          <Button
-            onClick={() => {
-              /* logic */ handleClose();
-            }}
-            variant="default"
-          >
+          <Button onClick={handleProduce} variant="default">
             Produce
           </Button>
         </DialogActions>
