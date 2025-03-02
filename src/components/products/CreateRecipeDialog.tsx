@@ -19,6 +19,7 @@ import { Product } from "@/types/products";
 import { Material } from "@/types/inventory";
 import { useToast } from "@/hooks/use-toast";
 import { Unit } from "../ui/unit";
+import { Trash2 } from "lucide-react";
 
 interface RecipeMaterial {
   id: string;
@@ -280,6 +281,7 @@ const CreateRecipeDialog: React.FC<CreateRecipeDialogProps> = ({
                     ))}
                   </SelectContent>
                 </Select>
+                
                 <Input
                   type="number"
                   placeholder="Quantity"
@@ -308,18 +310,21 @@ const CreateRecipeDialog: React.FC<CreateRecipeDialogProps> = ({
                   }
                   required
                 />
-                {index > 0 && (
+                {index > 0 && (                  
                   <Button
                     type="button"
                     variant="text"
+                    color="error"
+                    size="small"
+                    className="mt-2"
                     onClick={() => removeMaterialField(index)}
                   >
-                    ❌
+                    <Trash2 className="h-4 w-4" />
                   </Button>
                 )}
               </div>
             ))}
-            <Button type="button" variant="contained" sx={{ height: "25px" }} onClick={addMaterialField}>
+            <Button type="button" variant="text" sx={{ height: "25px", color: "#4CAF50" }} onClick={addMaterialField}>
               + Add Material
             </Button>
             <br />

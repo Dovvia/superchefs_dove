@@ -12,12 +12,14 @@ import { Product } from "@/types/products";
 
 interface ProductDamageDialogProps {
   open: boolean;
+  product: Product;
   onOpenChange: (open: boolean) => void;
   onSuccess?: (id: string, damages_id: string) => void;
 }
 
 export const ProductDamageDialog = ({
   open,
+  product,
   onOpenChange,
   onSuccess,
 }: ProductDamageDialogProps) => {

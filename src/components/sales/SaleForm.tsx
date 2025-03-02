@@ -23,6 +23,8 @@ import { Product } from "@/types/products";
 import { Plus, Trash2, PackageMinus, Gift } from "lucide-react";
 import { ProductDamageDialog } from "../products/ProductDamageDialog";
 import { ComplimentaryProductDialog } from "../products/ComplimentaryProductDialog";
+import currency from "currency.js";
+import { Value } from "@radix-ui/react-select";
 
 const saleItemSchema = z.object({
   product_id: z.string().min(1, "Product is required"),
@@ -30,12 +32,12 @@ const saleItemSchema = z.object({
   unit_price: z.coerce.number().min(0, "Price must be positive"),
 });
 
-const formSchema = z.object({
-  payment_method: z.enum(["cash", "card", "other"]),
+export const formSchema = z.object({
+  payment_method: z.enum(["partner","partner", "card", "transfer"]),
   items: z.array(saleItemSchema).min(1, "At least one item is required"),
 });
 
-type FormValues = z.infer<typeof formSchema>;
+export type FormValues = z.infer<typeof formSchema>;
 
 interface SaleFormProps {
   products: Product[];
@@ -50,10 +52,12 @@ export const SaleForm = ({ products, onSubmit, isLoading, branchId }: SaleFormPr
   const [isDamageDialogOpen, setIsDamageDialogOpen] = useState(false);
   const [isComplimentaryDialogOpen, setIsComplimentaryDialogOpen] = useState(false);
 
+  const naira = (Value: number) => currency(Value, { symbol: "₦", precision: 2, separator: "," }).format();
+
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      payment_method: "cash",
+      payment_method: "partner",
       items,
     },
   });
@@ -100,9 +104,10 @@ export const SaleForm = ({ products, onSubmit, isLoading, branchId }: SaleFormPr
                   </SelectTrigger>
                 </FormControl>
                 <SelectContent>
+                  <SelectItem value="partner">Partner</SelectItem>
                   <SelectItem value="cash">Cash</SelectItem>
                   <SelectItem value="card">Card</SelectItem>
-                  <SelectItem value="other">Other</SelectItem>
+                  <SelectItem value="other">Transfer</SelectItem>
                 </SelectContent>
               </Select>
               <FormMessage />
@@ -136,14 +141,11 @@ export const SaleForm = ({ products, onSubmit, isLoading, branchId }: SaleFormPr
                   </Button>
                 </>
               )}
-              <Button type="button" variant="outline" size="sm" onClick={addItem}>
-                <Plus className="h-4 w-4 mr-2" />
-                Add Item
-              </Button>
+              
             </div>
           </div>
 
-          {items.map((item, index) => (
+          {items.map((_, index) => (
             <div key={index} className="flex gap-4 items-start">
               <FormField
                 control={form.control}
@@ -162,7 +164,7 @@ export const SaleForm = ({ products, onSubmit, isLoading, branchId }: SaleFormPr
                       <SelectContent>
                         {products.map((product) => (
                           <SelectItem key={product.id} value={product.id}>
-                            {product.name} - ${product.price}
+                            {product.name} - {naira(product.price)}
                           </SelectItem>
                         ))}
                       </SelectContent>
@@ -201,16 +203,20 @@ export const SaleForm = ({ products, onSubmit, isLoading, branchId }: SaleFormPr
 
               <Button
                 type="button"
-                variant="ghost"
-                size="icon"
+                variant="destructive"
+                size="sm"
+
                 onClick={() => removeItem(index)}
-                className="mt-2"
               >
                 <Trash2 className="h-4 w-4" />
               </Button>
             </div>
           ))}
         </div>
+        <Button type="button" variant="outline" size="sm" onClick={addItem}>
+                <Plus className="h-4 w-4 mr-2" />
+                Add Item
+              </Button>
 
         <Button type="submit" className="w-full" disabled={isLoading}>
           {isLoading ? "Creating Sale..." : "Create Sale"}
@@ -222,7 +228,6 @@ export const SaleForm = ({ products, onSubmit, isLoading, branchId }: SaleFormPr
               open={isDamageDialogOpen}
               onOpenChange={setIsDamageDialogOpen}
               product={selectedProduct}
-              branchId={branchId}
             />
             <ComplimentaryProductDialog
               open={isComplimentaryDialogOpen}
@@ -232,6 +237,7 @@ export const SaleForm = ({ products, onSubmit, isLoading, branchId }: SaleFormPr
             />
           </>
         )}
+
       </form>
     </Form>
   );

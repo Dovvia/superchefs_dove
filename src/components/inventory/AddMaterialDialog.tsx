@@ -18,7 +18,7 @@ export const AddMaterialDialog = ({ open, onOpenChange, onSuccess }: AddMaterial
   const handleSubmit = async (values: Material) => {
     try {
       setIsLoading(true);
-      const { data, error } = await supabase.from("materials").insert([values]).select("id").single();
+      const { data, error } = await supabase.from("materials").insert([{ ...values, branch_id: "your_branch_id" }]).select("id").single();
       if (error) throw error;
 
       const materialId = data.id;
