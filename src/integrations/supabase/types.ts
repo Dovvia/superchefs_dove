@@ -577,26 +577,33 @@ export type Database = {
         };
         Relationships: [
           {
-            foreignKeyName: "product_transfers_from_branch_id_fkey";
-            columns: ["from_branch_id"];
-            isOneToOne: false;
-            referencedRelation: "branches";
-            referencedColumns: ["id"];
-          },
-          {
-            foreignKeyName: "product_transfers_material_id_fkey";
+            foreignKeyName: "product_transfers_product_id_fkey";
             columns: ["product_id"];
             isOneToOne: false;
             referencedRelation: "products";
             referencedColumns: ["id"];
-          },
-          {
-            foreignKeyName: "product_transfers_to_branch_id_fkey";
-            columns: ["to_branch_id"];
-            isOneToOne: false;
-            referencedRelation: "branches";
-            referencedColumns: ["id"];
           }
+          // {
+          //   foreignKeyName: "product_transfers_id_fkey";
+          //   columns: ["id"];
+          //   isOneToOne: false;
+          //   referencedRelation: "products";
+          //   referencedColumns: ["transfer_id"];
+          // },
+          // {
+          //   foreignKeyName: "product_transfers_from_branch_id_fkey";
+          //   columns: ["from_branch_id"];
+          //   isOneToOne: false;
+          //   referencedRelation: "branches";
+          //   referencedColumns: ["id"];
+          // },
+          // {
+          //   foreignKeyName: "product_transfers_to_branch_id_fkey";
+          //   columns: ["to_branch_id"];
+          //   isOneToOne: false;
+          //   referencedRelation: "branches";
+          //   referencedColumns: ["id"];
+          // }
         ];
       };
       products: {
@@ -620,6 +627,7 @@ export type Database = {
           closingStock: number;
           branch_id: string;
           damages_id: string;
+          transfer_id: string;
         };
         Insert: {
           category?: string | null;
@@ -640,6 +648,7 @@ export type Database = {
           sales: number;
           closingStock: number;
           damages_id?: string;
+          transfer_id?: string;
         };
         Update: {
           category?: string | null;
@@ -660,6 +669,7 @@ export type Database = {
           sales?: number;
           closingStock?: number;
           damages_id?: string;
+          transfer_id?: string;
         };
         Relationships: [
           {
@@ -668,67 +678,80 @@ export type Database = {
             isOneToOne: false;
             referencedRelation: "product_damages";
             referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "product_transfers_product_id_fkey";
+            columns: ["id"];
+            isOneToOne: false;
+            referencedRelation: "product_transfers";
+            referencedColumns: ["product_id"];
           }
+          // {
+          //   foreignKeyName: "products_transfer_id_fkey";
+          //   columns: ["transfer_id"];
+          //   isOneToOne: false;
+          //   referencedRelation: "product_transfers";
+          //   referencedColumns: ["id"];
+          // }
         ];
       };
       product_inventory: {
         Row: {
-            id: string;
-            name: string;
-            category: string;
-            product_id: string;
-            branch_id: string;
-            opening_stock: number;
-            production: number;
-            transfer_in: number;
-            transfer_out: number;
-            damages: number;
-            complimentary: number;
-            sales: Number;
-            closing_stock: number;
-            ucrr: number;
-            scrr: number;
-            created_at: string;
-            updated_at: string;
-          
+          id: string;
+          name: string;
+          category: string;
+          product_id: string;
+          branch_id: string;
+          opening_stock: number;
+          production: number;
+          transfer_in: number;
+          transfer_out: number;
+          damages: number;
+          complimentary: number;
+          sales: number;
+          closing_stock: number;
+          ucrr: number;
+          scrr: number;
+          created_at: string;
+          updated_at: string;
         };
         Insert: {
           id: string;
-            name: string;
-            category: string;
-            product_id: string;
-            branch_id: string;
-            opening_stock: number;
-            production: number;
-            transfer_in: number;
-            transfer_out: number;
-            damages: number;
-            complimentary: number;
-            sales: Number;
-            closing_stock: number;
-            ucrr: number;
-            scrr: number;
-            created_at: string;
-            updated_at: string;
+          name: string;
+          category: string;
+          product_id: string;
+          branch_id: string;
+          opening_stock: number;
+          production: number;
+          transfer_in: number;
+          transfer_out: number;
+          damages: number;
+          complimentary: number;
+          sales: number;
+          closing_stock: number;
+          ucrr: number;
+          scrr: number;
+          created_at: string;
+          updated_at: string;
         };
         Update: {
           id: string;
-            name: string;
-            category: string;
-            product_id: string;
-            branch_id: string;
-            opening_stock: number;
-            production: number;
-            transfer_in: number;
-            transfer_out: number;
-            damages: number;
-            complimentary: number;
-            sales: Number;
-            closing_stock: number;
-            ucrr: number;
-            scrr: number;
-            created_at: string;
-            updated_at: string;
+          name: string;
+          category: string;
+          product_id: string;
+          branch_id: string;
+          opening_stock: number;
+          production: number;
+          transfer_in: number;
+          transfer_out: number;
+          damages: number;
+          complimentary: number;
+          sales: number;
+          closing_stock: number;
+          ucrr: number;
+          scrr: number;
+          created_at: string;
+          updated_at: string;
         };
         Relationships: [
           {

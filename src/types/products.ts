@@ -1,5 +1,15 @@
 import { ProductDamage } from "./damages";
 
+export interface ProductTransfer {
+  id: string;
+  to_branch_id: string;
+  from_branch_id: string;
+  product_id: string;
+  quantity: number;
+  notes: string | null;
+  created_at: string;
+  updated_at: string;
+}
 export interface Product {
   id: string;
   name: string;
@@ -20,6 +30,7 @@ export interface Product {
   closingStock: number;
   branch_id: string;
   damages_id: string;
+  transfer_id: string;
 }
 
 export interface Sale {

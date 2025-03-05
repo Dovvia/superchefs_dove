@@ -13,7 +13,7 @@ import { Product } from "@/types/products";
 interface ProductDamageDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onSuccess?: (id: string, damages_id: string) => void;
+  onSuccess?: (id: string, damages: { id: string; data: string }) => void;
 }
 
 export const ProductDamageDialog = ({
@@ -50,7 +50,7 @@ export const ProductDamageDialog = ({
         description: "Product damage recorded successfully",
       });
       if (data && data?.length > 0) {
-        onSuccess?.(data[0]?.product_id, data[0]?.id);
+        onSuccess?.("damages", { id: data[0]?.product_id, data: data[0]?.id });
       }
       onOpenChange(false);
     } catch (error) {
