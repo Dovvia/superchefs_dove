@@ -13,9 +13,7 @@ export const useUserBranch = () => {
       const { data, error } = await supabase
         .from("user_roles")
         .select(
-          `
-          *,
-          branches (*)
+          `branch:branches!user_roles_branch_id_fkey(*)
         `
         )
         .eq("user_id", session.user.id)
@@ -26,9 +24,9 @@ export const useUserBranch = () => {
         return null;
       }
 
-      console.log("userBranch:", data?.branches);
-      console.log("branchId:", data?.branches?.id);
-      return data?.branches;
+      console.log("userBranch:", data?.branch);
+      console.log("branchId:", data?.branch?.id);
+      return data?.branch;
     },
     enabled: !!session?.user?.id,
   });

@@ -29,8 +29,6 @@ export interface Product {
   sales: number;
   closingStock: number;
   branch_id: string;
-  damages_id: string;
-  transfer_id: string;
 }
 
 export interface Sale {
