@@ -1,9 +1,5 @@
 import React, { useState, useEffect } from "react";
-import {
-  Dialog,
-  DialogContent,
-  DialogTitle,
-} from "@mui/material";
+import { Dialog, DialogContent, DialogTitle } from "@mui/material";
 import {
   Select,
   SelectContent,
@@ -35,7 +31,7 @@ interface RecipeMaterial {
 interface CreateRecipeDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onError: (error: any) => void;
+  onError: (error: Error) => void;
 }
 
 const CreateRecipeDialog: React.FC<CreateRecipeDialogProps> = ({
@@ -111,8 +107,8 @@ const CreateRecipeDialog: React.FC<CreateRecipeDialogProps> = ({
 
   const handleMaterialChange = (
     index: number,
-    field: keyof RecipeMaterial, 
-    value: string | number,
+    field: keyof RecipeMaterial,
+    value: string | number
   ) => {
     const updatedMaterials = [...selectedMaterials];
     if (typeof updatedMaterials[index][field] === typeof value) {
@@ -129,7 +125,10 @@ const CreateRecipeDialog: React.FC<CreateRecipeDialogProps> = ({
     if (
       !selectedProduct ||
       selectedMaterials.some(
-        (material) => !material.material_id || material.quantity === 0 || material.yield === 0
+        (material) =>
+          !material.material_id ||
+          material.quantity === 0 ||
+          material.yield === 0
       )
     ) {
       alert("Please fill in all fields");
@@ -137,7 +136,10 @@ const CreateRecipeDialog: React.FC<CreateRecipeDialogProps> = ({
     }
 
     const recipeEntries = selectedMaterials
-      .filter((material) => material.material_id && material.quantity > 0 && material.yield > 0)
+      .filter(
+        (material) =>
+          material.material_id && material.quantity > 0 && material.yield > 0
+      )
       .map((material) => ({
         product_id: selectedProduct,
         material_id: material.material_id,
@@ -147,11 +149,16 @@ const CreateRecipeDialog: React.FC<CreateRecipeDialogProps> = ({
         name: material.material?.name || "",
       }));
 
-    const { error: recipeError } = await supabase.from("product_recipes").insert({
-      product_id: selectedProduct,
-      name: `Recipe for ${products.find(p => p.id === selectedProduct)?.name || 'Unknown Product'}`,
-      yield: recipeEntries[0]?.yield || 0,
-    });
+    const { error: recipeError } = await supabase
+      .from("product_recipes")
+      .insert({
+        product_id: selectedProduct,
+        name: `Recipe for ${
+          products.find((p) => p.id === selectedProduct)?.name ||
+          "Unknown Product"
+        }`,
+        yield: recipeEntries[0]?.yield || 0,
+      });
 
     if (recipeError) {
       console.log("Error inserting recipe:", recipeError.message);
@@ -159,7 +166,6 @@ const CreateRecipeDialog: React.FC<CreateRecipeDialogProps> = ({
         title: "Error",
         description: "An error occurred while creating the recipe",
         variant: "destructive",
-
       });
       return;
     }
@@ -175,37 +181,43 @@ const CreateRecipeDialog: React.FC<CreateRecipeDialogProps> = ({
       console.log("Error retrieving recipe ID:", recipeIdError?.message);
       toast({
         title: "Error",
-       description: "An error occurred while retrieving the recipe ID",
+        description: "An error occurred while retrieving the recipe ID",
         variant: "destructive",
       });
       return;
     }
 
     const recipeId = recipeData[0].id;
-    const { error: recipeMaterialsError } = await supabase.from("recipe_materials").insert(
-      recipeEntries.map((material) => ({
-        recipe_id: recipeId,
-        material_id: material.material_id,
-        quantity: material.quantity,
-        material_cost: material.material_cost,
-        yield: material.yield,
-      }))
-    );
- 
+    const { error: recipeMaterialsError } = await supabase
+      .from("recipe_materials")
+      .insert(
+        recipeEntries.map((material) => ({
+          recipe_id: recipeId,
+          material_id: material.material_id,
+          quantity: material.quantity,
+          material_cost: material.material_cost,
+          yield: material.yield,
+        }))
+      );
+
     if (recipeMaterialsError) {
-      console.log("Error inserting recipe materials:", recipeMaterialsError.message);
+      console.log(
+        "Error inserting recipe materials:",
+        recipeMaterialsError.message
+      );
       toast({
         title: "Error",
-        description: "An error occurred while inserting materials to the recipe",
+        description:
+          "An error occurred while inserting materials to the recipe",
         variant: "destructive",
-      })
+      });
       return;
     }
 
     toast({
       title: "Success",
       description: "Recipe created successfully",
-    })
+    });
     setSelectedMaterials([
       {
         id: "",
@@ -223,10 +235,11 @@ const CreateRecipeDialog: React.FC<CreateRecipeDialogProps> = ({
     onOpenChange(false);
   };
 
-
   return (
     <Dialog open={open} onClose={() => onOpenChange(false)}>
-      <DialogTitle><strong>Create Recipe</strong></DialogTitle>
+      <DialogTitle>
+        <strong>Create Recipe</strong>
+      </DialogTitle>
       <DialogContent className="sm:max-w-[425px]">
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-2">
@@ -258,10 +271,7 @@ const CreateRecipeDialog: React.FC<CreateRecipeDialogProps> = ({
           <div className="space-y-2">
             <Label>Materials</Label>
             {selectedMaterials.map((material, index) => (
-              <div
-                key={index}
-                className="flex items-center space-x-2"
-              >
+              <div key={index} className="flex items-center space-x-2">
                 <Select
                   value={material.material_id}
                   onValueChange={(value) =>
@@ -275,7 +285,7 @@ const CreateRecipeDialog: React.FC<CreateRecipeDialogProps> = ({
                   <SelectContent style={{ zIndex: 1500 }}>
                     {materials.map((mat) => (
                       <SelectItem key={mat.id} value={mat.id}>
-                        {mat.name} <Unit unit={mat.unit} /> 
+                        {mat.name} <Unit unit={mat.unit} />
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -319,11 +329,22 @@ const CreateRecipeDialog: React.FC<CreateRecipeDialogProps> = ({
                 )}
               </div>
             ))}
-            <Button type="button" variant="contained" sx={{ height: "25px" }} onClick={addMaterialField}>
+            <Button
+              type="button"
+              variant="contained"
+              sx={{ height: "25px" }}
+              onClick={addMaterialField}
+            >
               + Add Material
             </Button>
             <br />
-            <Button type="submit" variant="contained" sx={{ width: "100%", backgroundColor:"#4CAF50" }}>Create Recipe</Button>
+            <Button
+              type="submit"
+              variant="contained"
+              sx={{ width: "100%", backgroundColor: "#4CAF50" }}
+            >
+              Create Recipe
+            </Button>
           </div>
         </form>
       </DialogContent>
@@ -332,4 +353,3 @@ const CreateRecipeDialog: React.FC<CreateRecipeDialogProps> = ({
 };
 
 export default CreateRecipeDialog;
-

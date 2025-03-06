@@ -24,10 +24,12 @@ import { ProductDamageDialog } from "@/components/products/ProductDamageDialog";
 import ProductTransferDialog from "@/components/products/ProductTransferDialog";
 import { ComplimentaryProductDialog } from "@/components/products/ComplimentaryProductDialog";
 import { useToast } from "@/components/ui/use-toast";
+import { useUserBranch } from "@/hooks/user-branch";
 
 const Products = () => {
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const { toast } = useToast();
+  const { data: userBranch } = useUserBranch();
   const [addComplimentaryOpen, setAddComplimentaryOpen] = useState(false);
   const [addDamageOpen, setAddDamageOpen] = useState(false);
   const [addTransferOpen, setAddTransferOpen] = useState(false);
@@ -41,7 +43,12 @@ const Products = () => {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("products")
-        .select(`*, product_damages:damages_id(*)`)
+        .select(
+          `*, 
+        product_damages:damages_id(*), 
+        product_transfer:product_transfers!product_transfers_product_id_fkey(quantity, product_id, from_branch_id, to_branch_id)
+`
+        )
         .eq("is_active", true)
         .order("created_at", { ascending: false });
 
@@ -50,13 +57,25 @@ const Products = () => {
     },
   });
 
-  const handleOnSuccess = async (id: string, damages_id: string) => {
+  const handleOnSuccess = async (
+    type: string,
+    values: { id: string; data: string }
+  ) => {
     try {
-      const { error } = await supabase
-        .from("products")
-        .update({ damages_id })
-        .eq("id", id)
-        .select("id");
+      const { error } =
+        type === "damages"
+          ? await supabase
+              .from("products")
+              .update({ damages_id: values?.data })
+              .eq("id", values?.id)
+              .select("id")
+          : type === "transfer"
+          ? await supabase
+              .from("products")
+              .update({ transfer_id: values?.data })
+              .eq("id", values?.id)
+              .select("id")
+          : null;
 
       if (error) throw error;
       await refetch();
@@ -168,9 +187,8 @@ const Products = () => {
           <ProductTransferDialog
             open={addTransferOpen}
             onOpenChange={setAddTransferOpen}
-            product={undefined}
-            fromBranchId={""}
-            branches={[]} // Pass the branches prop here
+            products={products}
+            onSuccess={handleOnSuccess}
           />
         )}
       </div>
@@ -194,27 +212,48 @@ const Products = () => {
           </TableHeader>
           {products?.length && !isLoading ? (
             <TableBody>
-              {products?.map((product) => (
-                <TableRow key={product.id}>
-                  <TableCell className="font-medium">{product.name}</TableCell>
-                  <TableCell>{product.category}</TableCell>
-                  <TableCell>{product.openingStock}</TableCell>
-                  <TableCell>{product.producedStock}</TableCell>
-                  <TableCell>{product.transferIn}</TableCell>
-                  <TableCell>{product.transferOut}</TableCell>
-                  <TableCell>{product.complimentary}</TableCell>
-                  <TableCell>{product?.product_damages?.quantity}</TableCell>
-                  <TableCell>{product.sales}</TableCell>
-                  <TableCell>{product.closingStock}</TableCell>
-                  <TableCell>
-                    {product.is_active ? (
-                      <span className="text-green-600">Profitable</span>
-                    ) : (
-                      <span className="text-red-600">Loss</span>
-                    )}
-                  </TableCell>
-                </TableRow>
-              ))}
+              {products?.map((product) => {
+                const transfers = {
+                  out:
+                    product?.product_transfer?.[0]?.from_branch_id ===
+                    userBranch?.id
+                      ? product.product_transfer[0].quantity
+                      : null,
+                  in:
+                    product?.product_transfer?.[0]?.to_branch_id ===
+                    userBranch?.id
+                      ? product.product_transfer[0].quantity || 0
+                      : null,
+                };
+
+                return (
+                  <TableRow key={product.id}>
+                    <TableCell className="font-medium">
+                      {product.name}
+                    </TableCell>
+                    <TableCell>{product.category}</TableCell>
+                    <TableCell>{product.openingStock}</TableCell>
+                    <TableCell>{product.producedStock}</TableCell>
+                    <TableCell className="text-center">
+                      {transfers?.in}
+                    </TableCell>
+                    <TableCell className="text-center">
+                      {transfers.out}
+                    </TableCell>
+                    <TableCell>{product.complimentary}</TableCell>
+                    <TableCell>{product?.product_damages?.quantity}</TableCell>
+                    <TableCell>{product.sales}</TableCell>
+                    <TableCell>{product.closingStock}</TableCell>
+                    <TableCell>
+                      {product.is_active ? (
+                        <span className="text-green-600">Profitable</span>
+                      ) : (
+                        <span className="text-red-600">Loss</span>
+                      )}
+                    </TableCell>
+                  </TableRow>
+                );
+              })}
             </TableBody>
           ) : products?.length === 0 && !isLoading ? (
             <TableBody>
