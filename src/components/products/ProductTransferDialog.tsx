@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import z from "zod";
 import { supabase } from "@/integrations/supabase/client";
 import {
@@ -31,12 +31,20 @@ import { useToast } from "@/hooks/use-toast";
 import type { Product } from "@/types/products";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { useUserBranch } from "@/hooks/user-branch";
 
+interface ExtendedProduct extends Product {
+  product_transfer?: {
+    quantity: number;
+    from_branch_id: string;
+    to_branch_id: string;
+  }[];
+}
 interface ProductTransferDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  products: Product[];
-  onSuccess?: (id: string, transfer: { id: string; data: string }) => void;
+  products: ExtendedProduct[];
+  onSuccess?: () => void;
 }
 
 interface FormValues {
@@ -76,15 +84,10 @@ const ProductTransferDialog = ({
       notes: "",
     },
   });
+  const { data: userBranch } = useUserBranch();
   const [isLoading, setIsLoading] = useState(false);
-  const queryClient = useQueryClient();
   const { toast } = useToast();
-
-  const {
-    data: branches,
-    refetch,
-    isLoading: isLoadingBranches,
-  } = useQuery({
+  const { data: branches, isLoading: isLoadingBranches } = useQuery({
     queryKey: ["branches"],
     queryFn: async () => {
       const { data, error } = await supabase
@@ -101,7 +104,7 @@ const ProductTransferDialog = ({
     setIsLoading(true);
     try {
       // Create transfer record
-      const { data: transferData, error: transferError } = await supabase
+      const { error: transferError } = await supabase
         .from("product_transfers")
         .insert([
           {
@@ -112,8 +115,7 @@ const ProductTransferDialog = ({
             notes: data.notes,
             status: "pending",
           },
-        ])
-        .select("product_id, id");
+        ]);
 
       if (transferError) throw transferError;
 
@@ -145,12 +147,7 @@ const ProductTransferDialog = ({
         title: "Transfer initiated",
         description: "The product transfer has been initiated successfully.",
       });
-
-      queryClient.invalidateQueries({ queryKey: ["product-transfers"] });
-      onSuccess?.("transfer", {
-        id: transferData[0]?.product_id,
-        data: transferData[0]?.id,
-      });
+      onSuccess?.();
       onOpenChange(false);
     } catch (error: unknown) {
       toast({
@@ -203,7 +200,7 @@ const ProductTransferDialog = ({
                           <SelectItem
                             key={product.id}
                             value={product.id}
-                            disabled={!!product?.transfer_id}
+                            disabled={!!product?.product_transfer?.length}
                           >
                             {product.name} - ${product.price}
                           </SelectItem>
@@ -232,13 +229,14 @@ const ProductTransferDialog = ({
                         form.setValue("toBranch", br?.id);
                         field.onChange(e);
                       }}
+                      disabled={isLoadingBranches}
                     >
                       <SelectTrigger>
                         <SelectValue placeholder="Select destination branch" />
                       </SelectTrigger>
                       <SelectContent>
                         {branches
-                          // ?.filter((branch) => branch.id !== fromBranchId)
+                          ?.filter((branch) => branch.id !== userBranch?.id)
                           ?.map((branch) => (
                             <SelectItem key={branch.id} value={branch.id}>
                               {branch.name}

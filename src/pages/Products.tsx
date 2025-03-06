@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Product } from "@/types/products";
 import {
@@ -30,6 +30,7 @@ const Products = () => {
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const { toast } = useToast();
   const { data: userBranch } = useUserBranch();
+  const queryClient = useQueryClient();
   const [addComplimentaryOpen, setAddComplimentaryOpen] = useState(false);
   const [addDamageOpen, setAddDamageOpen] = useState(false);
   const [addTransferOpen, setAddTransferOpen] = useState(false);
@@ -45,9 +46,9 @@ const Products = () => {
         .from("products")
         .select(
           `*, 
-        product_damages:damages_id(*), 
-        product_transfer:product_transfers!product_transfers_product_id_fkey(quantity, product_id, from_branch_id, to_branch_id)
-`
+        product_damage:product_damages!product_damages_product_id_fkey(quantity), 
+        product_transfer:product_transfers!product_transfers_product_id_fkey(quantity, from_branch_id, to_branch_id),
+        cmp:complimentary_products!complimentary_products_product_id_fkey1(quantity)`
         )
         .eq("is_active", true)
         .order("created_at", { ascending: false });
@@ -57,37 +58,8 @@ const Products = () => {
     },
   });
 
-  const handleOnSuccess = async (
-    type: string,
-    values: { id: string; data: string }
-  ) => {
-    try {
-      const { error } =
-        type === "damages"
-          ? await supabase
-              .from("products")
-              .update({ damages_id: values?.data })
-              .eq("id", values?.id)
-              .select("id")
-          : type === "transfer"
-          ? await supabase
-              .from("products")
-              .update({ transfer_id: values?.data })
-              .eq("id", values?.id)
-              .select("id")
-          : null;
-
-      if (error) throw error;
-      await refetch();
-    } catch (error) {
-      console.error("Error fetching products:", error);
-      toast({
-        title: "Error",
-        description: "Failed to update products",
-        variant: "destructive",
-      });
-    }
-  };
+  const handleOnSuccess = () =>
+    queryClient.invalidateQueries({ queryKey: ["products"] });
 
   const handleAddProduct = async (values: Partial<Product>) => {
     try {
@@ -162,8 +134,8 @@ const Products = () => {
           <ComplimentaryProductDialog
             open={addComplimentaryOpen}
             onOpenChange={setAddComplimentaryOpen}
-            product={undefined}
-            branchId={""}
+            products={products}
+            onSuccess={handleOnSuccess}
           />
         )}
 
@@ -173,6 +145,7 @@ const Products = () => {
         </Button>
         {addDamageOpen && (
           <ProductDamageDialog
+            products={products}
             open={addDamageOpen}
             onOpenChange={setAddDamageOpen}
             onSuccess={handleOnSuccess}
@@ -185,9 +158,9 @@ const Products = () => {
         </Button>
         {addTransferOpen && (
           <ProductTransferDialog
+            products={products as Product[]}
             open={addTransferOpen}
             onOpenChange={setAddTransferOpen}
-            products={products}
             onSuccess={handleOnSuccess}
           />
         )}
@@ -240,8 +213,12 @@ const Products = () => {
                     <TableCell className="text-center">
                       {transfers.out}
                     </TableCell>
-                    <TableCell>{product.complimentary}</TableCell>
-                    <TableCell>{product?.product_damages?.quantity}</TableCell>
+                    <TableCell className="text-center">
+                      {product?.cmp?.[0]?.quantity}
+                    </TableCell>
+                    <TableCell className="text-center">
+                      {product?.product_damage?.[0]?.quantity}
+                    </TableCell>
                     <TableCell>{product.sales}</TableCell>
                     <TableCell>{product.closingStock}</TableCell>
                     <TableCell>

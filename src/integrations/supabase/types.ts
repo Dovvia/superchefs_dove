@@ -63,6 +63,13 @@ export type Database = {
         };
         Relationships: [
           {
+            foreignKeyName: "complimentary_products_product_id_fkey1";
+            columns: ["product_id"];
+            isOneToOne: false;
+            referencedRelation: "products";
+            referencedColumns: ["id"];
+          },
+          {
             foreignKeyName: "complimentary_products_branch_id_fkey";
             columns: ["branch_id"];
             isOneToOne: false;
@@ -487,13 +494,6 @@ export type Database = {
         };
         Relationships: [
           {
-            foreignKeyName: "product_damages_branch_id_fkey";
-            columns: ["branch_id"];
-            isOneToOne: false;
-            referencedRelation: "branches";
-            referencedColumns: ["id"];
-          },
-          {
             foreignKeyName: "product_damages_product_id_fkey";
             columns: ["product_id"];
             isOneToOne: false;
@@ -626,8 +626,6 @@ export type Database = {
           sales: number;
           closingStock: number;
           branch_id: string;
-          damages_id: string;
-          transfer_id: string;
         };
         Insert: {
           category?: string | null;
@@ -647,8 +645,6 @@ export type Database = {
           damages: number;
           sales: number;
           closingStock: number;
-          damages_id?: string;
-          transfer_id?: string;
         };
         Update: {
           category?: string | null;
@@ -668,16 +664,14 @@ export type Database = {
           damages?: number;
           sales?: number;
           closingStock?: number;
-          damages_id?: string;
-          transfer_id?: string;
         };
         Relationships: [
           {
             foreignKeyName: "products_damages_id_fkey";
-            columns: ["damages_id"];
+            columns: ["id"];
             isOneToOne: false;
             referencedRelation: "product_damages";
-            referencedColumns: ["id"];
+            referencedColumns: ["product_id"];
           },
           {
             foreignKeyName: "product_transfers_product_id_fkey";
@@ -685,14 +679,14 @@ export type Database = {
             isOneToOne: false;
             referencedRelation: "product_transfers";
             referencedColumns: ["product_id"];
+          },
+          {
+            foreignKeyName: "products_cmp_id_fkey";
+            columns: ["id"];
+            isOneToOne: false;
+            referencedRelation: "complimentary_products";
+            referencedColumns: ["product_id"];
           }
-          // {
-          //   foreignKeyName: "products_transfer_id_fkey";
-          //   columns: ["transfer_id"];
-          //   isOneToOne: false;
-          //   referencedRelation: "product_transfers";
-          //   referencedColumns: ["id"];
-          // }
         ];
       };
       product_inventory: {

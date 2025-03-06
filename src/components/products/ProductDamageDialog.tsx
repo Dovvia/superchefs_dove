@@ -10,13 +10,18 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { Product } from "@/types/products";
 
+interface ExtendedProduct extends Product {
+  product_damage?: { quantity: number }[];
+}
 interface ProductDamageDialogProps {
+  products: ExtendedProduct[];
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onSuccess?: (id: string, damages: { id: string; data: string }) => void;
+  onSuccess?: () => void;
 }
 
 export const ProductDamageDialog = ({
+  products,
   open,
   onOpenChange,
   onSuccess,
@@ -26,32 +31,28 @@ export const ProductDamageDialog = ({
 
   const handleSubmit = async (values: {
     product: string;
-    quantity: number;
+    quantity: string;
     reason: string;
     branch: string;
   }) => {
     try {
       setIsLoading(true);
-      const { data, error } = await supabase
-        .from("product_damages")
-        .insert([
-          {
-            branch_id: values?.branch,
-            product_id: values?.product,
-            quantity: values?.quantity,
-            reason: values?.reason,
-          },
-        ])
-        .select("product_id, id");
+      const { error } = await supabase.from("product_damages").insert([
+        {
+          branch_id: values?.branch,
+          product_id: values?.product,
+          quantity: Number(values?.quantity),
+          reason: values?.reason,
+        },
+      ]);
       if (error) throw error;
 
       toast({
         title: "Success",
         description: "Product damage recorded successfully",
       });
-      if (data && data?.length > 0) {
-        onSuccess?.("damages", { id: data[0]?.product_id, data: data[0]?.id });
-      }
+
+      onSuccess?.();
       onOpenChange(false);
     } catch (error) {
       console.error("Error recording product damage:", error);
@@ -72,6 +73,7 @@ export const ProductDamageDialog = ({
           <DialogTitle>Record Product Damage</DialogTitle>
         </DialogHeader>
         <ProductDamageForm
+          products={products}
           onSubmit={handleSubmit}
           isLoading={isLoading}
           onCancel={() => onOpenChange(false)}
