@@ -13,29 +13,50 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Product } from "@/types/products";
+import {
+  Select,
+  SelectTrigger,
+  SelectValue,
+  SelectContent,
+  SelectItem,
+} from "../ui/select";
 
 const formSchema = z.object({
-  quantity: z.coerce.number().min(1, "Quantity must be at least 1"),
+  product: z.string().min(1, "Please select a product"),
+  quantity: z
+    .string()
+    .min(1, "Quantity is required")
+    .refine((val) => !isNaN(Number(val)) && Number(val) > 0, {
+      message: "Quantity must be greater than zero",
+    }),
   reason: z.string().min(1, "Reason is required"),
   recipient: z.string().min(1, "Recipient is required"),
+  branch_id: z.string().optional(),
 });
 
+interface ExtendedProduct extends Product {
+  cmp?: { quantity: number }[];
+}
+
 interface ComplimentaryProductFormProps {
-  product: Product;
+  products: ExtendedProduct[];
   onSubmit: (values: z.infer<typeof formSchema>) => Promise<void>;
   isLoading?: boolean;
   onCancel: () => void;
 }
 
 export const ComplimentaryProductForm = ({
-  onSubmit, 
+  products,
+  onSubmit,
   isLoading,
   onCancel,
 }: ComplimentaryProductFormProps) => {
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      quantity: 1,
+      product: "",
+      branch_id: "",
+      quantity: "",
       reason: "",
       recipient: "",
     },
@@ -46,12 +67,57 @@ export const ComplimentaryProductForm = ({
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
         <FormField
           control={form.control}
+          name="product"
+          render={({ field }) => (
+            <FormItem ref={field.ref}>
+              <FormLabel htmlFor="product" withAsterisk>
+                Product
+              </FormLabel>
+              <FormControl id="product">
+                <Select
+                  {...field}
+                  onValueChange={(e) => {
+                    const product = products?.find(
+                      (product) => product?.id === e
+                    );
+                    form.setValue("product", e);
+                    form.setValue("branch_id", product?.branch_id);
+                    field.onChange(e);
+                  }}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select a product" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {products?.map((product) => (
+                      <SelectItem
+                        key={product.id}
+                        value={product.id}
+                        disabled={!!product?.cmp?.length}
+                      >
+                        {product.name} - ${product.price}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        <FormField
+          control={form.control}
           name="quantity"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Quantity</FormLabel>
+              <FormLabel withAsterisk>Quantity</FormLabel>
               <FormControl>
-                <Input type="number" min="1" {...field} />
+                <Input
+                  type="number"
+                  min="1"
+                  {...field}
+                  placeholder="Enter quantity"
+                />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -63,7 +129,7 @@ export const ComplimentaryProductForm = ({
           name="reason"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Reason</FormLabel>
+              <FormLabel withAsterisk>Reason</FormLabel>
               <FormControl>
                 <Textarea {...field} />
               </FormControl>
@@ -77,7 +143,7 @@ export const ComplimentaryProductForm = ({
           name="recipient"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Recipient</FormLabel>
+              <FormLabel withAsterisk>Recipient</FormLabel>
               <FormControl>
                 <Input {...field} />
               </FormControl>

@@ -81,7 +81,7 @@ export interface ProductInventory {
   transfer_out: number;
   damages: number;
   complimentary: number;
-  sales: Number;
+  sales: number;
   closing_stock: number;
   ucrr: number;
   scrr: number;
