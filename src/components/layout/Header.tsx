@@ -2,9 +2,8 @@ import { Menu } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/auth";
 import NotificationBell from "./NotificationBell";
-import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
 import UserMenu from "./UserMenu";
+import { useUserBranch } from "@/hooks/user-branch";
 
 interface HeaderProps {
   onMenuClick: () => void;
@@ -12,33 +11,7 @@ interface HeaderProps {
 
 const Header = ({ onMenuClick }: HeaderProps) => {
   const { session } = useAuth();
-
-  const { data: userBranch } = useQuery({
-    queryKey: ["user-branch", session?.user?.id],
-    queryFn: async () => {
-      if (!session?.user?.id) return null;
-
-      const { data, error } = await supabase
-        .from("user_roles")
-        .select(
-          `
-          *,
-          branches (*)
-        `
-        )
-        .eq("user_id", session.user.id)
-        .single();
-
-      if (error) {
-        console.error("Error fetching user branch:", error);
-        return null;
-      }
-      console.log("userBranch:", userBranch);
-      console.log("branchId:", userBranch?.id);
-      return data?.branches;
-    },
-    enabled: !!session?.user?.id,
-  });
+  const { data: userBranch } = useUserBranch();
 
   return (
     <header

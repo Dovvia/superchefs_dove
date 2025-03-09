@@ -32,7 +32,7 @@ interface RecipeMaterial {
 interface CreateRecipeDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onError: (error: any) => void;
+  onError: (error: Error) => void;
 }
 
 const CreateRecipeDialog: React.FC<CreateRecipeDialogProps> = ({
@@ -336,8 +336,13 @@ const CreateRecipeDialog: React.FC<CreateRecipeDialogProps> = ({
             ))}
             <Button
               type="button"
+<<<<<<< HEAD
               variant="text"
               sx={{ height: "25px", color: "#4CAF50" }}
+=======
+              variant="contained"
+              sx={{ height: "25px" }}
+>>>>>>> origin/main
               onClick={addMaterialField}
             >
               + Add Material

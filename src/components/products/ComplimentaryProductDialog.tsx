@@ -1,4 +1,9 @@
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { ComplimentaryProductForm } from "./ComplimentaryProductForm";
 import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
@@ -8,33 +13,34 @@ import { Product } from "@/types/products";
 interface ComplimentaryProductDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  product: Product;
-  branchId: string;
+  products: Product[];
   onSuccess?: () => void;
 }
- 
+
 export const ComplimentaryProductDialog = ({
   open,
   onOpenChange,
-  product,
-  branchId,
+  products,
   onSuccess,
 }: ComplimentaryProductDialogProps) => {
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
 
   const handleSubmit = async (values: {
-    quantity: number;
+    product: string;
+    branch_id: string;
+    quantity: string;
     reason: string;
     recipient: string;
   }) => {
+    const { product: product_id, ...rest } = values;
     try {
       setIsLoading(true);
       const { error } = await supabase.from("complimentary_products").insert([
         {
-          product_id: product.id,
-          branch_id: branchId,
-          ...values,
+          product_id,
+          ...rest,
+          quantity: Number(values?.quantity),
         },
       ]);
       if (error) throw error;
@@ -64,7 +70,7 @@ export const ComplimentaryProductDialog = ({
           <DialogTitle>Record Complimentary Product</DialogTitle>
         </DialogHeader>
         <ComplimentaryProductForm
-          product={product}
+          products={products}
           onSubmit={handleSubmit}
           isLoading={isLoading}
           onCancel={() => onOpenChange(false)}

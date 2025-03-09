@@ -20,23 +20,32 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Product } from "@/types/products";
-import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
 
 const formSchema = z.object({
   product: z.string().min(1, "Please select a product"),
   branch: z.string().optional(),
-  quantity: z.coerce.number().min(1, "Quantity must be at least 1"),
+  quantity: z
+    .string()
+    .min(1, "Quantity is required")
+    .refine((val) => !isNaN(Number(val)) && Number(val) > 0, {
+      message: "Quantity must be greater than zero",
+    }),
   reason: z.string().min(1, "Reason is required"),
 });
 
+interface ExtendedProduct extends Product {
+  product_damages?: { quantity: number }[];
+}
+
 interface ProductDamageFormProps {
+  products: ExtendedProduct[];
   onSubmit: (values: z.infer<typeof formSchema>) => Promise<void>;
   isLoading?: boolean;
   onCancel: () => void;
 }
 
 export const ProductDamageForm = ({
+  products,
   onSubmit,
   isLoading,
   onCancel,
@@ -44,22 +53,8 @@ export const ProductDamageForm = ({
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      quantity: 1,
+      quantity: "",
       reason: "",
-    },
-  });
-
-  const { data: products } = useQuery({
-    queryKey: ["products"],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("products")
-        .select(`*`)
-        .eq("is_active", true)
-        .order("name");
-
-      if (error) throw error;
-      return data as Product[];
     },
   });
 
@@ -94,7 +89,7 @@ export const ProductDamageForm = ({
                       <SelectItem
                         key={product.id}
                         value={product.id}
-                        disabled={!!product?.damages_id}
+                        disabled={!!product?.product_damages?.length}
                       >
                         {product.name} - ${product.price}
                       </SelectItem>
@@ -113,7 +108,12 @@ export const ProductDamageForm = ({
             <FormItem>
               <FormLabel withAsterisk>Quantity</FormLabel>
               <FormControl>
-                <Input type="number" min="1" {...field} />
+                <Input
+                  type="number"
+                  min="1"
+                  {...field}
+                  placeholder="Enter damaged quantity"
+                />
               </FormControl>
               <FormMessage />
             </FormItem>
