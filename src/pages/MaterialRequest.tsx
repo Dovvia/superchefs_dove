@@ -1,33 +1,33 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { Damage } from "@/types/damages";
+import type { MaterialRequest } from "@/types/material_request";
 import {
   Table,
   TableBody,
   TableCell,
-  TableHead, 
+  TableHead,
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Plus } from "lucide-react";
 import { Dialog, DialogTrigger } from "@/components/ui/dialog";
-import { MaterialDamageDialog } from "@/components/damages/MaterialDamageDialog";
+import { MaterialRequestDialog } from "@/components/material_request/MaterialRequestDialog";
 import { format } from "date-fns";
 
-const Damages = () => {
+const MaterialRequest = () => {
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
 
   const {
-    data: damages,
-    refetch: refetchDamages,
+    data: material_requests,
+    refetch: refetchMaterialRequests,
     isLoading,
   } = useQuery({
-    queryKey: ["damaged_materials"],
+    queryKey: ["material_requests"],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from("damaged_materials")
+        .from("material_requests")
         .select(
           `*,
           material:material_id(name, unit, unit_price),
@@ -38,7 +38,7 @@ const Damages = () => {
         .order("created_at", { ascending: false });
 
       if (error) throw error;
-      return data as Damage[];
+      return data as unknown as MaterialRequest[];
     },
   });
 
@@ -48,17 +48,17 @@ const Damages = () => {
   return (
     <div className="space-y-6 p-6">
       <div className="flex justify-between items-center">
-        <h2 className="text-3xl font-bold tracking-tight">Damages</h2>
+        <h2 className="text-3xl font-bold tracking-tight">Material request</h2>
         <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
           <DialogTrigger asChild id="material damage">
             <Button>
               <Plus className="mr-2 h-4 w-4" />
-              New Damages
+              Material request
             </Button>
           </DialogTrigger>
-          <MaterialDamageDialog
+          <MaterialRequestDialog
             onOpenChange={setIsAddDialogOpen}
-            refetch={refetchDamages}
+            refetch={refetchMaterialRequests}
           />
         </Dialog>
       </div>
@@ -72,44 +72,44 @@ const Damages = () => {
               <TableHead>Cost</TableHead>
               <TableHead>Quantity</TableHead>
               <TableHead>Total cost</TableHead>
-              <TableHead>Reason</TableHead>
-              <TableHead>Recorded By</TableHead>
+              <TableHead>Request By</TableHead>
               <TableHead>Branch</TableHead>
+              <TableHead>Status</TableHead>
               <TableHead>Date</TableHead>
             </TableRow>
           </TableHeader>
-          {damages?.length && !isLoading ? (
+          {material_requests?.length && !isLoading ? (
             <TableBody>
-              {damages?.map((damage) => (
-                <TableRow key={damage.id}>
-                  <TableCell>{damage?.material?.name}</TableCell>
-                  <TableCell>{damage?.material?.unit}</TableCell>
-                  <TableCell>{damage?.material?.unit_price}</TableCell>
-                  <TableCell>{damage?.quantity}</TableCell>
+              {material_requests?.map((material_request) => (
+                <TableRow key={material_request.id}>
+                  <TableCell>{material_request?.material?.name}</TableCell>
+                  <TableCell>{material_request?.material?.unit}</TableCell>
+                  <TableCell>{material_request?.material?.unit_price}</TableCell>
+                  <TableCell>{material_request?.quantity}</TableCell>
                   <TableCell>
                     {calculateTotalCost(
-                      damage?.material?.unit_price,
-                      damage?.quantity
+                      material_request?.material?.unit_price,
+                      material_request?.quantity
                     )}
                   </TableCell>
-                  <TableCell>{damage?.reason}</TableCell>
                   <TableCell className="capitalize">
-                    {damage?.user
-                      ? `${damage?.user?.first_name} ${damage?.user?.last_name}`
+                    {material_request?.user
+                      ? `${material_request?.user?.first_name} ${material_request?.user?.last_name}`
                       : "N / A"}
                   </TableCell>
-                  <TableCell>{damage?.branch?.name ?? "N / A"}</TableCell>
+                  <TableCell>{material_request?.branch?.name ?? "N / A"}</TableCell>
+                  <TableCell>{material_request?.status}</TableCell>
                   <TableCell>
-                    {format(new Date(damage.created_at), "MMM d, yyyy h:mm a")}
+                    {format(new Date(material_request.created_at), "MMM d, yyyy h:mm a")}
                   </TableCell>
                 </TableRow>
               ))}
             </TableBody>
-          ) : !damages?.length && !isLoading ? (
+          ) : !material_requests?.length && !isLoading ? (
             <TableBody>
               <TableRow>
                 <TableCell colSpan={5} className="text-center">
-                  No damages recorded yet
+                  No current material requests
                 </TableCell>
               </TableRow>
             </TableBody>
@@ -128,4 +128,4 @@ const Damages = () => {
   );
 };
 
-export default Damages;
+export default MaterialRequest;

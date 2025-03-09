@@ -366,6 +366,54 @@ export type Database = {
           }
         ];
       };
+      imprest: {
+        Row: {
+          branch_id: string;
+          created_at: string;
+          updated_at: string;
+          id: string;
+          item: string;
+          unit: string;
+          unit_price: number;
+          quantity: number;
+          user_id: string;
+          status: string;
+          
+        };
+        Insert: {
+          branch_id: string;
+          created_at: string;
+          updated_at: string;
+          id: string;
+          item: string;
+          unit: string;
+          unit_price: number;
+          quantity: number;
+          user_id: string;
+          status: string;
+        };
+        Update: {
+          branch_id: string;
+          created_at: string;
+          updated_at: string;
+          id: string;
+          item: string;
+          unit: string;
+          unit_price: number;
+          quantity: number;
+          user_id: string;
+          status: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "imprest_branch_id_fkey";
+            columns: ["branch_id"];
+            isOneToOne: false;
+            referencedRelation: "branches";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       notifications: {
         Row: {
           branch_id: string;

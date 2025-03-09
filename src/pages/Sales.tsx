@@ -22,6 +22,14 @@ const Sales = () => {
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const { toast } = useToast();
 
+  const { data: user } = useQuery({
+    queryKey: ["user"],
+    queryFn: async () => {
+      const user = await supabase.auth.getUser();
+      return user.data;
+    },
+  });
+
   const { data: products } = useQuery({
     queryKey: ["products"],
     queryFn: async () => {
@@ -48,6 +56,7 @@ const Sales = () => {
             product:products(*)
           )
         `)
+        .eq("branch_id", user?.user?.user_metadata?.branch_id)
         .order("created_at", { ascending: false });
 
       if (error) throw error;
@@ -70,7 +79,7 @@ const Sales = () => {
           {
             payment_method: values.payment_method,
             total_amount,
-            branch_id: "default", // You might want to make this dynamic based on user's branch
+            branch_id: user?.user?.user_metadata?.branch_id,
           },
         ])
         .select()
@@ -126,7 +135,7 @@ const Sales = () => {
               <SaleForm
                 products={products}
                 onSubmit={handleCreateSale}
-                branchId="default" // Add the required branchId prop
+                branchId={user?.user?.user_metadata?.branch_id}
               />
             )}
           </DialogContent>
@@ -170,3 +179,4 @@ const Sales = () => {
 };
 
 export default Sales;
+
