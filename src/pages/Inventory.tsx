@@ -13,25 +13,30 @@ import {
 import { Button } from "@/components/ui/button";
 import { Plus } from "lucide-react";
 import { AddMaterialDialog } from "@/components/inventory/AddMaterialDialog";
-import { MaterialRequestDialog } from "@/components/inventory/MaterialRequestDialog";
 import { StockMovementDialog } from "@/components/inventory/StockMovementDialog";
+import { toast, useToast } from "@/components/ui/use-toast";
 import currency from "currency.js";
+import { DialogHeader } from "@/components/ui/dialog";
+import { Dialog, DialogTrigger, DialogContent, DialogTitle } from "@radix-ui/react-dialog";
 
 const Inventory = () => {
   const naira = (value: number) =>
     currency(value, { symbol: "₦", precision: 2, separator: "," }).format();
 
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
-  const [isMaterialRequestOpen, setIsMaterialRequestOpen] = useState(false);
   const [selectedInventory, setSelectedInventory] =
     useState<InventoryType | null>(null);
+  const [branchId, setBranchId] = useState<string | null>(null);
   const [filterName, setFilterName] = useState("");
   const [filterDate, setFilterDate] = useState("");
-  const [branchId, setBranchId] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchUser = async () => {
-      const { data: user } = await supabase.auth.getUser();
+      const { data: user, error } = await supabase.auth.getUser();
+      if (error) {
+        console.error("Error fetching user:", error);
+        return;
+      }
       const branchId = user?.user?.user_metadata?.branch_id;
       setBranchId(branchId);
     };
@@ -79,7 +84,6 @@ const Inventory = () => {
     <div className="space-y-4 p-3 bg-white rounded-lg shadow-md w-full mx-auto margin-100">
       <div className="flex justify-between items-center">
         <h2 className="text-3xl font-bold tracking-tight">Inventory</h2>
-        <Button onClick={() => setIsMaterialRequestOpen(true)}>Mat Request</Button>
         <Button onClick={() => setIsAddDialogOpen(true)}>
           <Plus className="mr-2 h-4 w-4" />
           Add Material
@@ -178,14 +182,6 @@ const Inventory = () => {
         onOpenChange={setIsAddDialogOpen}
         onSuccess={refetch}
       />
-      <MaterialRequestDialog
-        open={isMaterialRequestOpen}
-        onOpenChange={setIsMaterialRequestOpen}
-        onSuccess={refetch}
-        materials={materials || []}
-        branchId={branchId || ""}
-      />
-
       {selectedInventory && (
         <StockMovementDialog
           open={!!selectedInventory}

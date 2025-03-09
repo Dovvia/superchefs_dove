@@ -1,36 +1,36 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { Damage } from "@/types/damages";
+import type { Imprest } from "@/types/imprest";
 import {
   Table,
   TableBody,
   TableCell,
-  TableHead, 
+  TableHead,
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Plus } from "lucide-react";
 import { Dialog, DialogTrigger } from "@/components/ui/dialog";
-import { MaterialDamageDialog } from "@/components/damages/MaterialDamageDialog";
+import { ImprestDialog } from "@/components/imprest/ImprestDialog";
 import { format } from "date-fns";
+import { HandCoinsIcon } from "lucide-react";
 
-const Damages = () => {
+const Imprest = () => {
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
 
   const {
-    data: damages,
-    refetch: refetchDamages,
+    data: imprest,
+    refetch: refetchImprest,
     isLoading,
   } = useQuery({
-    queryKey: ["damaged_materials"],
+    queryKey: ["imprest"],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from("damaged_materials")
+        .from("imprest")
         .select(
           `*,
-          material:material_id(name, unit, unit_price),
           branch:branch_id(name),
           user:user_id(first_name, last_name)
         `
@@ -38,7 +38,7 @@ const Damages = () => {
         .order("created_at", { ascending: false });
 
       if (error) throw error;
-      return data as Damage[];
+      return data as unknown as Imprest[];
     },
   });
 
@@ -48,17 +48,17 @@ const Damages = () => {
   return (
     <div className="space-y-6 p-6">
       <div className="flex justify-between items-center">
-        <h2 className="text-3xl font-bold tracking-tight">Damages</h2>
+        <h2 className="text-3xl font-bold tracking-tight">Imprest</h2>
         <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
-          <DialogTrigger asChild id="material damage">
+          <DialogTrigger asChild id="imprest">
             <Button>
-              <Plus className="mr-2 h-4 w-4" />
-              New Damages
+            <HandCoinsIcon className="ml-2 h-4 w-4" />
+              Imprest
             </Button>
           </DialogTrigger>
-          <MaterialDamageDialog
+          <ImprestDialog
             onOpenChange={setIsAddDialogOpen}
-            refetch={refetchDamages}
+            refetch={refetchImprest}
           />
         </Dialog>
       </div>
@@ -67,49 +67,49 @@ const Damages = () => {
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>Material Name</TableHead>
+              <TableHead>Item</TableHead>
               <TableHead>Unit</TableHead>
-              <TableHead>Cost</TableHead>
+              <TableHead>Unit Cost</TableHead>
               <TableHead>Quantity</TableHead>
               <TableHead>Total cost</TableHead>
-              <TableHead>Reason</TableHead>
               <TableHead>Recorded By</TableHead>
               <TableHead>Branch</TableHead>
               <TableHead>Date</TableHead>
+              <TableHead>Status</TableHead>
             </TableRow>
           </TableHeader>
-          {damages?.length && !isLoading ? (
+          {imprest?.length && !isLoading ? (
             <TableBody>
-              {damages?.map((damage) => (
-                <TableRow key={damage.id}>
-                  <TableCell>{damage?.material?.name}</TableCell>
-                  <TableCell>{damage?.material?.unit}</TableCell>
-                  <TableCell>{damage?.material?.unit_price}</TableCell>
-                  <TableCell>{damage?.quantity}</TableCell>
+              {imprest?.map((imprest) => (
+                <TableRow key={imprest.id}>
+                  <TableCell>{imprest?.item}</TableCell>
+                  <TableCell>{imprest?.unit}</TableCell>
+                  <TableCell>{imprest?.unit_price}</TableCell>
+                  <TableCell>{imprest?.quantity}</TableCell>
                   <TableCell>
                     {calculateTotalCost(
-                      damage?.material?.unit_price,
-                      damage?.quantity
+                      imprest?.unit_price,
+                      imprest?.quantity
                     )}
                   </TableCell>
-                  <TableCell>{damage?.reason}</TableCell>
                   <TableCell className="capitalize">
-                    {damage?.user
-                      ? `${damage?.user?.first_name} ${damage?.user?.last_name}`
+                    {imprest?.user
+                      ? `${imprest?.user?.first_name} ${imprest?.user?.last_name}`
                       : "N / A"}
                   </TableCell>
-                  <TableCell>{damage?.branch?.name ?? "N / A"}</TableCell>
+                  <TableCell>{imprest?.branch?.name ?? "N / A"}</TableCell>
                   <TableCell>
-                    {format(new Date(damage.created_at), "MMM d, yyyy h:mm a")}
+                    {format(new Date(imprest.created_at), "MMM d, yyyy h:mm a")}
                   </TableCell>
+                  <TableCell>{imprest?.status}</TableCell>
                 </TableRow>
               ))}
             </TableBody>
-          ) : !damages?.length && !isLoading ? (
+          ) : !imprest?.length && !isLoading ? (
             <TableBody>
               <TableRow>
                 <TableCell colSpan={5} className="text-center">
-                  No damages recorded yet
+                  No recent imprests
                 </TableCell>
               </TableRow>
             </TableBody>
@@ -128,4 +128,4 @@ const Damages = () => {
   );
 };
 
-export default Damages;
+export default Imprest;

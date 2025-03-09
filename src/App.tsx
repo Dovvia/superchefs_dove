@@ -15,6 +15,8 @@ import Sales from "./pages/Sales";
 import Procurement from "./pages/Procurement";
 import Users from "./pages/Users";
 import Branches from "./pages/Branches";
+import MaterialRequest from "./pages/MaterialRequest";
+import Imprest from "./pages/imprest";
 import Production from "./pages/Production";
 import Damages from "./pages/Damages";
 import Recipes from "./pages/Recipes";
@@ -44,6 +46,8 @@ function App() {
                 <Route path="inventory" element={<Inventory />} />
                 <Route path="products" element={<Products />} />
                 <Route path="sales" element={<Sales />} />
+                <Route path="material-request" element={<MaterialRequest />} />
+                <Route path="imprest" element={<Imprest />} />
                 <Route path="procurement" element={<Procurement />} />
                 <Route path="damages" element={<Damages />} />
                 <Route path="users" element={<Users />} />

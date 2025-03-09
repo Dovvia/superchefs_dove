@@ -210,10 +210,10 @@ export const SaleForm = ({ products, onSubmit, isLoading, branchId }: SaleFormPr
               >
                 <Trash2 className="h-4 w-4" />
               </Button>
-            </div>
+            </div> 
           ))}
         </div>
-        <Button type="button" variant="outline" size="sm" onClick={addItem}>
+              <Button type="button" variant="outline" size="sm" onClick={addItem}>
                 <Plus className="h-4 w-4 mr-2" />
                 Add Item
               </Button>
