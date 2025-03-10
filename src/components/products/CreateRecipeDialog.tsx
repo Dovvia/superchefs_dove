@@ -336,7 +336,7 @@ const CreateRecipeDialog: React.FC<CreateRecipeDialogProps> = ({
             ))}
             <Button
               type="button"
-              variant="contained"
+              variant="text"
               sx={{ height: "25px", color: "#4CAF50" }}
 
               onClick={addMaterialField}
