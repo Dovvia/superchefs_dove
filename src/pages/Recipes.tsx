@@ -55,7 +55,7 @@ interface Recipe {
     name: string;
     id: string;
   };
-  recipe_materials: RecipeMaterial[]; 
+  recipe_materials: RecipeMaterial[];
 }
 
 const Recipes = () => {
@@ -72,9 +72,7 @@ const Recipes = () => {
   } = useQuery({
     queryKey: ["recipes"],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("product_recipes")
-        .select(`
+      const { data, error } = await supabase.from("product_recipes").select(`
           *,
           product:products(name),
           recipe_materials(
@@ -93,7 +91,8 @@ const Recipes = () => {
 
   const updateRecipeMutation = useMutation<Recipe, Error, Recipe>({
     mutationFn: async (updatedRecipe: Recipe): Promise<Recipe> => {
-      const { data, error } = await supabase
+      // Update the product_recipes table
+      const { data: recipeData, error: recipeError } = await supabase
         .from("product_recipes")
         .update({
           name: updatedRecipe.name,
@@ -104,8 +103,9 @@ const Recipes = () => {
         .select()
         .single();
 
-      if (error) throw error;
+      if (recipeError) throw recipeError;
 
+      // Delete existing materials from recipe_materials table
       const { error: rmError } = await supabase
         .from("recipe_materials")
         .delete()
@@ -113,22 +113,23 @@ const Recipes = () => {
 
       if (rmError) throw rmError;
 
-      const materialInserts = updatedRecipe.recipe_materials.map((material) => ({
-        recipe_id: updatedRecipe.id,
-        material_id: material.material_id,
-        quantity: material.quantity,
-        yield: material.yield,
-      }));
+      // Insert updated materials into recipe_materials table
+      const materialInserts = updatedRecipe.recipe_materials.map(
+        (material) => ({
+          recipe_id: updatedRecipe.id,
+          material_id: material.material_id,
+          quantity: material.quantity,
+          yield: material.yield,
+        })
+      );
 
       const { error: insertError } = await supabase
         .from("recipe_materials")
-        .insert(materialInserts)
-        .select()
-        .single();
+        .insert(materialInserts);
 
       if (insertError) throw insertError;
 
-      return { ...updatedRecipe, ...data };
+      return { ...updatedRecipe, ...recipeData };
     },
     onSuccess: (updatedRecipe) => {
       queryClient.setQueryData<Recipe[]>(["recipes"], (oldRecipes) =>
@@ -142,8 +143,12 @@ const Recipes = () => {
     },
     onError: (error) => {
       console.error("Error updating recipe:", error);
-      
-      toast({ title: "Error", description: `Error updating recipe: ${error.message}`, variant: "destructive" }); // Show error toast
+
+      toast({
+        title: "Error",
+        description: `Error updating recipe: ${error.message}`,
+        variant: "destructive",
+      }); // Show error toast
     },
   });
 
@@ -177,8 +182,10 @@ const Recipes = () => {
                   <ScrollText className="h-5 w-5" />
                   <CardTitle>{recipe.product.name}</CardTitle>
                   <Button
-                  style={{ marginLeft: "auto" }}
-                  onClick={() => handleEdit(recipe)} size="sm">
+                    style={{ marginLeft: "auto" }}
+                    onClick={() => handleEdit(recipe)}
+                    size="sm"
+                  >
                     <Edit className="h-4 w-4" />
                   </Button>
                 </div>
@@ -224,12 +231,18 @@ const Recipes = () => {
         onOpenChange={(open) => setIsCreateRecipeOpen(open)}
         onError={(error) => {
           console.error("Dialog error:", error);
-          
-          toast({ title: "Error", description: "An error occurred. Please try again.",  }); // Show error toast
+
+          toast({
+            title: "Error",
+            description: "An error occurred. Please try again.",
+          }); // Show error toast
         }}
       />
       {editingRecipe && (
-        <Dialog open={Boolean(editingRecipe)} onOpenChange={(open) => open ? null : setEditingRecipe(null)}>
+        <Dialog
+          open={Boolean(editingRecipe)}
+          onOpenChange={(open) => (open ? null : setEditingRecipe(null))}
+        >
           <DialogHeader className="flex items-center justify-between">
             <DialogTitle>Edit Recipe</DialogTitle>
             <DialogClose asChild>
@@ -239,7 +252,6 @@ const Recipes = () => {
             </DialogClose>
           </DialogHeader>
           <DialogContent>
-            
             <Input
               className="w-2/3"
               value={editingRecipe.name}
@@ -254,7 +266,10 @@ const Recipes = () => {
                     key={material.id}
                     className="flex justify-between items-center py-1 border-b"
                   >
-                    <span>{material.material.name} <Unit unit={material.material.unit} /></span>
+                    <span>
+                      {material.material.name}{" "}
+                      <Unit unit={material.material.unit} />
+                    </span>
                     <div className="w-1/4">
                       <Input
                         type="number"
@@ -262,12 +277,12 @@ const Recipes = () => {
                         onChange={(e) =>
                           setEditingRecipe({
                             ...editingRecipe,
-                            recipe_materials: editingRecipe.recipe_materials.map(
-                              (m) =>
+                            recipe_materials:
+                              editingRecipe.recipe_materials.map((m) =>
                                 m.id === material.id
                                   ? { ...m, quantity: Number(e.target.value) }
                                   : m
-                            ),
+                              ),
                           })
                         }
                       />
@@ -291,11 +306,14 @@ const Recipes = () => {
                 </strong>
               </div>
             </div>
-            <Button onClick={() => {
-              handleUpdate();
-              setEditingRecipe(null);
-              queryClient.invalidateQueries({ queryKey: ["recipes"] });
-            }} className="mt-4">
+            <Button
+              onClick={() => {
+                handleUpdate();
+                setEditingRecipe(null);
+                queryClient.invalidateQueries({ queryKey: ["recipes"] });
+              }}
+              className="mt-4"
+            >
               Update Recipe
             </Button>
           </DialogContent>
