@@ -24,6 +24,8 @@ import { ChartBar, Filter, Download } from "lucide-react";
 import { AccountsMetricsCards } from "@/components/accounts/AccountsMetricsCards";
 import { AccountsChart } from "@/components/accounts/AccountsChart";
 import { DateRange } from "react-day-picker";
+import { Sale } from "@/types/sales";
+import { naira } from "@/lib/utils";
 
 const Accounts = () => {
   const [dateRange, setDateRange] = useState<DateRange | undefined>();
@@ -57,9 +59,7 @@ const Accounts = () => {
   const { data: salesData } = useQuery({
     queryKey: ["sales", dateRange, selectedBranch, selectedProduct],
     queryFn: async () => {
-      let query = supabase
-        .from("sales")
-        .select(`
+      let query = supabase.from("sales").select(`
           *,
           branch:branches(name),
           items:sale_items(
@@ -71,7 +71,8 @@ const Accounts = () => {
         `);
 
       if (dateRange?.from && dateRange?.to) {
-        query = query.gte("created_at", dateRange.from.toISOString())
+        query = query
+          .gte("created_at", dateRange.from.toISOString())
           .lte("created_at", dateRange.to.toISOString());
       }
 
@@ -79,13 +80,17 @@ const Accounts = () => {
         query = query.eq("branch_id", selectedBranch);
       }
 
-      const { data, error } = await query.order("created_at", { ascending: false });
+      const { data, error } = await query.order("created_at", {
+        ascending: false,
+      });
       if (error) throw error;
 
       if (selectedProduct !== "all") {
-        return data.map(sale => ({
+        return data.map((sale) => ({
           ...sale,
-          items: sale.items.filter(item => item.product.id === selectedProduct)
+          items: sale.items.filter(
+            (item) => item.product.id === selectedProduct
+          ),
         }));
       }
 
@@ -93,16 +98,16 @@ const Accounts = () => {
     },
   });
 
-  const calculateMetrics = (sales: any[]) => {
+  const calculateMetrics = (sales: Sale[]) => {
     let totalRevenue = 0;
     let totalCost = 0;
     let totalItems = 0;
 
-    sales?.forEach(sale => {
-      sale.items?.forEach((item: any) => {
+    sales?.forEach((sale) => {
+      sale.items?.forEach((item) => {
         const itemRevenue = item.subtotal;
         const itemCost = itemRevenue * 0.6;
-        
+
         totalRevenue += itemRevenue;
         totalCost += itemCost;
         totalItems += item.quantity;
@@ -110,7 +115,8 @@ const Accounts = () => {
     });
 
     const profit = totalRevenue - totalCost;
-    const costToRevenueRatio = totalRevenue > 0 ? (totalCost / totalRevenue) * 100 : 0;
+    const costToRevenueRatio =
+      totalRevenue > 0 ? (totalCost / totalRevenue) * 100 : 0;
 
     return {
       revenue: totalRevenue,
@@ -121,7 +127,7 @@ const Accounts = () => {
     };
   };
 
-  const metrics = calculateMetrics(salesData || []);
+  const metrics = calculateMetrics((salesData as unknown as Sale[]) || []);
 
   return (
     <div className="space-y-6">
@@ -135,7 +141,7 @@ const Accounts = () => {
 
       <div className="flex flex-col md:flex-row gap-4">
         <DatePickerWithRange date={dateRange} setDate={setDateRange} />
-        
+
         <Select value={selectedBranch} onValueChange={setSelectedBranch}>
           <SelectTrigger className="w-full md:w-[200px]">
             <SelectValue placeholder="Select Branch" />
@@ -166,7 +172,7 @@ const Accounts = () => {
       </div>
 
       <AccountsMetricsCards metrics={metrics} />
-      
+
       <div className="grid gap-4 grid-cols-1 lg:grid-cols-2">
         <Card>
           <CardHeader>
@@ -200,11 +206,13 @@ const Accounts = () => {
                     <TableCell>{sale.branch?.name}</TableCell>
                     <TableCell>
                       {sale.items
-                        ?.map((item: any) => `${item.quantity}x ${item.product.name}`)
+                        ?.map(
+                          (item) => `${item.quantity}x ${item.product.name}`
+                        )
                         .join(", ")}
                     </TableCell>
                     <TableCell className="text-right">
-                      ${sale.total_amount.toFixed(2)}
+                      {naira(sale.total_amount.toFixed(2))}
                     </TableCell>
                   </TableRow>
                 ))}

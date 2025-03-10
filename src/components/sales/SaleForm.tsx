@@ -23,7 +23,7 @@ import { Product } from "@/types/products";
 import { Plus, Trash2, PackageMinus, Gift } from "lucide-react";
 import { ProductDamageDialog } from "../products/ProductDamageDialog";
 import { ComplimentaryProductDialog } from "../products/ComplimentaryProductDialog";
-import currency from "currency.js";
+import { naira } from "@/lib/utils";
 import { Value } from "@radix-ui/react-select";
 
 const saleItemSchema = z.object({
@@ -32,8 +32,9 @@ const saleItemSchema = z.object({
   unit_price: z.coerce.number().min(0, "Price must be positive"),
 });
 
-export const formSchema = z.object({
-  payment_method: z.enum(["partner","partner", "card", "transfer"]),
+const formSchema = z.object({
+  payment_method: z.enum(["cash", "partner", "card", "transfer"]),
+  branch_id: z.string().optional(),
   items: z.array(saleItemSchema).min(1, "At least one item is required"),
 });
 
@@ -43,16 +44,16 @@ interface SaleFormProps {
   products: Product[];
   onSubmit: (values: FormValues) => Promise<void>;
   isLoading?: boolean;
-  branchId: string;
 }
 
-export const SaleForm = ({ products, onSubmit, isLoading, branchId }: SaleFormProps) => {
-  const [items, setItems] = useState([{ product_id: "", quantity: 1, unit_price: 0 }]);
+export const SaleForm = ({ products, onSubmit, isLoading }: SaleFormProps) => {
+  const [items, setItems] = useState([
+    { product_id: "", quantity: 1, unit_price: 0 },
+  ]);
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [isDamageDialogOpen, setIsDamageDialogOpen] = useState(false);
-  const [isComplimentaryDialogOpen, setIsComplimentaryDialogOpen] = useState(false);
-
-  const naira = (Value: number) => currency(Value, { symbol: "₦", precision: 2, separator: "," }).format();
+  const [isComplimentaryDialogOpen, setIsComplimentaryDialogOpen] =
+    useState(false);
 
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
@@ -64,7 +65,10 @@ export const SaleForm = ({ products, onSubmit, isLoading, branchId }: SaleFormPr
 
   const addItem = () => {
     setItems([...items, { product_id: "", quantity: 1, unit_price: 0 }]);
-    form.setValue("items", [...items, { product_id: "", quantity: 1, unit_price: 0 }]);
+    form.setValue("items", [
+      ...items,
+      { product_id: "", quantity: 1, unit_price: 0 },
+    ]);
   };
 
   const removeItem = (index: number) => {
@@ -84,6 +88,7 @@ export const SaleForm = ({ products, onSubmit, isLoading, branchId }: SaleFormPr
       };
       setItems(newItems);
       form.setValue("items", newItems);
+      form.setValue("branch_id", product?.branch_id);
       setSelectedProduct(product);
     }
   };
@@ -141,7 +146,6 @@ export const SaleForm = ({ products, onSubmit, isLoading, branchId }: SaleFormPr
                   </Button>
                 </>
               )}
-              
             </div>
           </div>
 
@@ -153,7 +157,9 @@ export const SaleForm = ({ products, onSubmit, isLoading, branchId }: SaleFormPr
                 render={({ field }) => (
                   <FormItem className="flex-1">
                     <Select
-                      onValueChange={(value) => handleProductChange(index, value)}
+                      onValueChange={(value) =>
+                        handleProductChange(index, value)
+                      }
                       value={field.value}
                     >
                       <FormControl>
@@ -205,18 +211,17 @@ export const SaleForm = ({ products, onSubmit, isLoading, branchId }: SaleFormPr
                 type="button"
                 variant="destructive"
                 size="sm"
-
                 onClick={() => removeItem(index)}
               >
                 <Trash2 className="h-4 w-4" />
               </Button>
-            </div> 
+            </div>
           ))}
         </div>
-              <Button type="button" variant="outline" size="sm" onClick={addItem}>
-                <Plus className="h-4 w-4 mr-2" />
-                Add Item
-              </Button>
+        <Button type="button" variant="outline" size="sm" onClick={addItem}>
+          <Plus className="h-4 w-4 mr-2" />
+          Add Item
+        </Button>
 
         <Button type="submit" className="w-full" disabled={isLoading}>
           {isLoading ? "Creating Sale..." : "Create Sale"}
@@ -227,17 +232,15 @@ export const SaleForm = ({ products, onSubmit, isLoading, branchId }: SaleFormPr
             <ProductDamageDialog
               open={isDamageDialogOpen}
               onOpenChange={setIsDamageDialogOpen}
-              product={selectedProduct}
+              products={products}
             />
             <ComplimentaryProductDialog
               open={isComplimentaryDialogOpen}
               onOpenChange={setIsComplimentaryDialogOpen}
-              product={selectedProduct}
-              branchId={branchId}
+              products={products}
             />
           </>
         )}
-
       </form>
     </Form>
   );
