@@ -1,4 +1,5 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { naira } from "@/lib/utils";
 import { DollarSign, TrendingUp, TrendingDown, Percent } from "lucide-react";
 
 interface AccountsMetricsCardsProps {
@@ -17,10 +18,12 @@ export function AccountsMetricsCards({ metrics }: AccountsMetricsCardsProps) {
       <Card>
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
           <CardTitle className="text-sm font-medium">Total Revenue</CardTitle>
-          <DollarSign className="h-4 w-4 text-primary" />
+          <div className="h-4 w-4 text-primary">₦</div>
         </CardHeader>
         <CardContent>
-          <div className="text-2xl font-bold">${metrics.revenue.toFixed(2)}</div>
+          <div className="text-2xl font-bold">
+            {naira(metrics.revenue.toFixed(2))}
+          </div>
           <p className="text-xs text-muted-foreground">
             From {metrics.totalItems} items sold
           </p>
@@ -33,10 +36,10 @@ export function AccountsMetricsCards({ metrics }: AccountsMetricsCardsProps) {
           <TrendingDown className="h-4 w-4 text-destructive" />
         </CardHeader>
         <CardContent>
-          <div className="text-2xl font-bold">${metrics.cost.toFixed(2)}</div>
-          <p className="text-xs text-muted-foreground">
-            Operating expenses
-          </p>
+          <div className="text-2xl font-bold">
+            {naira(metrics.cost.toFixed(2))}
+          </div>
+          <p className="text-xs text-muted-foreground">Operating expenses</p>
         </CardContent>
       </Card>
 
@@ -46,25 +49,25 @@ export function AccountsMetricsCards({ metrics }: AccountsMetricsCardsProps) {
           <TrendingUp className="h-4 w-4 text-primary" />
         </CardHeader>
         <CardContent>
-          <div className="text-2xl font-bold">${metrics.profit.toFixed(2)}</div>
-          <p className="text-xs text-muted-foreground">
-            Revenue - Cost
-          </p>
+          <div className="text-2xl font-bold">
+            {naira(metrics.profit.toFixed(2))}
+          </div>
+          <p className="text-xs text-muted-foreground">Revenue - Cost</p>
         </CardContent>
       </Card>
 
       <Card>
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-          <CardTitle className="text-sm font-medium">Cost/Revenue Ratio</CardTitle>
+          <CardTitle className="text-sm font-medium">
+            Cost/Revenue Ratio
+          </CardTitle>
           <Percent className="h-4 w-4 text-muted-foreground" />
         </CardHeader>
         <CardContent>
           <div className="text-2xl font-bold">
             {metrics.costToRevenueRatio.toFixed(1)}%
           </div>
-          <p className="text-xs text-muted-foreground">
-            Cost as % of revenue
-          </p>
+          <p className="text-xs text-muted-foreground">Cost as % of revenue</p>
         </CardContent>
       </Card>
     </div>
