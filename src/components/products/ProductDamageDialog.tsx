@@ -16,7 +16,6 @@ interface ExtendedProduct extends Product {
 interface ProductDamageDialogProps {
   products: ExtendedProduct[];
   open: boolean;
-  product: Product;
   onOpenChange: (open: boolean) => void;
   onSuccess?: () => void;
 }
@@ -24,7 +23,6 @@ interface ProductDamageDialogProps {
 export const ProductDamageDialog = ({
   products,
   open,
-  product,
   onOpenChange,
   onSuccess,
 }: ProductDamageDialogProps) => {

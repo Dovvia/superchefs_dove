@@ -24,8 +24,9 @@ import { ChartBar, Filter, Download } from "lucide-react";
 import { AccountsMetricsCards } from "@/components/accounts/AccountsMetricsCards";
 import { AccountsChart } from "@/components/accounts/AccountsChart";
 import { DateRange } from "react-day-picker";
-import useAccountReportGenerator from "@/hooks/use-generate-report";
 import { Sale } from "@/types/sales";
+import { naira } from "@/lib/utils";
+import useAccountReportGenerator from "@/hooks/use-generate-report";
 
 const Accounts = () => {
   const [dateRange, setDateRange] = useState<DateRange | undefined>();
@@ -213,7 +214,7 @@ const Accounts = () => {
                         .join(", ")}
                     </TableCell>
                     <TableCell className="text-right">
-                      ${sale.total_amount.toFixed(2)}
+                      {naira(sale.total_amount.toFixed(2))}
                     </TableCell>
                   </TableRow>
                 ))}

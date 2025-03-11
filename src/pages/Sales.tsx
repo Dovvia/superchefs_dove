@@ -13,22 +13,25 @@ import {
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Plus } from "lucide-react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { SaleForm } from "@/components/sales/SaleForm";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import { FormValues, SaleForm } from "@/components/sales/SaleForm";
 import { useToast } from "@/components/ui/use-toast";
 import { format } from "date-fns";
+import { useUserBranch } from "@/hooks/user-branch";
 
 const Sales = () => {
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
+  const [loading, setLoading] = useState(false);
   const { toast } = useToast();
-
-  const { data: user } = useQuery({
-    queryKey: ["user"],
-    queryFn: async () => {
-      const user = await supabase.auth.getUser();
-      return user.data;
-    },
-  });
+  const {
+    data: { id },
+  } = useUserBranch();
 
   const { data: products } = useQuery({
     queryKey: ["products"],
@@ -49,14 +52,16 @@ const Sales = () => {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("sales")
-        .select(`
+        .select(
+          `
           *,
           items:sale_items(
             *,
             product:products(*)
           )
-        `)
-        .eq("branch_id", user?.user?.user_metadata?.branch_id)
+        `
+        )
+        .eq("branch_id", id)
         .order("created_at", { ascending: false });
 
       if (error) throw error;
@@ -64,11 +69,12 @@ const Sales = () => {
     },
   });
 
-  const handleCreateSale = async (values: any) => {
+  const handleCreateSale = async (values: FormValues) => {
     try {
+      setLoading(true);
       // Calculate total amount
       const total_amount = values.items.reduce(
-        (sum: number, item: any) => sum + item.quantity * item.unit_price,
+        (sum: number, item) => sum + item.quantity * item.unit_price,
         0
       );
 
@@ -79,7 +85,7 @@ const Sales = () => {
           {
             payment_method: values.payment_method,
             total_amount,
-            branch_id: user?.user?.user_metadata?.branch_id,
+            branch_id: values?.branch_id,
           },
         ])
         .select()
@@ -89,7 +95,7 @@ const Sales = () => {
 
       // Insert sale items
       const { error: itemsError } = await supabase.from("sale_items").insert(
-        values.items.map((item: any) => ({
+        values.items.map((item) => ({
           sale_id: saleData.id,
           product_id: item.product_id,
           quantity: item.quantity,
@@ -100,12 +106,14 @@ const Sales = () => {
 
       if (itemsError) throw itemsError;
 
+      setLoading(false);
+
       toast({
         title: "Success",
         description: "Sale created successfully",
       });
       setIsAddDialogOpen(false);
-      refetchSales();
+      await refetchSales();
     } catch (error) {
       console.error("Error creating sale:", error);
       toast({
@@ -135,7 +143,7 @@ const Sales = () => {
               <SaleForm
                 products={products}
                 onSubmit={handleCreateSale}
-                branchId={user?.user?.user_metadata?.branch_id}
+                // branchId={user?.user?.user_metadata?.branch_id}
               />
             )}
           </DialogContent>
@@ -165,7 +173,9 @@ const Sales = () => {
                     </div>
                   ))}
                 </TableCell>
-                <TableCell className="capitalize">{sale.payment_method}</TableCell>
+                <TableCell className="capitalize">
+                  {sale.payment_method}
+                </TableCell>
                 <TableCell className="text-right">
                   ${sale.total_amount.toFixed(2)}
                 </TableCell>
@@ -179,4 +189,3 @@ const Sales = () => {
 };
 
 export default Sales;
-
