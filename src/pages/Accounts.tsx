@@ -1,7 +1,9 @@
-import { useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
+import { ChartBar, Filter, Download } from "lucide-react";
+import dayjs from "dayjs";
+import { DateRange } from "react-day-picker";
 import { supabase } from "@/integrations/supabase/client";
-import { format } from "date-fns";
 import {
   Table,
   TableBody,
@@ -20,17 +22,33 @@ import {
 } from "@/components/ui/select";
 import { DatePickerWithRange } from "@/components/accounts/DateRangePicker";
 import { Button } from "@/components/ui/button";
-import { ChartBar, Filter, Download } from "lucide-react";
 import { AccountsMetricsCards } from "@/components/accounts/AccountsMetricsCards";
 import { AccountsChart } from "@/components/accounts/AccountsChart";
-import { DateRange } from "react-day-picker";
 import { Sale } from "@/types/sales";
 import { naira } from "@/lib/utils";
+import useAccountReportGenerator from "@/hooks/use-generate-report";
+import { useUserBranch } from "@/hooks/user-branch";
+import { UserMetadata } from "@supabase/supabase-js";
 
 const Accounts = () => {
+  const ContentRef = useRef<HTMLDivElement>(null);
+  const [user, setUser] = useState({
+    email: null,
+    email_verified: true,
+    first_name: null,
+    last_name: null,
+    phone_verified: false,
+    role: null,
+    sub: null,
+  } as UserMetadata);
   const [dateRange, setDateRange] = useState<DateRange | undefined>();
   const [selectedBranch, setSelectedBranch] = useState<string>("all");
   const [selectedProduct, setSelectedProduct] = useState<string>("all");
+  const generate = useAccountReportGenerator;
+  // const browserPrint = useHandlePrint(ContentRef); // for browser printing
+  const {
+    data: { name },
+  } = useUserBranch();
 
   const { data: branches } = useQuery({
     queryKey: ["branches"],
@@ -129,11 +147,88 @@ const Accounts = () => {
 
   const metrics = calculateMetrics((salesData as unknown as Sale[]) || []);
 
+  const accountData = useMemo(() => {
+    return {
+      username: `${user?.first_name} ${user?.last_name}`,
+      userBranch: name,
+      dateRange: !dateRange
+        ? "All time"
+        : `${dayjs(dateRange?.from).format("Do MMMM YYYY")} - ${dayjs(
+            dateRange?.to
+          ).format("Do MMMM YYYY")}`,
+      filters: {
+        branches:
+          selectedBranch === "all"
+            ? "All Branches"
+            : branches?.filter((x) => x?.id === selectedBranch)[0]?.name,
+        products:
+          selectedProduct === "all"
+            ? "All Products"
+            : products?.filter((x) => x?.id === selectedProduct)[0]?.name,
+      },
+      financialSummary: {
+        totalRevenue: metrics.revenue,
+        itemsSold: metrics.totalItems,
+        totalCost: metrics.cost,
+        netProfit: metrics.profit,
+        costRevenueRatio: metrics.costToRevenueRatio.toFixed(1),
+      },
+      salesDetails: salesData?.map((x) => {
+        return {
+          date: dayjs(x?.created_at).format("D MMMM, YYYY"),
+          branch: branches?.filter((b) => b?.id === x?.branch_id)[0]?.name,
+          items: x?.items
+            ?.map((t) => `${t?.quantity}x ${t?.product?.name}`)
+            .join(", "),
+          amount: naira(x?.total_amount),
+        };
+      }),
+      revenueVsCost: {
+        labels: [dayjs(salesData?.[0]?.created_at).format("DD/MM/YYYY")],
+        revenue: [metrics?.revenue],
+        cost: [metrics?.cost],
+      },
+    };
+  }, [
+    branches,
+    dateRange,
+    metrics.cost,
+    metrics.costToRevenueRatio,
+    metrics.profit,
+    metrics.revenue,
+    metrics.totalItems,
+    name,
+    products,
+    salesData,
+    selectedBranch,
+    selectedProduct,
+    user?.first_name,
+    user?.last_name,
+  ]);
+
+  useEffect(() => {
+    const fetchUser = async () => {
+      const {
+        data: {
+          user: { user_metadata },
+        },
+        error,
+      } = await supabase.auth.getUser();
+      if (error) {
+        console.error("Error fetching user:", error);
+        return;
+      }
+      setUser(user_metadata);
+    };
+
+    fetchUser();
+  }, []);
+
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <h2 className="text-3xl font-bold tracking-tight">Accounts</h2>
-        <Button>
+        <Button onClick={generate({ data: accountData }).pdf}>
           <Download className="mr-2 h-4 w-4" />
           Export Report
         </Button>
@@ -171,7 +266,7 @@ const Accounts = () => {
         </Select>
       </div>
 
-      <AccountsMetricsCards metrics={metrics} />
+      <AccountsMetricsCards metrics={metrics} ref={ContentRef} />
 
       <div className="grid gap-4 grid-cols-1 lg:grid-cols-2">
         <Card>
@@ -201,7 +296,7 @@ const Accounts = () => {
                 {salesData?.map((sale) => (
                   <TableRow key={sale.id}>
                     <TableCell>
-                      {format(new Date(sale.created_at), "MMM d, yyyy")}
+                      {dayjs(new Date(sale.created_at)).format("D MMMM, YYYY")}
                     </TableCell>
                     <TableCell>{sale.branch?.name}</TableCell>
                     <TableCell>
