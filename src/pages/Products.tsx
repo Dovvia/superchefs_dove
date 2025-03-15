@@ -46,6 +46,10 @@ const Products = () => {
         .from("products")
         .select(
           `*, 
+        opening_stock:product_inventory(opening_stock), 
+        production:product_inventory(production), 
+        ucrr:product_inventory(ucrr), 
+        scrr:product_inventory(scrr),
         product_damage:product_damages!product_damages_product_id_fkey(quantity), 
         product_transfer:product_transfers!product_transfers_product_id_fkey(quantity, from_branch_id, to_branch_id),
         cmp:complimentary_products!complimentary_products_product_id_fkey1(quantity)`
@@ -172,15 +176,16 @@ const Products = () => {
             <TableRow>
               <TableHead>Name</TableHead>
               <TableHead>Category</TableHead>
-              <TableHead>Op. Stock</TableHead>
+              <TableHead>Open Stock</TableHead>
               <TableHead>Prod. Stock</TableHead>
               <TableHead>TRF (In)</TableHead>
               <TableHead>TRF (Out)</TableHead>
               <TableHead>CMP</TableHead>
               <TableHead>DMG</TableHead>
               <TableHead>Sales</TableHead>
-              <TableHead>Cl. Stock</TableHead>
-              <TableHead>Status</TableHead>
+              <TableHead>Close Stock</TableHead>
+              <TableHead>UCRR</TableHead>
+              <TableHead>SCRR</TableHead>
             </TableRow>
           </TableHeader>
           {products?.length && !isLoading ? (
@@ -205,28 +210,21 @@ const Products = () => {
                       {product.name}
                     </TableCell>
                     <TableCell>{product.category}</TableCell>
-                    <TableCell>{product.openingStock}</TableCell>
-                    <TableCell>{product.producedStock}</TableCell>
-                    <TableCell className="text-center">
-                      {transfers?.in}
-                    </TableCell>
-                    <TableCell className="text-center">
-                      {transfers.out}
-                    </TableCell>
-                    <TableCell className="text-center">
-                      {product?.cmp?.[0]?.quantity}
-                    </TableCell>
-                    <TableCell className="text-center">
-                      {product?.product_damage?.[0]?.quantity}
-                    </TableCell>
+                    <TableCell>{product?.opening_stock?.[0]?.opening_stock}</TableCell>
+                    <TableCell>{product?.production?.[0]?.production}</TableCell>
+                    <TableCell className="text-center">{transfers?.in}</TableCell>
+                    <TableCell className="text-center">{transfers.out}</TableCell>
+                    <TableCell className="text-center">{product?.cmp?.[0]?.quantity}</TableCell>
+                    <TableCell className="text-center">{product?.product_damage?.[0]?.quantity}</TableCell>
                     <TableCell>{product.sales}</TableCell>
                     <TableCell>{product.closingStock}</TableCell>
-                    <TableCell>
-                      {product.is_active ? (
-                        <span className="text-green-600">Profitable</span>
-                      ) : (
-                        <span className="text-red-600">Loss</span>
-                      )}
+                    <TableCell>{product.ucrr?.[0]?.ucrr >= 0.75 ?
+                    (<span className="text-green-600">{product.ucrr?.[0]?.ucrr * 100}%</span>) : 
+                    (<span className="text-red-600">{product.ucrr?.[0]?.ucrr * 100}%</span>)}
+                    </TableCell>
+                    <TableCell>{product.scrr?.[0]?.scrr >= 0.75 ?
+                    (<span className="text-green-600">{product.scrr?.[0]?.scrr * 100}%</span>) : 
+                    (<span className="text-red-600">{product.scrr?.[0]?.scrr * 100}%</span>)}
                     </TableCell>
                   </TableRow>
                 );
