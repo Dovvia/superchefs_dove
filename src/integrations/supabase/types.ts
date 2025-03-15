@@ -739,13 +739,13 @@ export type Database = {
       };
       product_inventory: {
         Row: {
+          production: number;
           id: string;
           name: string;
           category: string;
           product_id: string;
           branch_id: string;
           opening_stock: number;
-          production: number;
           transfer_in: number;
           transfer_out: number;
           damages: number;
@@ -758,42 +758,42 @@ export type Database = {
           updated_at: string;
         };
         Insert: {
-          id: string;
-          name: string;
-          category: string;
           product_id: string;
-          branch_id: string;
           opening_stock: number;
           production: number;
-          transfer_in: number;
-          transfer_out: number;
-          damages: number;
-          complimentary: number;
-          sales: number;
-          closing_stock: number;
-          ucrr: number;
-          scrr: number;
-          created_at: string;
-          updated_at: string;
+          // id: string;
+          // name: string;
+          // category: string;
+          // branch_id: string;
+          // transfer_in: number;
+          // transfer_out: number;
+          // damages: number;
+          // complimentary: number;
+          // sales: number;
+          // closing_stock: number;
+          // ucrr: number;
+          // scrr: number;
+          // created_at: string;
+          // updated_at: string;
         };
         Update: {
-          id: string;
-          name: string;
-          category: string;
-          product_id: string;
-          branch_id: string;
-          opening_stock: number;
           production: number;
-          transfer_in: number;
-          transfer_out: number;
-          damages: number;
-          complimentary: number;
-          sales: number;
-          closing_stock: number;
-          ucrr: number;
-          scrr: number;
-          created_at: string;
-          updated_at: string;
+          // id: string;
+          // name: string;
+          // category: string;
+          // product_id: string;
+          // branch_id: string;
+          // opening_stock: number;
+          // transfer_in: number;
+          // transfer_out: number;
+          // damages: number;
+          // complimentary: number;
+          // sales: number;
+          // closing_stock: number;
+          // ucrr: number;
+          // scrr: number;
+          // created_at: string;
+          // updated_at: string;
         };
         Relationships: [
           {
