@@ -10,11 +10,11 @@ import {
 } from "recharts";
 
 interface AccountsChartProps {
-  data: any[];
+  data: { created_at: string; total_amount: number }[];
 }
 
 export function AccountsChart({ data }: AccountsChartProps) {
-  const chartData = data.map(sale => ({
+  const chartData = data.map((sale) => ({
     date: new Date(sale.created_at).toLocaleDateString(),
     revenue: sale.total_amount,
     cost: sale.total_amount * 0.6, // Assuming 60% cost for example

@@ -1,3 +1,4 @@
+import { forwardRef, RefObject } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { naira } from "@/lib/utils";
 import { DollarSign, TrendingUp, TrendingDown, Percent } from "lucide-react";
@@ -12,9 +13,12 @@ interface AccountsMetricsCardsProps {
   };
 }
 
-export function AccountsMetricsCards({ metrics }: AccountsMetricsCardsProps) {
+export const AccountsMetricsCards = forwardRef<
+  HTMLDivElement,
+  AccountsMetricsCardsProps
+>(({ metrics }, ref) => {
   return (
-    <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+    <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4" ref={ref}>
       <Card>
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
           <CardTitle className="text-sm font-medium">Total Revenue</CardTitle>
@@ -72,4 +76,4 @@ export function AccountsMetricsCards({ metrics }: AccountsMetricsCardsProps) {
       </Card>
     </div>
   );
-}
+});
