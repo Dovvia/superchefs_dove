@@ -16,17 +16,25 @@ import { useToast } from "@/hooks/use-toast";
 const MaterialRequests = () => {
   const { toast } = useToast();
   const [selectedRequests, setSelectedRequests] = useState<string[]>([]);
+  const [loading, setLoading] = useState(false);
 
-  const { data: requests, refetch } = useQuery({
+  const {
+    data: requests,
+    refetch,
+    isLoading,
+  } = useQuery({
     queryKey: ["material-requests"],
     queryFn: async () => {
       const { data, error } = await supabase
         .from("material_requests")
-        .select(`
+        .select(
+          `
           *,
           material:materials(*),
-          branch:branches(*)
-        `)
+          branch:branches(*),
+          user:user_id(first_name, last_name)
+        `
+        )
         .eq("status", "pending")
         .order("created_at", { ascending: false });
 
@@ -46,34 +54,43 @@ const MaterialRequests = () => {
     }
 
     try {
+      setLoading(true);
       // Create procurement order
-      const { data: order, error: orderError } = await supabase
-        .from("procurement_orders")
-        .insert([{ status: "pending" }])
-        .select()
-        .single();
+      const { data: updatedOrders, error: updateMRError } = await supabase
+        .from("material_requests")
+        .update({ status: "approved" })
+        .in("id", selectedRequests)
+        .select();
 
-      if (orderError) throw orderError;
+      if (updateMRError) throw updateMRError;
+
+      // Now, fetch the newly inserted procurement orders
+      const { data: newProcurementOrders, error: procurementError } =
+        await supabase
+          .from("procurement_orders")
+          .insert(
+            updatedOrders?.map((uo) => ({
+              material_request_id: uo?.id,
+              status: uo?.status,
+            }))
+          )
+          .select();
+
+      if (procurementError) throw procurementError;
 
       // Create procurement order items
       const { error: itemsError } = await supabase
         .from("procurement_order_items")
         .insert(
           selectedRequests.map((requestId) => ({
-            procurement_order_id: order.id,
+            procurement_order_id: newProcurementOrders.find(
+              (x) => x?.material_request_id === requestId
+            )?.id,
             material_request_id: requestId,
           }))
         );
 
       if (itemsError) throw itemsError;
-
-      // Update material requests status
-      const { error: updateError } = await supabase
-        .from("material_requests")
-        .update({ status: "approved" })
-        .in("id", selectedRequests);
-
-      if (updateError) throw updateError;
 
       // Create notifications for branches
       const notifications = requests
@@ -99,12 +116,22 @@ const MaterialRequests = () => {
 
       setSelectedRequests([]);
       refetch();
-    } catch (error: any) {
-      toast({
-        title: "Error",
-        description: error.message,
-        variant: "destructive",
-      });
+    } catch (error: unknown) {
+      if (error instanceof Error) {
+        toast({
+          title: "Error",
+          description: error.message,
+          variant: "destructive",
+        });
+      } else {
+        toast({
+          title: "Error",
+          description: "An unexpected error occurred",
+          variant: "destructive",
+        });
+      }
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -122,7 +149,7 @@ const MaterialRequests = () => {
         <h2 className="text-2xl font-semibold">Pending Material Requests</h2>
         <Button
           onClick={handleCreateProcurementOrder}
-          disabled={selectedRequests.length === 0}
+          disabled={selectedRequests.length === 0 || loading}
         >
           Create Procurement Order
         </Button>
@@ -139,31 +166,55 @@ const MaterialRequests = () => {
             <TableHead>Date</TableHead>
           </TableRow>
         </TableHeader>
-        <TableBody>
-          {requests?.map((request) => (
-            <TableRow key={request.id}>
-              <TableCell>
-                <input
-                  type="checkbox"
-                  checked={selectedRequests.includes(request.id)}
-                  onChange={() => toggleRequest(request.id)}
-                  className="h-4 w-4"
-                />
-              </TableCell>
-              <TableCell>{request.material?.name}</TableCell>
-              <TableCell>{request.branch?.name}</TableCell>
-              <TableCell>
-                {request.quantity} {request.material?.unit}
-              </TableCell>
-              <TableCell>
-                <Badge>{request.status}</Badge>
-              </TableCell>
-              <TableCell>
-                {new Date(request.created_at).toLocaleDateString()}
+        {requests?.length && !isLoading ? (
+          <TableBody>
+            {requests?.map((request) => (
+              <TableRow key={request.id}>
+                <TableCell>
+                  <input
+                    type="checkbox"
+                    checked={selectedRequests.includes(request.id)}
+                    onChange={() => toggleRequest(request.id)}
+                    className="h-4 w-4"
+                  />
+                </TableCell>
+                <TableCell>{request.material?.name}</TableCell>
+                <TableCell>{request.branch?.name}</TableCell>
+                <TableCell>
+                  {request.quantity} {request.material?.unit}
+                </TableCell>
+                <TableCell>
+                  <Badge
+                    variant={
+                      request.status === "pending" ? "warning" : "default"
+                    }
+                  >
+                    {request.status}
+                  </Badge>
+                </TableCell>
+                <TableCell>
+                  {new Date(request.created_at).toLocaleDateString()}
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        ) : !requests?.length && !isLoading ? (
+          <TableBody>
+            <TableRow>
+              <TableCell colSpan={5} className="text-center">
+                No current material requests
               </TableCell>
             </TableRow>
-          ))}
-        </TableBody>
+          </TableBody>
+        ) : (
+          <TableBody>
+            <TableRow>
+              <TableCell colSpan={5} className="text-center">
+                Loading, please wait...
+              </TableCell>
+            </TableRow>
+          </TableBody>
+        )}
       </Table>
     </div>
   );
