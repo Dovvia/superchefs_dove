@@ -376,13 +376,13 @@ export type Database = {
           }
         ];
       };
-      imprest: {
+      imprests: {
         Row: {
           branch_id: string;
           created_at: string;
           updated_at: string;
           id: string;
-          item: string;
+          name: string;
           unit: string;
           unit_price: number;
           quantity: number;
@@ -391,10 +391,10 @@ export type Database = {
         };
         Insert: {
           branch_id: string;
-          created_at: string;
-          updated_at: string;
-          id: string;
-          item: string;
+          created_at?: string;
+          updated_at?: string;
+          id?: string;
+          name: string;
           unit: string;
           unit_price: number;
           quantity: number;
@@ -402,23 +402,30 @@ export type Database = {
           status: string;
         };
         Update: {
-          branch_id: string;
-          created_at: string;
-          updated_at: string;
-          id: string;
-          item: string;
-          unit: string;
-          unit_price: number;
-          quantity: number;
-          user_id: string;
-          status: string;
+          branch_id?: string;
+          created_at?: string;
+          updated_at?: string;
+          id?: string;
+          name?: string;
+          unit?: string;
+          unit_price?: number;
+          quantity?: number;
+          user_id?: string;
+          status?: string;
         };
         Relationships: [
           {
-            foreignKeyName: "imprest_branch_id_fkey";
+            foreignKeyName: "imprests_branch_id_fkey";
             columns: ["branch_id"];
             isOneToOne: false;
             referencedRelation: "branches";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "imprests_user_id_fkey";
+            columns: ["user_id"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
             referencedColumns: ["id"];
           }
         ];

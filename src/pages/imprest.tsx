@@ -16,19 +16,20 @@ import { Dialog, DialogTrigger } from "@/components/ui/dialog";
 import { ImprestDialog } from "@/components/imprest/ImprestDialog";
 import { format } from "date-fns";
 import { HandCoinsIcon } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
 
 const Imprest = () => {
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
 
   const {
-    data: imprest,
-    refetch: refetchImprest,
+    data: imprests,
+    refetch: refetchImprests,
     isLoading,
   } = useQuery({
-    queryKey: ["imprest"],
+    queryKey: ["imprests"],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from("imprest")
+        .from("imprests")
         .select(
           `*,
           branch:branch_id(name),
@@ -48,17 +49,17 @@ const Imprest = () => {
   return (
     <div className="space-y-6 p-6">
       <div className="flex justify-between items-center">
-        <h2 className="text-3xl font-bold tracking-tight">Imprest</h2>
+        <h2 className="text-3xl font-bold tracking-tight">Imprests</h2>
         <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
           <DialogTrigger asChild id="imprest">
             <Button>
-            <HandCoinsIcon className="ml-2 h-4 w-4" />
-              Imprest
+              <HandCoinsIcon className="ml-2 h-4 w-4" />
+              Create Imprest
             </Button>
           </DialogTrigger>
           <ImprestDialog
             onOpenChange={setIsAddDialogOpen}
-            refetch={refetchImprest}
+            refetch={refetchImprests}
           />
         </Dialog>
       </div>
@@ -78,19 +79,16 @@ const Imprest = () => {
               <TableHead>Status</TableHead>
             </TableRow>
           </TableHeader>
-          {imprest?.length && !isLoading ? (
+          {imprests?.length && !isLoading ? (
             <TableBody>
-              {imprest?.map((imprest) => (
+              {imprests?.map((imprest) => (
                 <TableRow key={imprest.id}>
-                  <TableCell>{imprest?.item}</TableCell>
+                  <TableCell>{imprest?.name}</TableCell>
                   <TableCell>{imprest?.unit}</TableCell>
                   <TableCell>{imprest?.unit_price}</TableCell>
                   <TableCell>{imprest?.quantity}</TableCell>
                   <TableCell>
-                    {calculateTotalCost(
-                      imprest?.unit_price,
-                      imprest?.quantity
-                    )}
+                    {calculateTotalCost(imprest?.unit_price, imprest?.quantity)}
                   </TableCell>
                   <TableCell className="capitalize">
                     {imprest?.user
@@ -101,11 +99,19 @@ const Imprest = () => {
                   <TableCell>
                     {format(new Date(imprest.created_at), "MMM d, yyyy h:mm a")}
                   </TableCell>
-                  <TableCell>{imprest?.status}</TableCell>
+                  <TableCell>
+                    <Badge
+                      variant={`${
+                        imprest?.status === "pending" ? "warning" : "default"
+                      }`}
+                    >
+                      {imprest?.status}
+                    </Badge>
+                  </TableCell>
                 </TableRow>
               ))}
             </TableBody>
-          ) : !imprest?.length && !isLoading ? (
+          ) : !imprests?.length && !isLoading ? (
             <TableBody>
               <TableRow>
                 <TableCell colSpan={5} className="text-center">
