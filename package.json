@@ -49,8 +49,11 @@
     "currency": "^4.1.0",
     "currency.js": "^2.0.4",
     "date-fns": "^3.6.0",
+    "dayjs": "^1.11.13",
     "embla-carousel-react": "^8.3.0",
+    "file-saver": "^2.0.5",
     "input-otp": "^1.2.4",
+    "jspdf": "^3.0.0",
     "lucide-react": "^0.462.0",
     "next-themes": "^0.3.0",
     "react": "^18.3.1",
@@ -66,6 +69,7 @@
     "tailwind-merge": "^2.5.2",
     "tailwindcss-animate": "^1.0.7",
     "vaul": "^0.9.3",
+    "xlsx": "^0.18.5",
     "zod": "^3.24.1"
   },
   "devDependencies": {

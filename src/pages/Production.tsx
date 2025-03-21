@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   Dialog,
   DialogActions,
@@ -53,11 +53,14 @@ interface Recipe {
 const Production = () => {
   const queryClient = useQueryClient();
 
-  const { data: recipes, isLoading } = useQuery({
+  const { data: fetchedRecipes, isLoading } = useQuery<Recipe[], Error>({
     queryKey: ["recipes"],
     queryFn: async () => {
       const { data, error } = await supabase.from("product_recipes").select(`
-          *,
+          id,
+          name,
+          production_yield as yield,
+          description,
           product:products(name, id),
           recipe_materials(
             id,
@@ -67,15 +70,27 @@ const Production = () => {
           )
         `);
 
-      if (error) throw error;
-      return data as unknown as Recipe[];
+      if (error) {
+        console.error("Error fetching recipes:", error);
+        throw error;
+      }
+      return (data as Partial<Recipe>[]).map((recipe) => ({
+        ...recipe,
+        yield: recipe.yield || 1, // Ensure yield is properly mapped
+      })) as Recipe[];
     },
+    // Handle errors using the error property from the query result
   });
+
+  useEffect(() => {
+    if (fetchedRecipes) {
+      setRecipes(fetchedRecipes as Recipe[]);
+    }
+  }, [fetchedRecipes]);
 
   const produceMutation = useMutation({
     mutationFn: async (recipe: Recipe) => {
-      console.log("starting production process for", recipe.name);
-      alert("Production started for " + recipe.name);
+      console.log("Starting production process for", recipe.name);
 
       try {
         //Get current product inventory record
@@ -107,8 +122,6 @@ const Production = () => {
           const { error: productUpdateError } = await supabase
             .from("product_inventory")
             .update({ production: newProduction })
-
-
 
             .eq("id", productInvData.id);
 
@@ -251,7 +264,6 @@ const Production = () => {
 
         console.log("Production process completed succcessfully");
         return recipe;
-  
       } catch (error) {
         console.error("Production process failed:", error);
         throw error;
@@ -279,7 +291,7 @@ const Production = () => {
     console.log("Production requested for:", recipe.name);
     produceMutation.mutate(recipe);
     handleClose();
-  }
+  };
 
   const [openDialog, setOpenDialog] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState<Recipe | null>(null);
@@ -294,6 +306,50 @@ const Production = () => {
     setSelectedProduct(null);
   };
 
+  const handleYieldChange = (recipeId: string, newYield: number) => {
+    if (newYield < 1) {
+      return;
+    }
+    setRecipes((prevRecipes) =>
+      prevRecipes.map((recipe) => {
+        if (recipe.id === recipeId) {
+          const yieldRatio = newYield / recipe.yield;
+          return {
+            ...recipe,
+            yield: newYield,
+            recipe_materials: recipe.recipe_materials.map((material) => ({
+              ...material,
+              quantity: material.quantity * yieldRatio,
+            })),
+          };
+        }
+        return recipe;
+      })
+    );
+  };
+
+  const [recipes, setRecipes] = useState<Recipe[]>([]);
+
+  useQuery({
+    queryKey: ["recipes"],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("product_recipes").select(`
+          *,
+          product:products(name, id),
+          recipe_materials(
+            id,
+            material_id,
+            quantity,
+            material:materials(name, unit)
+          )
+        `);
+
+      if (error) throw error;
+      setRecipes(data as unknown as Recipe[]);
+      return data as unknown as Recipe[];
+    },
+  });
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -304,7 +360,7 @@ const Production = () => {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-6">
-        {recipes?.map((recipe) => (
+        {recipes.map((recipe) => (
           <Card key={recipe.id} className="shadow-md">
             <CardHeader>
               <div className="flex items-center gap-2">
@@ -313,7 +369,17 @@ const Production = () => {
               </div>
               <CardDescription>
                 {recipe.description && <p>{recipe.description}</p>}
-                Yield: {recipe.yield} units
+                <div className="flex items-center gap-2">
+                  Yield:
+                  <input
+                    type="number"
+                    value={recipe.yield}
+                    onChange={(e) =>
+                      handleYieldChange(recipe.id, Number(e.target.value))
+                    }
+                    className="w-12 border rounded px-1 text-center"
+                  />
+                </div>
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -332,7 +398,8 @@ const Production = () => {
                         >
                           <span>{material.material.name}</span>
                           <span className="text-sm text-muted-foreground">
-                            {material.quantity} {material.material.unit}
+                            {material.quantity.toFixed(2)}{" "}
+                            {material.material.unit}
                           </span>
                         </div>
                       ))}
@@ -373,11 +440,18 @@ const Production = () => {
           <Button onClick={handleClose} variant="destructive">
             Cancel
           </Button>
-          <Button onClick={() => handleProduce(selectedProduct!)} variant="default"
-          disabled={produceMutation.isPending && produceMutation.variables?.id === selectedProduct?.id}
-          
+          <Button
+            onClick={() => handleProduce(selectedProduct!)}
+            variant="default"
+            disabled={
+              produceMutation.isPending &&
+              produceMutation.variables?.id === selectedProduct?.id
+            }
           >
-            {(produceMutation.isPending && produceMutation.variables?.id === selectedProduct.id) ? "Processing" : "Produce"}
+            {produceMutation.isPending &&
+            produceMutation.variables?.id === selectedProduct?.id
+              ? "Processing"
+              : "Produce"}
           </Button>
         </DialogActions>
       </Dialog>
