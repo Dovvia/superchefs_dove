@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import type { Material, Inventory as InventoryType } from "@/types/inventory";
@@ -17,7 +17,12 @@ import { StockMovementDialog } from "@/components/inventory/StockMovementDialog"
 import { toast, useToast } from "@/components/ui/use-toast";
 import currency from "currency.js";
 import { DialogHeader } from "@/components/ui/dialog";
-import { Dialog, DialogTrigger, DialogContent, DialogTitle } from "@radix-ui/react-dialog";
+import {
+  Dialog,
+  DialogTrigger,
+  DialogContent,
+  DialogTitle,
+} from "@radix-ui/react-dialog";
 
 const Inventory = () => {
   const naira = (value: number) =>
@@ -44,7 +49,11 @@ const Inventory = () => {
     fetchUser();
   }, []);
 
-  const { data: inventory, refetch } = useQuery({
+  const {
+    data: inventory,
+    refetch,
+    isLoading: isLoadingInventory,
+  } = useQuery({
     queryKey: ["inventory"],
     queryFn: async () => {
       const { data, error } = await supabase
@@ -71,13 +80,19 @@ const Inventory = () => {
     },
   });
 
-  const filteredInventory = inventory?.filter(
-    (item) =>
-      (!filterName ||
-        item.material?.name.toLowerCase().includes(filterName.toLowerCase())) &&
-      (!filterDate ||
-        new Date(item.created_at).toDateString() ===
-          new Date(filterDate).toDateString())
+  const filteredInventory = useMemo(
+    () =>
+      inventory?.filter(
+        (item) =>
+          (!filterName ||
+            item.material?.name
+              .toLowerCase()
+              .includes(filterName.toLowerCase())) &&
+          (!filterDate ||
+            new Date(item.created_at).toDateString() ===
+              new Date(filterDate).toDateString())
+      ),
+    [inventory, filterName, filterDate]
   );
 
   return (
@@ -125,44 +140,45 @@ const Inventory = () => {
               {/* <TableHead>Actions</TableHead> */}
             </TableRow>
           </TableHeader>
-          <TableBody>
-            {filteredInventory?.map((item, index) => (
-              <TableRow
-                key={item.id}
-                className={index % 2 === 0 ? "bg-white" : "bg-gray-100"}
-              >
-                <TableCell>
-                  <strong>{item.material?.name}</strong>
-                </TableCell>
-                <TableCell>{item.material?.unit}</TableCell>
-                <TableCell>{item.opening_stock}</TableCell>
-                <TableCell>{item.procurement}</TableCell>
-                <TableCell>{item.transfer_in}</TableCell>
-                <TableCell>{item.transfer_out}</TableCell>
-                <TableCell>{item.usage}</TableCell>
-                <TableCell>{item.damages}</TableCell>
-                <TableCell
-                  style={{
-                    color:
-                      item.closing_stock < item.material?.minimum_stock
-                        ? "red"
-                        : "green",
-                  }}
+          {filteredInventory?.length && !isLoadingInventory ? (
+            <TableBody>
+              {filteredInventory?.map((item, index) => (
+                <TableRow
+                  key={item.id}
+                  className={index % 2 === 0 ? "bg-white" : "bg-gray-100"}
                 >
-                  {item.closing_stock}
-                </TableCell>
-                <TableCell>{item.material?.minimum_stock}</TableCell>
-                <TableCell>{item.request_order}</TableCell>
-                <TableCell>{naira(item.material?.unit_price)}</TableCell>
-                <TableCell>
-                  {naira(
-                    (item.usage + item.damages) * item.material?.unit_price
-                  )}
-                </TableCell>
-                <TableCell>
-                  {naira(item.material?.unit_price * item.closing_stock)}
-                </TableCell>
-                {/* <TableCell>
+                  <TableCell>
+                    <strong>{item.material?.name}</strong>
+                  </TableCell>
+                  <TableCell>{item.material?.unit}</TableCell>
+                  <TableCell>{item.opening_stock}</TableCell>
+                  <TableCell>{item.procurement}</TableCell>
+                  <TableCell>{item.transfer_in}</TableCell>
+                  <TableCell>{item.transfer_out}</TableCell>
+                  <TableCell>{item.usage}</TableCell>
+                  <TableCell>{item.damages}</TableCell>
+                  <TableCell
+                    style={{
+                      color:
+                        item.closing_stock < item.material?.minimum_stock
+                          ? "red"
+                          : "green",
+                    }}
+                  >
+                    {item.closing_stock}
+                  </TableCell>
+                  <TableCell>{item.material?.minimum_stock}</TableCell>
+                  <TableCell>{item.request_order}</TableCell>
+                  <TableCell>{naira(item.material?.unit_price)}</TableCell>
+                  <TableCell>
+                    {naira(
+                      (item.usage + item.damages) * item.material?.unit_price
+                    )}
+                  </TableCell>
+                  <TableCell>
+                    {naira(item.material?.unit_price * item.closing_stock)}
+                  </TableCell>
+                  {/* <TableCell>
                   <Button
                     variant="outline"
                     size="sm"
@@ -171,9 +187,26 @@ const Inventory = () => {
                     record
                   </Button>
                 </TableCell> */}
+                </TableRow>
+              ))}
+            </TableBody>
+          ) : !filteredInventory?.length && !isLoadingInventory ? (
+            <TableBody>
+              <TableRow>
+                <TableCell colSpan={5} className="text-center">
+                  No recent imprests
+                </TableCell>
               </TableRow>
-            ))}
-          </TableBody>
+            </TableBody>
+          ) : (
+            <TableBody>
+              <TableRow>
+                <TableCell colSpan={5} className="text-center">
+                  Loading, please wait...
+                </TableCell>
+              </TableRow>
+            </TableBody>
+          )}
         </Table>
       </div>
 

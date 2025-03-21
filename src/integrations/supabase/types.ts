@@ -225,6 +225,7 @@ export type Database = {
       material_requests: {
         Row: {
           branch_id: string;
+          user_id: string;
           created_at: string;
           id: string;
           material_id: string;
@@ -234,6 +235,7 @@ export type Database = {
         };
         Insert: {
           branch_id: string;
+          user_id: string;
           created_at?: string;
           id?: string;
           material_id: string;
@@ -243,6 +245,7 @@ export type Database = {
         };
         Update: {
           branch_id?: string;
+          user_id?: string;
           created_at?: string;
           id?: string;
           material_id?: string;
@@ -263,6 +266,13 @@ export type Database = {
             columns: ["material_id"];
             isOneToOne: false;
             referencedRelation: "materials";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "material_requests_user_id_fkey";
+            columns: ["user_id"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
             referencedColumns: ["id"];
           }
         ];
@@ -366,26 +376,25 @@ export type Database = {
           }
         ];
       };
-      imprest: {
+      imprests: {
         Row: {
           branch_id: string;
           created_at: string;
           updated_at: string;
           id: string;
-          item: string;
+          name: string;
           unit: string;
           unit_price: number;
           quantity: number;
           user_id: string;
           status: string;
-          
         };
         Insert: {
           branch_id: string;
-          created_at: string;
-          updated_at: string;
-          id: string;
-          item: string;
+          created_at?: string;
+          updated_at?: string;
+          id?: string;
+          name: string;
           unit: string;
           unit_price: number;
           quantity: number;
@@ -393,25 +402,32 @@ export type Database = {
           status: string;
         };
         Update: {
-          branch_id: string;
-          created_at: string;
-          updated_at: string;
-          id: string;
-          item: string;
-          unit: string;
-          unit_price: number;
-          quantity: number;
-          user_id: string;
-          status: string;
+          branch_id?: string;
+          created_at?: string;
+          updated_at?: string;
+          id?: string;
+          name?: string;
+          unit?: string;
+          unit_price?: number;
+          quantity?: number;
+          user_id?: string;
+          status?: string;
         };
         Relationships: [
           {
-            foreignKeyName: "imprest_branch_id_fkey";
+            foreignKeyName: "imprests_branch_id_fkey";
             columns: ["branch_id"];
             isOneToOne: false;
             referencedRelation: "branches";
             referencedColumns: ["id"];
           },
+          {
+            foreignKeyName: "imprests_user_id_fkey";
+            columns: ["user_id"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          }
         ];
       };
       notifications: {
@@ -492,6 +508,7 @@ export type Database = {
         Row: {
           created_at: string;
           id: string;
+          material_request_id: string;
           notes: string | null;
           status: string;
           updated_at: string;
@@ -499,6 +516,7 @@ export type Database = {
         Insert: {
           created_at?: string;
           id?: string;
+          material_request_id?: string;
           notes?: string | null;
           status?: string;
           updated_at?: string;
@@ -506,6 +524,7 @@ export type Database = {
         Update: {
           created_at?: string;
           id?: string;
+          material_request_id?: string;
           notes?: string | null;
           status?: string;
           updated_at?: string;

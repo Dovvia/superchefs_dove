@@ -15,6 +15,7 @@ import { Plus } from "lucide-react";
 import { Dialog, DialogTrigger } from "@/components/ui/dialog";
 import { MaterialRequestDialog } from "@/components/material_request/MaterialRequestDialog";
 import { format } from "date-fns";
+import { Badge } from "@/components/ui/badge";
 
 const MaterialRequest = () => {
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
@@ -59,6 +60,7 @@ const MaterialRequest = () => {
           <MaterialRequestDialog
             onOpenChange={setIsAddDialogOpen}
             refetch={refetchMaterialRequests}
+            requests={material_requests?.map((x) => x?.material_id)}
           />
         </Dialog>
       </div>
@@ -84,7 +86,9 @@ const MaterialRequest = () => {
                 <TableRow key={material_request.id}>
                   <TableCell>{material_request?.material?.name}</TableCell>
                   <TableCell>{material_request?.material?.unit}</TableCell>
-                  <TableCell>{material_request?.material?.unit_price}</TableCell>
+                  <TableCell>
+                    {material_request?.material?.unit_price}
+                  </TableCell>
                   <TableCell>{material_request?.quantity}</TableCell>
                   <TableCell>
                     {calculateTotalCost(
@@ -97,10 +101,25 @@ const MaterialRequest = () => {
                       ? `${material_request?.user?.first_name} ${material_request?.user?.last_name}`
                       : "N / A"}
                   </TableCell>
-                  <TableCell>{material_request?.branch?.name ?? "N / A"}</TableCell>
-                  <TableCell>{material_request?.status}</TableCell>
                   <TableCell>
-                    {format(new Date(material_request.created_at), "MMM d, yyyy h:mm a")}
+                    {material_request?.branch?.name ?? "N / A"}
+                  </TableCell>
+                  <TableCell>
+                    <Badge
+                      variant={
+                        material_request?.status === "pending"
+                          ? "warning"
+                          : "default"
+                      }
+                    >
+                      {material_request?.status}
+                    </Badge>
+                  </TableCell>
+                  <TableCell>
+                    {format(
+                      new Date(material_request.created_at),
+                      "MMM d, yyyy h:mm a"
+                    )}
                   </TableCell>
                 </TableRow>
               ))}

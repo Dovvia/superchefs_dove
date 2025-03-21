@@ -14,33 +14,39 @@ interface MaterialRequestDialogProps {
   refetch: (
     options?: RefetchOptions
   ) => Promise<QueryObserverResult<MaterialRequest[], Error>>;
+  requests: string[];
+}
+
+interface MiniMaterialProps {
+  material_id: string;
+  quantity: string;
 }
 
 export const MaterialRequestDialog = ({
   onOpenChange,
   refetch,
+  requests,
 }: MaterialRequestDialogProps) => {
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
 
   const handleSubmit = async (values: {
-    material: string;
-    quantity: string;
-    status: string;
     branch: string;
     user: string;
+    items: MiniMaterialProps[];
   }) => {
     try {
       setIsLoading(true);
-      const { error } = await supabase.from("material_requests").insert([
-        {
-          material_id: values?.material,
-          branch_id: values?.branch,
-          user_id: values?.user,
-          quantity: Number(values?.quantity),
-          status: "pending",
-        },
-      ]);
+      const new_items = values?.items?.map((x) => ({
+        material_id: x?.material_id,
+        quantity: Number(x?.quantity),
+        branch_id: values?.branch,
+        user_id: values?.user,
+        status: "pending",
+      }));
+      const { error } = await supabase
+        .from("material_requests")
+        .insert(new_items);
       if (error) throw error;
 
       toast({
@@ -69,7 +75,9 @@ export const MaterialRequestDialog = ({
       <MaterialRequestForm
         onSubmit={handleSubmit}
         isLoading={isLoading}
-        onCancel={() => onOpenChange(false)} branchId={""} materials={[]}      />
+        onCancel={() => onOpenChange(false)}
+        requests={requests}
+      />
     </DialogContent>
   );
 };

@@ -75,8 +75,6 @@
 //   );
 // };
 
-
-
 import { RefetchOptions, QueryObserverResult } from "@tanstack/react-query";
 import {
   DialogContent,
@@ -89,7 +87,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { ImprestFormValues } from "./ImprestForm"; // Ensure this import matches the path
 import { Imprest } from "@/types/imprest"; // Ensure this import matches the path
-import { randomUUID } from "crypto";
+import { useUserBranch } from "@/hooks/user-branch";
+import { useAuth } from "@/hooks/auth";
 
 interface ImprestDialogProps {
   onOpenChange: (open: boolean) => void;
@@ -104,37 +103,24 @@ export const ImprestDialog = ({
 }: ImprestDialogProps) => {
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
-  const getBranchId = async () => {
-    const { data, error } = await supabase
-      .from("profiles")
-      .select("branch_id")
-      .eq("id", (await supabase.auth.getUser()).data?.user?.id)
-      .single();
-
-    if (error) {
-      console.error("Error fetching branch ID:", error);
-      return null;
-    }
-
-    return data?.branch_id;
-  };
+  const {
+    data: { id: userBranchId },
+  } = useUserBranch();
+  const { user } = useAuth();
   const handleSubmit = async (values: ImprestFormValues) => {
     try {
       setIsLoading(true);
-      console.log(values.items.map((item) => item.quantity));
-      const branchId = values.items[0]?.branch;
-      const { error } = await supabase.from("imprest").insert([{
-          item: values.items.map((item) => item.item).join(", "),
-          unit: values.items.map((item) => item.unit).join(", "),
-          unit_price: values.items.map((item) => item.unit_price).reduce((acc, curr) => acc + curr, 0),
-          branch_id: branchId,
-          user_id: (await supabase.auth.getUser()).data?.user?.id,
-          quantity: values.items.map((item) => item.quantity).reduce((acc, curr) => acc + curr, 0),
-          status: "pending",
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString(),
-          id: crypto.randomUUID(),
-      }]);
+      const new_items = values?.items?.map((x) => ({
+        branch_id: userBranchId,
+        name: x?.name,
+        quantity: Number(x?.quantity),
+        status: "pending",
+        unit: x?.unit,
+        unit_price: Number(x?.unit_price),
+        user_id: user?.id,
+      }));
+
+      const { error } = await supabase.from("imprests").insert(new_items);
       if (error) throw error;
 
       toast({
@@ -156,7 +142,7 @@ export const ImprestDialog = ({
   };
 
   return (
-    <DialogContent aria-describedby="imprest request">
+    <DialogContent aria-describedby="imprest request" className="max-w-[50%]">
       <DialogHeader>
         <DialogTitle>Send Imprest Request</DialogTitle>
       </DialogHeader>
