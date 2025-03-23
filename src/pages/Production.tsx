@@ -23,10 +23,11 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from "@/components/ui/accordion";
-import { Package, Layers, Utensils } from "lucide-react";
+import { Package, Layers, Utensils, User } from "lucide-react";
 import { sendNotification } from "@/utils/notifications";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import type { ProductInventory, Inventory } from "@/types/inventory";
+import { useUserBranch } from "@/hooks/user-branch";
 
 interface RecipeMaterial {
   id: string;
@@ -42,6 +43,7 @@ interface Recipe {
   id: string;
   name: string;
   yield: number;
+  updated_at: number;
   description: string | null;
   product: {
     name: string;
@@ -50,8 +52,21 @@ interface Recipe {
   recipe_materials: RecipeMaterial[];
 }
 
+export const productionData = async (
+  recipes: Recipe[],
+  branchName: string | null
+) => {
+  return recipes.map((recipe) => ({
+    branch: branchName || "Unknown Branch",
+    productName: recipe.product.name,
+    yield: recipe.yield,
+    timestamp: recipe.updated_at,
+  }));
+};
+
 const Production = () => {
   const queryClient = useQueryClient();
+  const { data: userBranch, isLoading: isBranchLoading } = useUserBranch(); // Fetch the user's branch
 
   const { data: fetchedRecipes, isLoading } = useQuery<Recipe[], Error>({
     queryKey: ["recipes"],
@@ -61,6 +76,7 @@ const Production = () => {
           name,
           production_yield as yield,
           description,
+          updated_at,
           product:products(name, id),
           recipe_materials(
             id,
@@ -79,14 +95,26 @@ const Production = () => {
         yield: recipe.yield || 1, // Ensure yield is properly mapped
       })) as Recipe[];
     },
-    // Handle errors using the error property from the query result
   });
 
   useEffect(() => {
-    if (fetchedRecipes) {
-      setRecipes(fetchedRecipes as Recipe[]);
-    }
-  }, [fetchedRecipes]);
+    const fetchProductionData = async () => {
+      if (fetchedRecipes && userBranch) {
+        const branchName = userBranch.name;
+        const productionDataWithBranch = await productionData(
+          fetchedRecipes,
+          branchName
+        );
+        setRecipes(fetchedRecipes.map((recipe, index) => ({
+          ...recipe,
+          branch: productionDataWithBranch[index].branch,
+        })));
+      }
+    };
+
+    fetchProductionData();
+  }, [fetchedRecipes, userBranch]);
+
 
   const produceMutation = useMutation({
     mutationFn: async (recipe: Recipe) => {
