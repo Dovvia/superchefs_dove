@@ -1,7 +1,33 @@
+import { useEffect, useState } from "react";
+import { timeAgo } from "@/utils/timeUtils";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { LineChart, Line, BarChart, Bar, PieChart, Pie, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from "recharts";
-import { CakeIcon, ShoppingCart, Package, Store, TrendingUp, Users } from "lucide-react";
+import {
+  LineChart,
+  Line,
+  BarChart,
+  Bar,
+  PieChart,
+  Pie,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer,
+  Cell,
+} from "recharts";
+import {
+  CakeIcon,
+  ShoppingCart,
+  Package,
+  Store,
+  TrendingUp,
+  Users,
+} from "lucide-react";
 import { Link } from "react-router-dom";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
+import { productionData } from "./Production";
+import { useUserBranch } from "@/hooks/user-branch"; // Import the hook
 
 const salesData = [
   { name: "Jan", sales: 4000 },
@@ -26,13 +52,61 @@ const branchPerformance = [
   { name: "West", value: 20 },
 ];
 
-const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042'];
+const COLORS = ["#0088FE", "#00C49F", "#FFBB28", "#FF8042"];
 
 const Dashboard = () => {
+  const { data: recipes, isLoading } = useQuery({
+    queryKey: ["recipes"],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("product_recipes").select(`
+        id,
+        name,
+        yield,
+        description,
+        updated_at,
+        product:products(name, id),
+        recipe_materials(
+          id,
+          material_id,
+          quantity,
+          material:materials(name, unit)
+        )
+      `);
+
+      if (error) throw error;
+      return data || [];
+    },
+  });
+
+  const { data: userBranch, isLoading: isBranchLoading } = useUserBranch(); // Fetch the user's branch
+
+  const [recentProduction, setRecentProduction] = useState([]);
+
+  useEffect(() => {
+    const fetchRecentProduction = async () => {
+      if (recipes && Array.isArray(recipes) && userBranch) {
+        const branchName = userBranch.name;
+        const data = await productionData(recipes as any[], branchName);
+        const recentData = data
+          .map((item) => ({
+            ...item,
+            branch: item.branch,
+            timestamp: item.timestamp,
+          }))
+          .slice(-3);
+
+        console.log("Recent Production Data:", recentData); // Debug log
+        setRecentProduction(recentData);
+      }
+    };
+
+    fetchRecentProduction();
+  }, [recipes, userBranch]);
+
   return (
     <div className="space-y-6">
       <h2 className="text-3xl font-bold tracking-tight">Dashboard</h2>
-      
+
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -41,7 +115,9 @@ const Dashboard = () => {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">$45,231.89</div>
-            <p className="text-xs text-muted-foreground">+20.1% from last month</p>
+            <p className="text-xs text-muted-foreground">
+              +20.1% from last month
+            </p>
           </CardContent>
         </Card>
 
@@ -52,13 +128,17 @@ const Dashboard = () => {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">+2350</div>
-            <p className="text-xs text-muted-foreground">+180.1% from last month</p>
+            <p className="text-xs text-muted-foreground">
+              +180.1% from last month
+            </p>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Active Branches</CardTitle>
+            <CardTitle className="text-sm font-medium">
+              Active Branches
+            </CardTitle>
             <Store className="h-4 w-4 text-primary" />
           </CardHeader>
           <CardContent>
@@ -69,7 +149,9 @@ const Dashboard = () => {
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Low Stock Items</CardTitle>
+            <CardTitle className="text-sm font-medium">
+              Low Stock Items
+            </CardTitle>
             <Package className="h-4 w-4 text-primary" />
           </CardHeader>
           <CardContent>
@@ -164,7 +246,12 @@ const Dashboard = () => {
                 <XAxis dataKey="name" />
                 <YAxis />
                 <Tooltip />
-                <Line type="monotone" dataKey="sales" stroke="#4CAF50" strokeWidth={2} />
+                <Line
+                  type="monotone"
+                  dataKey="sales"
+                  stroke="#4CAF50"
+                  strokeWidth={2}
+                />
               </LineChart>
             </ResponsiveContainer>
           </CardContent>
@@ -199,13 +286,18 @@ const Dashboard = () => {
                   cx="50%"
                   cy="50%"
                   labelLine={false}
-                  label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
+                  label={({ name, percent }) =>
+                    `${name} ${(percent * 100).toFixed(0)}%`
+                  }
                   outerRadius={80}
                   fill="#8884d8"
                   dataKey="value"
                 >
                   {productData.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                    <Cell
+                      key={`cell-${index}`}
+                      fill={COLORS[index % COLORS.length]}
+                    />
                   ))}
                 </Pie>
                 <Tooltip />
@@ -232,7 +324,10 @@ const Dashboard = () => {
                   dataKey="value"
                 >
                   {branchPerformance.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                    <Cell
+                      key={`cell-${index}`}
+                      fill={COLORS[index % COLORS.length]}
+                    />
                   ))}
                 </Pie>
                 <Tooltip />
@@ -241,27 +336,42 @@ const Dashboard = () => {
           </CardContent>
         </Card>
 
+        {/* Recent Production Activities */}
         <Card className="col-span-12">
           <CardHeader>
-            <CardTitle>Recent Orders</CardTitle>
+            <CardTitle>Recent Production Activities</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="space-y-8">
-              {[1, 2, 3, 4, 5].map((i) => (
-                <div key={i} className="flex items-center">
-                  <CakeIcon className="h-9 w-9 text-primary" />
-                  <div className="ml-4 space-y-1">
-                    <p className="text-sm font-medium leading-none">Order #{1000 + i}</p>
-                    <p className="text-sm text-muted-foreground">
-                      {i * 2} items • ${(i * 49.99).toFixed(2)}
-                    </p>
+            {isLoading ? (
+              <p>Loading...</p>
+            ) : (
+              <div className="space-y-4">
+                {recentProduction.map((production, index) => (
+                  <div
+                    key={index}
+                    className="flex items-center justify-between border-b-2"
+                  >
+                    <div className="flex items-center space-y-4 space-x-4">
+                      {" "}
+                      <CakeIcon className="h-9 w-9 text-primary" />
+                      <p className="text-sm font-medium">{production.branch}</p>
+                      <p className="text-xs text-muted-foreground">
+                        was producing
+                      </p>
+                      <p className="text-xs">
+                        <span className="text-sm font-bold">
+                          {production.yield}{" "}
+                        </span>
+                        {production.productName}
+                      </p>
+                    </div>
+                    <div className="text-sm font-bold">
+                      {timeAgo(production.timestamp)}{" "}
+                    </div>
                   </div>
-                  <div className="ml-auto font-medium">
-                    {i === 1 ? "Just now" : `${i * 5}m ago`}
-                  </div>
-                </div>
-              ))}
-            </div>
+                ))}
+              </div>
+            )}
           </CardContent>
         </Card>
       </div>
