@@ -40,14 +40,14 @@ function App() {
                   <ProtectedRoute>
                     <Layout />
                   </ProtectedRoute>
-                } 
+                }
               >
                 <Route index element={<Dashboard />} />
                 <Route path="inventory" element={<Inventory />} />
                 <Route path="products" element={<Products />} />
                 <Route path="sales" element={<Sales />} />
                 <Route path="material-request" element={<MaterialRequest />} />
-                <Route path="imprest" element={<Imprest />} />
+                <Route path="imprest-request" element={<Imprest />} />
                 <Route path="procurement" element={<Procurement />} />
                 <Route path="damages" element={<Damages />} />
                 <Route path="users" element={<Users />} />

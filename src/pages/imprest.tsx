@@ -26,10 +26,10 @@ const Imprest = () => {
     refetch: refetchImprests,
     isLoading,
   } = useQuery({
-    queryKey: ["imprests"],
+    queryKey: ["imprest-requests"],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from("imprests")
+        .from("imprest_requests")
         .select(
           `*,
           branch:branch_id(name),
@@ -51,7 +51,7 @@ const Imprest = () => {
       <div className="flex justify-between items-center">
         <h2 className="text-3xl font-bold tracking-tight">Imprests</h2>
         <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
-          <DialogTrigger asChild id="imprest">
+          <DialogTrigger asChild id="imprest-requests">
             <Button>
               <HandCoinsIcon className="ml-2 h-4 w-4" />
               Create Imprest
@@ -83,7 +83,7 @@ const Imprest = () => {
             <TableBody>
               {imprests?.map((imprest) => (
                 <TableRow key={imprest.id}>
-                  <TableCell>{imprest?.name}</TableCell>
+                  <TableCell className="capitalize">{imprest?.name}</TableCell>
                   <TableCell>{imprest?.unit}</TableCell>
                   <TableCell>{imprest?.unit_price}</TableCell>
                   <TableCell>{imprest?.quantity}</TableCell>
