@@ -9,6 +9,8 @@ import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { MaterialRequest } from "@/types/material_request";
+import { useUserBranch } from "@/hooks/user-branch";
+import { useAuth } from "@/hooks/auth";
 interface MaterialRequestDialogProps {
   onOpenChange: (open: boolean) => void;
   refetch: (
@@ -29,6 +31,10 @@ export const MaterialRequestDialog = ({
 }: MaterialRequestDialogProps) => {
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
+  const {
+    data: { id: userBranchId },
+  } = useUserBranch();
+  const { user } = useAuth();
 
   const handleSubmit = async (values: {
     branch: string;
@@ -40,8 +46,8 @@ export const MaterialRequestDialog = ({
       const new_items = values?.items?.map((x) => ({
         material_id: x?.material_id,
         quantity: Number(x?.quantity),
-        branch_id: values?.branch,
-        user_id: values?.user,
+        branch_id: userBranchId,
+        user_id: user?.id,
         status: "pending",
       }));
       const { error } = await supabase
