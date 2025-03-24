@@ -26,10 +26,10 @@ const Imprest = () => {
     refetch: refetchImprests,
     isLoading,
   } = useQuery({
-    queryKey: ["imprests"],
+    queryKey: ["imprest_requests"],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from("imprests")
+        .from("imprest_requests")
         .select(
           `*,
           branch:branch_id(name),

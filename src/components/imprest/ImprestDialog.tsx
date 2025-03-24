@@ -120,7 +120,9 @@ export const ImprestDialog = ({
         user_id: user?.id,
       }));
 
-      const { error } = await supabase.from("imprests").insert(new_items);
+      const { error } = await supabase
+        .from("imprest_requests")
+        .insert(new_items);
       if (error) throw error;
 
       toast({

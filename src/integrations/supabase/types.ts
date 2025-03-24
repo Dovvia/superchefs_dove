@@ -376,7 +376,7 @@ export type Database = {
           }
         ];
       };
-      imprests: {
+      imprest_requests: {
         Row: {
           branch_id: string;
           created_at: string;
@@ -415,14 +415,14 @@ export type Database = {
         };
         Relationships: [
           {
-            foreignKeyName: "imprests_branch_id_fkey";
+            foreignKeyName: "imprest_requests_branch_id_fkey";
             columns: ["branch_id"];
             isOneToOne: false;
             referencedRelation: "branches";
             referencedColumns: ["id"];
           },
           {
-            foreignKeyName: "imprests_user_id_fkey";
+            foreignKeyName: "imprest_requests_user_id_fkey";
             columns: ["user_id"];
             isOneToOne: false;
             referencedRelation: "profiles";
