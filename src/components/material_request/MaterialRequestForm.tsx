@@ -21,12 +21,9 @@ import {
 } from "@/components/ui/select";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { useAuth } from "@/hooks/auth";
 import { Unit } from "../ui/unit";
 
 const formSchema = z.object({
-  branch: z.string().optional(),
-  user: z.string().optional(),
   items: z
     .array(
       z.object({
@@ -61,8 +58,6 @@ const MaterialRequestForm = ({
   const form = useForm<MaterialRequestFormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      branch: "",
-      user: "",
       items: [
         { material_id: "", quantity: "", unit_price: 0 },
         { material_id: "", quantity: "", unit_price: 0 },
@@ -70,7 +65,6 @@ const MaterialRequestForm = ({
     },
   });
 
-  const { user } = useAuth();
   const { data: materials } = useQuery({
     queryKey: ["materials"],
     queryFn: async () => {
@@ -109,8 +103,6 @@ const MaterialRequestForm = ({
                         {...field}
                         onValueChange={(e) => {
                           const mat = materials?.find((mat) => mat?.id === e);
-                          form.setValue(`branch`, mat?.branch_id);
-                          form.setValue(`user`, user?.id);
                           form.setValue(`items.${index}.material_id`, mat?.id);
                           form.setValue(
                             `items.${index}.unit_price`,
