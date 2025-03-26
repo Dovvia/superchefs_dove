@@ -831,6 +831,33 @@ export type Database = {
           }
         ];
       };
+      production: {
+        Row: {
+          product_name: string;
+          branch_name: string;
+          yield: number;
+          timestamp: string; 
+          created_at: string;
+          updated_at: string;
+        };
+
+        Insert: {
+          product_name: string;
+          branch_name: string;
+          yield: number;
+          timestamp: string; 
+          created_at: string;
+          updated_at: string;
+        };
+        Update: {
+          product_name: string;
+          branch_name: string;
+          yield: number;
+          timestamp: string; 
+          created_at: string;
+          updated_at: string;
+        };
+      };
       profiles: {
         Row: {
           created_at: string;

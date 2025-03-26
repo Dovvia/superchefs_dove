@@ -3,6 +3,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { AuthProvider } from "./contexts/AuthContext";
+import { ProductionProvider } from "@/context/ProductionContext";
 
 import Layout from "./components/layout/Layout";
 import ProtectedRoute from "./components/ProtectedRoute";
@@ -31,66 +32,45 @@ function App() {
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
         <TooltipProvider>
-          <BrowserRouter>
-            <Routes>
-              <Route path="/auth" element={<Auth />} />
-              <Route
-                path="/"
-                element={
+          <ProductionProvider>
+            <BrowserRouter>
+              <Routes>
+                <Route path="/auth" element={<Auth />} />
+                <Route
+                  path="/"
+                  element={
                   <ProtectedRoute>
                     <Layout />
                   </ProtectedRoute>
-                }
-              >
-                <Route index element={<Dashboard />} />
-                <Route path="inventory" element={<Inventory />} />
-                <Route path="products" element={<Products />} />
-                <Route path="sales" element={<Sales />} />
-                <Route path="material-request" element={<MaterialRequest />} />
-                <Route path="imprest-request" element={<Imprest />} />
-                <Route path="procurement" element={<Procurement />} />
-                <Route path="damages" element={<Damages />} />
-                <Route path="users" element={<Users />} />
-                <Route path="accounts" element={<Accounts />} />
-                <Route path="branches" element={<Branches />} />
-                <Route path="production" element={<Production />} />
-                <Route path="recipes" element={<Recipes />} />
-                <Route path="settings" element={<Settings />} />
-                <Route path="*" element={<NotFound />} />
-
-                {/* <Route 
-                  path="users" 
-                  element={
-                    <RoleProtectedRoute allowedRoles={['admin']}>
-                      <Users />
-                    </RoleProtectedRoute>
-                  } 
-                />
-                <Route 
-                  path="branches" 
-                  element={
-                    <RoleProtectedRoute allowedRoles={['admin']}>
-                      <Branches />
-                    </RoleProtectedRoute>
-                  } 
-                />
-               
-                <Route 
-                  path="accounts" 
-                  element={
-                    <RoleProtectedRoute allowedRoles={['admin']}>
-                      <Accounts />
-                    </RoleProtectedRoute>
-                  } 
-                /> */}
-              </Route>
-            </Routes>
-          </BrowserRouter>
-          <Toaster />
+                  }
+                >
+                  <Route index element={<Dashboard />} />
+                  <Route path="inventory" element={<Inventory />} />
+                  <Route path="products" element={<Products />} />
+                  <Route path="sales" element={<Sales />} />
+                  <Route
+                  path="material-request"
+                  element={<MaterialRequest />}
+                  />
+                  <Route path="imprest-request" element={<Imprest />} />
+                  <Route path="procurement" element={<Procurement />} />
+                  <Route path="damages" element={<Damages />} />
+                  <Route path="users" element={<Users />} />
+                  <Route path="accounts" element={<Accounts />} />
+                  <Route path="branches" element={<Branches />} />
+                  <Route path="production" element={<Production />} />
+                  <Route path="recipes" element={<Recipes />} />
+                  <Route path="settings" element={<Settings />} />
+                  <Route path="*" element={<NotFound />} />
+                </Route>
+              </Routes>
+              <Toaster />
+            </BrowserRouter>
+          </ProductionProvider>
         </TooltipProvider>
       </AuthProvider>
     </QueryClientProvider>
   );
-}
+} 
 
 export default App;

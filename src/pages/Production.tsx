@@ -6,7 +6,7 @@ import {
   DialogTitle,
   DialogContentText,
 } from "@mui/material";
-import { toast } from "sonner";
+import { toast } from "@/hooks/use-toast";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import {
@@ -24,10 +24,8 @@ import {
   AccordionTrigger,
 } from "@/components/ui/accordion";
 import { Package, Layers, Utensils, User } from "lucide-react";
-import { sendNotification } from "@/utils/notifications";
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import type { ProductInventory, Inventory } from "@/types/inventory";
 import { useUserBranch } from "@/hooks/user-branch";
+import { useProductionContext } from "@/context/ProductionContext";
 
 interface RecipeMaterial {
   id: string;
@@ -51,7 +49,6 @@ interface Recipe {
   };
   recipe_materials: RecipeMaterial[];
 }
-
 export const productionData = async (
   recipes: Recipe[],
   branchName: string | null
@@ -66,7 +63,8 @@ export const productionData = async (
 
 const Production = () => {
   const queryClient = useQueryClient();
-  const { data: userBranch, isLoading: isBranchLoading } = useUserBranch(); // Fetch the user's branch
+  const { data: userBranch, isLoading: isBranchLoading } = useUserBranch();
+  const { addProductionRecord } = useProductionContext();
 
   const { data: fetchedRecipes, isLoading } = useQuery<Recipe[], Error>({
     queryKey: ["recipes"],
@@ -99,29 +97,37 @@ const Production = () => {
 
   useEffect(() => {
     const fetchProductionData = async () => {
-      if (fetchedRecipes && userBranch) {
-        const branchName = userBranch.name;
+      if (
+        fetchedRecipes &&
+        userBranch &&
+        typeof userBranch === "object" &&
+        "name" in userBranch
+      ) {
+        const branchName = (userBranch as { name: string}).name || "Unknown Branch";
         const productionDataWithBranch = await productionData(
           fetchedRecipes,
           branchName
         );
-        setRecipes(fetchedRecipes.map((recipe, index) => ({
-          ...recipe,
-          branch: productionDataWithBranch[index].branch,
-        })));
+        setRecipes(
+          fetchedRecipes.map((recipe, index) => ({
+            ...recipe,
+            branch: productionDataWithBranch[index].branch,
+          }))
+        );
+      } else {
+        console.error("Invalid userBranch or fetchedRecipes");
       }
     };
 
     fetchProductionData();
   }, [fetchedRecipes, userBranch]);
 
-
   const produceMutation = useMutation({
     mutationFn: async (recipe: Recipe) => {
       console.log("Starting production process for", recipe.name);
 
       try {
-        //Get current product inventory record
+        // Get current product inventory record
         const { data: productInvData, error: productInvQueryError } =
           await supabase
             .from("product_inventory")
@@ -130,43 +136,33 @@ const Production = () => {
             .maybeSingle();
 
         if (productInvQueryError) {
-          console.log(
+          console.error(
             "Error fetching product inventory:",
             productInvQueryError
           );
           throw productInvQueryError;
         }
 
-        console.log("product inventory data", productInvData);
+        let newProduction = recipe.yield;
+        const timestamp = new Date().toISOString();
 
-        //update or create product inventory record
+        // Update or create product inventory record
         if (productInvData) {
-          // update exixting record
-          const newProduction = (productInvData.production || 0) + recipe.yield;
-          console.log(
-            `updating production from ${productInvData.production} to ${newProduction}`
-          );
+          newProduction = (productInvData.production || 0) + recipe.yield;
 
           const { error: productUpdateError } = await supabase
             .from("product_inventory")
             .update({ production: newProduction })
-
             .eq("id", productInvData.id);
 
           if (productUpdateError) {
-            console.log(
+            console.error(
               "Error updating product inventory:",
               productUpdateError
             );
             throw productUpdateError;
           }
         } else {
-          // Create new record
-          console.log(
-            "creating new product inventory record with production:",
-            recipe.yield
-          );
-
           const { error: productCreateError } = await supabase
             .from("product_inventory")
             .insert({
@@ -176,7 +172,7 @@ const Production = () => {
             });
 
           if (productCreateError) {
-            console.log(
+            console.error(
               "Error creating product inventory:",
               productCreateError
             );
@@ -184,113 +180,26 @@ const Production = () => {
           }
         }
 
-        //update material inventory for each material used
-        for (const material of recipe.recipe_materials) {
-          console.log(
-            `processing material: ${material.material.name}, quantity: ${material.quantity}`
+        // Insert a new record into the production table
+        const { error: productionInsertError } = await supabase
+          .from("production")
+          .insert({
+            branch_name: userBranch && typeof userBranch === "object" && "name" in  userBranch ?
+            (userBranch as { name: string }).name : "Unknown Branch",
+            product_name: recipe.product.name,
+            yield: recipe.yield,
+            timestamp,
+          });
+
+        if (productionInsertError) {
+          console.error(
+            "Error inserting into production table:",
+            productionInsertError
           );
-
-          //get current material inventory record
-          const { data: invData, error: invQueryError } = await supabase
-            .from("inventory")
-            .select("id, quantity, usage")
-            .eq("material_id", material.material_id)
-            .maybeSingle();
-
-          if (invQueryError) {
-            console.log(
-              `Error fetching inventory for material ${material.material.name}:`,
-              invQueryError
-            );
-            throw invQueryError;
-          }
-
-          if (!invData) {
-            console.log(
-              `No inventory record found for material ${material.material.name}`
-            );
-            throw new Error(
-              `No inventory record found for material ${material.material.name}`
-            );
-          }
-
-          console.log(
-            `Current inventory for ${material.material.name}:`,
-            invData
-          );
-
-          const currentUsage = invData.usage || 0;
-          const currentQuantity = invData.quantity || 0;
-
-          if (currentQuantity < material.quantity) {
-            console.log(
-              `Insufficient inventory for ${material.material.name} need ${material.quantity}, have ${currentQuantity}`
-            );
-            alert(
-              `Insufficient inventory for ${material.material.name} need ${material.quantity}, have ${currentQuantity}`
-            );
-
-            throw new Error(
-              `Insufficient inventory for ${material.material.name}`
-            );
-          }
-
-          const newUsage = currentUsage + material.quantity;
-          const newQuantity = currentQuantity - material.quantity;
-
-          console.log(
-            `Updating ${material.material.name}: usage ${currentUsage} -> ${newUsage}, quantity ${currentQuantity} -> ${newQuantity}`
-          );
-
-          //Update Inventory
-          const { error: updateError } = await supabase
-            .from("inventory")
-            .update({
-              usage: newUsage,
-              quantity: newQuantity,
-            })
-            .eq("id", invData.id);
-
-          if (updateError) {
-            console.error(
-              `Error updating inventory for ${material.material.name}:`,
-              updateError
-            );
-            throw updateError;
-          }
+          throw productionInsertError;
         }
 
-        //Create notification for the production event
-        const userSession = await supabase.auth.getSession();
-        const branchId = userSession.data.session?.user.user_metadata.branch_id;
-
-        console.log(`Creating notification for branch ID: ${branchId}`);
-
-        if (!branchId) {
-          console.warn(
-            "No branch ID found in user metadata, using a placeholder"
-          );
-        }
-
-        const notificationData = {
-          branch_id: branchId || "00000000-0000-0000-0000-000000000000",
-          title: "Production Completed",
-          message: `Produced ${recipe.yield} units of ${recipe.product.name}`,
-          read: false,
-        };
-
-        console.log("Creating notification:", notificationData);
-
-        const { error: notificationError } = await supabase
-          .from("notifications")
-          .insert([notificationData]);
-
-        if (notificationError) {
-          console.error("Error creating notification:", notificationError);
-          throw notificationError;
-        }
-
-        console.log("Production process completed succcessfully");
+        console.log("Production process completed successfully");
         return recipe;
       } catch (error) {
         console.error("Production process failed:", error);
@@ -298,22 +207,25 @@ const Production = () => {
       }
     },
     onSuccess: (recipe) => {
-      toast.success(
-        `produced ${recipe.yield || 0} units of ${recipe.product.name}`
-      );
-      //refresh queries to show updated inventory
+      toast({
+        title: "Production Successful",
+        description: `Producing ${recipe.yield || 0} units of ${recipe.product.name}`,
+      });
       queryClient.invalidateQueries({ queryKey: ["inventory"] });
       queryClient.invalidateQueries({ queryKey: ["product_inventory"] });
-      queryClient.invalidateQueries({ queryKey: ["notifications"] });
+      queryClient.invalidateQueries({ queryKey: ["production"] }); // Invalidate production table query
     },
     onError: (error: any) => {
       console.error("Production error", error);
-      toast.error(
-        error.message ||
-          "Failed to complete production. Please check inventory levels"
-      );
+      toast({
+        title: "Production Error",
+        description: `Failed to produce ${error?.message || "unknown error"}`,
+        variant: "destructive"  
+    });
     },
   });
+
+
 
   const handleProduce = (recipe: Recipe) => {
     console.log("Production requested for:", recipe.name);
