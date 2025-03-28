@@ -48,7 +48,7 @@ function App() {
                 <Route path="products" element={<Products />} />
                 <Route path="sales" element={<Sales />} />
                 <Route path="material-request" element={<MaterialRequest />} />
-                <Route path="imprest" element={<Imprest />} />
+                <Route path="imprest-request" element={<Imprest />} />
                 <Route path="procurement" element={<Procurement />} />
                 <Route path="manage-imprest" element={<ImprestManagement />} />
                 <Route path="damages" element={<Damages />} />

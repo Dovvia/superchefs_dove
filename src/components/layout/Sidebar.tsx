@@ -54,7 +54,7 @@ const Sidebar = ({ isOpen, onClose }: SidebarProps) => {
     },
     {
       name: "Imprest",
-      href: "/imprest",
+      href: "/imprest-request",
       icon: HandCoins,
     },
     {
