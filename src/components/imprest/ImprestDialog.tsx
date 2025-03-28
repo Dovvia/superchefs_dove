@@ -17,7 +17,9 @@ interface ImprestDialogProps {
   onOpenChange: (open: boolean) => void;
   refetch: (
     options?: RefetchOptions
-  ) => Promise<QueryObserverResult<Imprest[], Error>>;
+  ) => Promise<
+    QueryObserverResult<{ imprests: Imprest[]; hasNextpage?: boolean }, Error>
+  >;
 }
 
 export const ImprestDialog = ({

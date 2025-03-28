@@ -19,6 +19,8 @@ import { useCheck } from "@/hooks/use-check";
 import { FinalizeOrderDialog } from "@/components/ui/finalize-order";
 import { useUserBranch } from "@/hooks/user-branch";
 import { useAuth } from "@/hooks/auth";
+import PaginationComponent from "@/components/pagination";
+import { PAGE_LIMIT } from "@/constants";
 
 export interface ProcurementOrderItem {
   id: string;
@@ -48,6 +50,7 @@ export interface ProcurementOrder {
   id: string;
   status: "pending" | "supplied" | "approved";
   created_at: string;
+  updated_at: string;
   items: ProcurementOrderItem[];
 }
 
@@ -59,6 +62,7 @@ const ProcurementOrders = () => {
   const printRef = useRef<HTMLDivElement>(null);
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [page, setPage] = useState(1);
   const { selectedItems, handleSelectAll, resetCheck, toggleCheck } =
     useCheck();
   const userBranch = useUserBranch();
@@ -66,13 +70,18 @@ const ProcurementOrders = () => {
   const { toast } = useToast();
 
   const {
-    data: orders,
+    data,
     isLoading,
     refetch: refetchOrders,
   } = useQuery({
-    queryKey: ["procurement-orders"],
+    queryKey: ["procurement-orders", page],
     queryFn: async () => {
-      const { data, error } = await supabase
+      const from = (page - 1) * PAGE_LIMIT;
+      const to = from + PAGE_LIMIT - 1;
+
+      // Fetch orders from Supabase
+      // Adjust the range to fetch the next set of orders
+      const { data, error, count } = await supabase
         .from("procurement_orders")
         .select(
           `
@@ -83,13 +92,19 @@ const ProcurementOrders = () => {
               branch:branches(manager, name)
             )
           )
-        `
+        `,
+          { count: "exact" }
         )
-        .order("created_at", { ascending: false });
+        .order("created_at", { ascending: false })
+        .range(from, to);
 
       if (error) throw error;
-      return data as unknown as ProcurementOrder[];
+      return {
+        orders: data as unknown as ProcurementOrder[],
+        hasNextPage: count ? to + 1 < count : false,
+      };
     },
+    placeholderData: (previousData) => previousData,
   });
 
   const handleFinalizeOrder = async (values: FormValues) => {
@@ -207,7 +222,7 @@ const ProcurementOrders = () => {
             <FinalizeOrderDialog
               onOpenChange={setIsAddDialogOpen}
               items={
-                orders
+                data?.orders
                   ?.filter(
                     (order) =>
                       selectedItems.includes(order.id) &&
@@ -243,18 +258,19 @@ const ProcurementOrders = () => {
                   type="checkbox"
                   checked={
                     selectedItems.length ===
-                      orders?.filter((order) => order.status !== "supplied")
-                        ?.length &&
-                    orders?.some((order) => order.status !== "supplied")
+                      data?.orders?.filter(
+                        (order) => order.status !== "supplied"
+                      )?.length &&
+                    data?.orders?.some((order) => order.status !== "supplied")
                   }
                   onChange={() =>
                     handleSelectAll(
-                      orders,
+                      data?.orders,
                       (order) => order.status !== "supplied"
                     )
                   }
                   className="h-4 w-4 disabled:cursor-not-allowed"
-                  disabled={orders?.every(
+                  disabled={data?.orders?.every(
                     (order) => order.status === "supplied"
                   )}
                 />
@@ -264,12 +280,13 @@ const ProcurementOrders = () => {
               <TableHead>Name</TableHead>
               <TableHead>Quantity</TableHead>
               <TableHead>Branch</TableHead>
-              <TableHead>Date</TableHead>
+              <TableHead>Date Created</TableHead>
+              <TableHead>Date Updated</TableHead>
             </TableRow>
           </TableHeader>
-          {orders?.length && !isLoading ? (
+          {data?.orders?.length && !isLoading ? (
             <TableBody>
-              {orders?.map((order, idx) => (
+              {data?.orders?.map((order, idx) => (
                 <TableRow key={order.id}>
                   <TableCell>
                     <input
@@ -311,10 +328,13 @@ const ProcurementOrders = () => {
                   <TableCell>
                     {new Date(order.created_at).toLocaleDateString()}
                   </TableCell>
+                  <TableCell>
+                    {new Date(order.updated_at).toLocaleDateString()}
+                  </TableCell>
                 </TableRow>
               ))}
             </TableBody>
-          ) : !orders?.length && !isLoading ? (
+          ) : !data?.orders?.length && !isLoading ? (
             <TableBody>
               <TableRow>
                 <TableCell colSpan={5} className="text-center">
@@ -333,6 +353,12 @@ const ProcurementOrders = () => {
           )}
         </Table>
       </div>
+      <PaginationComponent
+        className="justify-end"
+        page={page}
+        setPage={setPage}
+        hasNextPage={data?.hasNextPage || false}
+      />
     </div>
   );
 };

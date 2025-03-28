@@ -17,10 +17,13 @@ import { useCheck } from "@/hooks/use-check";
 import { Dialog, DialogTrigger } from "@/components/ui/dialog";
 import { EditRequestDialog } from "@/components/ui/edit-request";
 import type { EditRequestFormValues } from "@/types/edit-request";
+import { PAGE_LIMIT } from "@/constants";
+import PaginationComponent from "../pagination";
 
 const ImprestRequests = () => {
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
+  const [page, setPage] = useState(1);
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const {
     selectedItems,
@@ -30,28 +33,30 @@ const ImprestRequests = () => {
     resetCheck,
   } = useCheck();
 
-  const {
-    data: requests,
-    refetch,
-    isLoading,
-  } = useQuery({
-    queryKey: ["imprest-requests"],
+  const { data, refetch, isLoading } = useQuery({
+    queryKey: ["imprest-requests", page],
     queryFn: async () => {
-      const { data, error } = await supabase
+      const from = (page - 1) * PAGE_LIMIT;
+      const to = from + PAGE_LIMIT - 1;
+
+      const { data, error, count } = await supabase
         .from("imprest_requests")
         .select(
           `
           *,
           branch:branches(*),
           user:user_id(first_name, last_name)
-        `
+        `,
+          { count: "exact" }
         )
         .eq("status", "pending")
-        .order("created_at", { ascending: false });
+        .order("created_at", { ascending: false })
+        .range(from, to);
 
       if (error) throw error;
-      return data;
+      return { requests: data, hasNextPage: count ? to + 1 < count : false };
     },
+    placeholderData: (prevData) => prevData,
   });
 
   const handleEditRequest = async (values: EditRequestFormValues) => {
@@ -163,7 +168,7 @@ const ImprestRequests = () => {
       if (itemsError) throw itemsError;
 
       // Create notifications for branches
-      const notifications = requests
+      const notifications = data?.requests
         ?.filter((req) => selectedItems.includes(req.id))
         .map((req) => ({
           branch_id: req.branch_id,
@@ -219,7 +224,7 @@ const ImprestRequests = () => {
             </DialogTrigger>
             <EditRequestDialog
               onOpenChange={setIsAddDialogOpen}
-              items={requests
+              items={data?.requests
                 ?.filter((x) => selectedItems?.includes(x?.id))
                 ?.map((x) => ({
                   id: x.id,
@@ -248,15 +253,20 @@ const ImprestRequests = () => {
                 type="checkbox"
                 checked={
                   selectedItems.length ===
-                    requests?.filter((req) => req.status !== "supplied")
+                    data?.requests?.filter((req) => req.status !== "supplied")
                       ?.length &&
-                  requests?.some((req) => req.status !== "supplied")
+                  data?.requests?.some((req) => req.status !== "supplied")
                 }
                 onChange={() =>
-                  handleSelectAll(requests, (req) => req.status !== "supplied")
+                  handleSelectAll(
+                    data?.requests,
+                    (req) => req.status !== "supplied"
+                  )
                 }
                 className="h-4 w-4 disabled:cursor-not-allowed"
-                disabled={requests?.every((req) => req.status === "supplied")}
+                disabled={data?.requests?.every(
+                  (req) => req.status === "supplied"
+                )}
               />
             </TableHead>
             <TableHead>Name</TableHead>
@@ -267,9 +277,9 @@ const ImprestRequests = () => {
             <TableHead>Date Updated</TableHead>
           </TableRow>
         </TableHeader>
-        {requests?.length && !isLoading ? (
+        {data?.requests?.length && !isLoading ? (
           <TableBody>
-            {requests?.map((request) => (
+            {data?.requests?.map((request) => (
               <TableRow key={request.id}>
                 <TableCell>
                   <input
@@ -296,7 +306,7 @@ const ImprestRequests = () => {
               </TableRow>
             ))}
           </TableBody>
-        ) : !requests?.length && !isLoading ? (
+        ) : !data?.requests?.length && !isLoading ? (
           <TableBody>
             <TableRow>
               <TableCell colSpan={5} className="text-center">
@@ -314,6 +324,12 @@ const ImprestRequests = () => {
           </TableBody>
         )}
       </Table>
+      <PaginationComponent
+        className="justify-end"
+        page={page}
+        setPage={setPage}
+        hasNextPage={data?.hasNextPage || false}
+      />
     </div>
   );
 };

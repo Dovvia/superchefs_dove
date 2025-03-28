@@ -35,6 +35,7 @@ export interface ImprestOrder {
   id: string;
   status: "pending" | "supplied" | "approved";
   created_at: string;
+  updated_at: string;
   items: ImprestOrderItem[];
 }
 

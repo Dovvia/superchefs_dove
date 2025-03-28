@@ -21,6 +21,8 @@ import { FinalizeOrderDialog } from "@/components/ui/finalize-order";
 import type { ImprestOrder, MiniImprestOrderItem } from "@/types/imprest";
 import { useUserBranch } from "@/hooks/user-branch";
 import { useAuth } from "@/hooks/auth";
+import PaginationComponent from "@/components/pagination";
+import { PAGE_LIMIT } from "@/constants";
 
 interface FormValues {
   items: MiniImprestOrderItem[];
@@ -30,20 +32,20 @@ const ImprestOrders = () => {
   const printRef = useRef<HTMLDivElement>(null);
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [page, setPage] = useState(1);
   const { selectedItems, handleSelectAll, resetCheck, toggleCheck } =
     useCheck();
   const { toast } = useToast();
   const userBranch = useUserBranch();
   const { user } = useAuth();
 
-  const {
-    data: orders,
-    isLoading,
-    refetch,
-  } = useQuery({
-    queryKey: ["imprest-orders"],
+  const { data, isLoading, refetch } = useQuery({
+    queryKey: ["imprest-orders", page],
     queryFn: async () => {
-      const { data, error } = await supabase
+      const from = (page - 1) * PAGE_LIMIT;
+      const to = from + PAGE_LIMIT - 1;
+
+      const { data, error, count } = await supabase
         .from("imprest_orders")
         .select(
           `
@@ -55,13 +57,19 @@ const ImprestOrders = () => {
               branch:branches(name, manager)
             )
           )
-        `
+        `,
+          { count: "exact" }
         )
-        .order("created_at", { ascending: false });
+        .order("created_at", { ascending: false })
+        .range(from, to);
 
       if (error) throw error;
-      return data as unknown as ImprestOrder[];
+      return {
+        orders: data as unknown as ImprestOrder[],
+        hasNextPage: count ? to + 1 < count : false,
+      };
     },
+    placeholderData: (prevData) => prevData,
   });
 
   const handleFinalizeOrder = async (values: FormValues) => {
@@ -166,7 +174,7 @@ const ImprestOrders = () => {
             <FinalizeOrderDialog
               onOpenChange={setIsAddDialogOpen}
               items={
-                orders
+                data?.orders
                   ?.filter(
                     (order) =>
                       selectedItems.includes(order.id) &&
@@ -201,18 +209,19 @@ const ImprestOrders = () => {
                   type="checkbox"
                   checked={
                     selectedItems.length ===
-                      orders?.filter((order) => order.status !== "supplied")
-                        ?.length &&
-                    orders?.some((order) => order.status !== "supplied")
+                      data?.orders?.filter(
+                        (order) => order.status !== "supplied"
+                      )?.length &&
+                    data?.orders?.some((order) => order.status !== "supplied")
                   }
                   onChange={() =>
                     handleSelectAll(
-                      orders,
+                      data?.orders,
                       (order) => order.status !== "supplied"
                     )
                   }
                   className="h-4 w-4 disabled:cursor-not-allowed"
-                  disabled={orders?.every(
+                  disabled={data?.orders?.every(
                     (order) => order.status === "supplied"
                   )}
                 />
@@ -222,12 +231,13 @@ const ImprestOrders = () => {
               <TableHead>Name</TableHead>
               <TableHead>Quantity</TableHead>
               <TableHead>Branch</TableHead>
-              <TableHead>Date</TableHead>
+              <TableHead>Date Created</TableHead>
+              <TableHead>Date Updated</TableHead>
             </TableRow>
           </TableHeader>
-          {orders?.length && !isLoading ? (
+          {data?.orders?.length && !isLoading ? (
             <TableBody>
-              {orders?.map((order) => (
+              {data?.orders?.map((order) => (
                 <TableRow key={order?.id}>
                   <TableCell>
                     <input
@@ -268,10 +278,13 @@ const ImprestOrders = () => {
                   <TableCell>
                     {new Date(order?.created_at).toLocaleDateString()}
                   </TableCell>
+                  <TableCell>
+                    {new Date(order?.updated_at).toLocaleDateString()}
+                  </TableCell>
                 </TableRow>
               ))}
             </TableBody>
-          ) : !orders?.length && !isLoading ? (
+          ) : !data?.orders?.length && !isLoading ? (
             <TableBody>
               <TableRow>
                 <TableCell colSpan={5} className="text-center">
@@ -290,6 +303,12 @@ const ImprestOrders = () => {
           )}
         </Table>
       </div>
+      <PaginationComponent
+        className="justify-end"
+        page={page}
+        setPage={setPage}
+        hasNextPage={data?.hasNextPage || false}
+      />
     </div>
   );
 };

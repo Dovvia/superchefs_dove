@@ -16,7 +16,12 @@ interface MaterialRequestDialogProps {
   onOpenChange: (open: boolean) => void;
   refetch: (
     options?: RefetchOptions
-  ) => Promise<QueryObserverResult<MaterialRequest[], Error>>;
+  ) => Promise<
+    QueryObserverResult<
+      { material_requests: MaterialRequest[]; hasNextPage?: boolean },
+      Error
+    >
+  >;
   requests: string[];
 }
 
