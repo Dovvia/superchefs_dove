@@ -150,6 +150,7 @@ export type Database = {
           transfer: number;
           updated_at: string;
           usage: number;
+          procurement: number;
         };
         Insert: {
           closing_stock?: number;
@@ -163,6 +164,7 @@ export type Database = {
           transfer?: number;
           updated_at?: string;
           usage?: number;
+          procurement?: number;
         };
         Update: {
           closing_stock?: number;
@@ -176,6 +178,7 @@ export type Database = {
           transfer?: number;
           updated_at?: string;
           usage?: number;
+          procurement?: number;
         };
         Relationships: [
           {
@@ -227,31 +230,34 @@ export type Database = {
           branch_id: string;
           user_id: string;
           created_at: string;
+          updated_at: string;
           id: string;
           material_id: string;
           notes: string | null;
           quantity: number;
-          status: string;
+          status: "pending" | "approved" | "supplied";
         };
         Insert: {
           branch_id: string;
           user_id: string;
           created_at?: string;
+          updated_at?: string;
           id?: string;
           material_id: string;
           notes?: string | null;
           quantity: number;
-          status?: string;
+          status?: "pending" | "approved" | "supplied";
         };
         Update: {
           branch_id?: string;
           user_id?: string;
           created_at?: string;
+          updated_at?: string;
           id?: string;
           material_id?: string;
           notes?: string | null;
           quantity?: number;
-          status?: string;
+          status?: "pending" | "approved" | "supplied";
         };
         Relationships: [
           {
@@ -387,7 +393,7 @@ export type Database = {
           unit_price: number;
           quantity: number;
           user_id: string;
-          status: string;
+          status: "pending" | "approved" | "supplied";
         };
         Insert: {
           branch_id: string;
@@ -399,7 +405,7 @@ export type Database = {
           unit_price: number;
           quantity: number;
           user_id: string;
-          status: string;
+          status: "pending" | "approved" | "supplied";
         };
         Update: {
           branch_id?: string;
@@ -411,7 +417,7 @@ export type Database = {
           unit_price?: number;
           quantity?: number;
           user_id?: string;
-          status?: string;
+          status?: "pending" | "approved" | "supplied";
         };
         Relationships: [
           {
@@ -465,6 +471,72 @@ export type Database = {
           }
         ];
       };
+      imprest_orders: {
+        Row: {
+          created_at: string;
+          id: string;
+          imprest_request_id: string;
+          notes: string | null;
+          status: "pending" | "approved" | "supplied";
+          updated_at: string;
+        };
+        Insert: {
+          created_at?: string;
+          id?: string;
+          imprest_request_id?: string;
+          notes?: string | null;
+          status?: "pending" | "approved" | "supplied";
+          updated_at?: string;
+        };
+        Update: {
+          created_at?: string;
+          id?: string;
+          imprest_request_id?: string;
+          notes?: string | null;
+          status?: "pending" | "approved" | "supplied";
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
+      imprest_order_items: {
+        Row: {
+          created_at: string;
+          id: string;
+          imprest_request_id: string;
+          imprest_order_id: string;
+          updated_at: string;
+        };
+        Insert: {
+          created_at?: string;
+          id?: string;
+          imprest_request_id: string;
+          imprest_order_id: string;
+          updated_at?: string;
+        };
+        Update: {
+          created_at?: string;
+          id?: string;
+          imprest_request_id?: string;
+          imprest_order_id?: string;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "imprest_order_items_material_request_id_fkey";
+            columns: ["imprest_request_id"];
+            isOneToOne: false;
+            referencedRelation: "imprest_requests";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "imprest_order_items_imprest_order_id_fkey";
+            columns: ["imprest_order_id"];
+            isOneToOne: false;
+            referencedRelation: "imprest_orders";
+            referencedColumns: ["id"];
+          }
+        ];
+      };
       procurement_order_items: {
         Row: {
           created_at: string;
@@ -510,7 +582,7 @@ export type Database = {
           id: string;
           material_request_id: string;
           notes: string | null;
-          status: string;
+          status: "pending" | "approved" | "supplied";
           updated_at: string;
         };
         Insert: {
@@ -518,7 +590,7 @@ export type Database = {
           id?: string;
           material_request_id?: string;
           notes?: string | null;
-          status?: string;
+          status?: "pending" | "approved" | "supplied";
           updated_at?: string;
         };
         Update: {
@@ -526,7 +598,73 @@ export type Database = {
           id?: string;
           material_request_id?: string;
           notes?: string | null;
-          status?: string;
+          status?: "pending" | "approved" | "supplied";
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
+      procurement_supplied: {
+        Row: {
+          created_at: string;
+          id: string;
+          material_order_id: string;
+          quantity: number;
+          unit: string;
+          notes: string | null;
+          status: "approved" | "supplied" | "pending";
+          updated_at: string;
+        };
+        Insert: {
+          created_at?: string;
+          id?: string;
+          material_order_id?: string;
+          quantity?: number;
+          unit?: string;
+          notes?: string | null;
+          status?: "approved" | "supplied" | "pending";
+          updated_at?: string;
+        };
+        Update: {
+          created_at?: string;
+          id?: string;
+          material_order_id?: string;
+          quantity?: number;
+          unit?: string;
+          notes?: string | null;
+          status?: "approved" | "supplied" | "pending";
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
+      imprest_supplied: {
+        Row: {
+          created_at: string;
+          id: string;
+          imprest_order_id: string;
+          quantity: number;
+          unit: string;
+          notes: string | null;
+          status: "approved" | "supplied" | "pending";
+          updated_at: string;
+        };
+        Insert: {
+          created_at?: string;
+          id?: string;
+          imprest_order_id?: string;
+          quantity?: number;
+          unit?: string;
+          notes?: string | null;
+          status?: "approved" | "supplied" | "pending";
+          updated_at?: string;
+        };
+        Update: {
+          created_at?: string;
+          id?: string;
+          imprest_order_id?: string;
+          quantity?: number;
+          unit?: string;
+          notes?: string | null;
+          status?: "approved" | "supplied" | "pending";
           updated_at?: string;
         };
         Relationships: [];

@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
+import { Edit2Icon } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import {
   Table,
@@ -12,10 +13,21 @@ import {
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
+import { useCheck } from "@/hooks/use-check";
+import { Dialog, DialogTrigger } from "@/components/ui/dialog";
+import { EditRequestDialog } from "../ui/edit-request";
+import type { EditRequestFormValues } from "@/types/edit-request";
 
 const MaterialRequests = () => {
   const { toast } = useToast();
-  const [selectedRequests, setSelectedRequests] = useState<string[]>([]);
+  const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
+  const {
+    selectedItems,
+    setSelectedItems,
+    toggleCheck,
+    resetCheck,
+    handleSelectAll,
+  } = useCheck();
   const [loading, setLoading] = useState(false);
 
   const {
@@ -43,8 +55,67 @@ const MaterialRequests = () => {
     },
   });
 
+  const handleEditRequest = async (values: EditRequestFormValues) => {
+    try {
+      setLoading(true);
+
+      // Ensure we only update items with valid quantities
+      const itemsToUpdate = values.items
+        .filter((item) => item.quantity && !isNaN(Number(item.quantity)))
+        .map((item) => ({
+          id: item.id,
+          quantity: Number(item.quantity),
+        }));
+
+      if (itemsToUpdate.length === 0) {
+        toast({
+          title: "No Changes",
+          description: "No valid quantity updates were provided.",
+        });
+        return;
+      }
+
+      // Sequentially update each record
+      for (const item of itemsToUpdate) {
+        const { error } = await supabase
+          .from("material_requests")
+          .update({ quantity: item.quantity })
+          .eq("id", item.id);
+
+        if (error) {
+          throw new Error(`Failed to update request ${item.id}`);
+        }
+      }
+
+      toast({
+        title: "Success",
+        description: `You have successfully updated ${
+          itemsToUpdate.length > 1 ? "requests" : "request"
+        }.`,
+      });
+
+      await refetch();
+      setIsAddDialogOpen(false);
+      resetCheck();
+    } catch (error) {
+      console.error(
+        `Error updating ${values.items?.length > 1 ? "requests" : "request"}:`,
+        error
+      );
+      toast({
+        title: "Error",
+        description: `Failed to update ${
+          values.items?.length > 1 ? "requests" : "request"
+        }.`,
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleCreateProcurementOrder = async () => {
-    if (selectedRequests.length === 0) {
+    if (selectedItems.length === 0) {
       toast({
         title: "Error",
         description: "Please select at least one request",
@@ -59,7 +130,7 @@ const MaterialRequests = () => {
       const { data: updatedOrders, error: updateMRError } = await supabase
         .from("material_requests")
         .update({ status: "approved" })
-        .in("id", selectedRequests)
+        .in("id", selectedItems)
         .select();
 
       if (updateMRError) throw updateMRError;
@@ -82,7 +153,7 @@ const MaterialRequests = () => {
       const { error: itemsError } = await supabase
         .from("procurement_order_items")
         .insert(
-          selectedRequests.map((requestId) => ({
+          selectedItems.map((requestId) => ({
             procurement_order_id: newProcurementOrders.find(
               (x) => x?.material_request_id === requestId
             )?.id,
@@ -94,7 +165,7 @@ const MaterialRequests = () => {
 
       // Create notifications for branches
       const notifications = requests
-        ?.filter((req) => selectedRequests.includes(req.id))
+        ?.filter((req) => selectedItems.includes(req.id))
         .map((req) => ({
           branch_id: req.branch_id,
           title: "Material Request Approved",
@@ -114,7 +185,7 @@ const MaterialRequests = () => {
         description: "Procurement order created successfully",
       });
 
-      setSelectedRequests([]);
+      setSelectedItems([]);
       refetch();
     } catch (error: unknown) {
       if (error instanceof Error) {
@@ -135,35 +206,60 @@ const MaterialRequests = () => {
     }
   };
 
-  const toggleRequest = (requestId: string) => {
-    setSelectedRequests((prev) =>
-      prev.includes(requestId)
-        ? prev.filter((id) => id !== requestId)
-        : [...prev, requestId]
-    );
-  };
-
   return (
     <div className="space-y-4">
       <div className="flex justify-between items-center">
         <h2 className="text-2xl font-semibold">Pending Material Requests</h2>
-        <Button
-          onClick={handleCreateProcurementOrder}
-          disabled={selectedRequests.length === 0 || loading}
-        >
-          Create Procurement Order
-        </Button>
+        <div className="flex items-center space-x-4">
+          <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
+            <DialogTrigger asChild id="material damage">
+              <Button disabled={selectedItems.length === 0 || loading}>
+                <Edit2Icon className="mr-2 h-4 w-4" />
+                Edit request
+              </Button>
+            </DialogTrigger>
+            <EditRequestDialog
+              onOpenChange={setIsAddDialogOpen}
+              items={requests
+                ?.filter((x) => selectedItems?.includes(x?.id))
+                ?.map((x) => ({
+                  id: x.id,
+                  name: x.material?.name,
+                  quantity: String(x.quantity),
+                  unit: x.material?.unit,
+                }))}
+              handleEditRequest={handleEditRequest}
+              loading={loading}
+            />
+          </Dialog>
+          <Button
+            onClick={handleCreateProcurementOrder}
+            disabled={selectedItems.length === 0 || loading}
+          >
+            Create Procurement Order
+          </Button>
+        </div>
       </div>
 
       <Table>
         <TableHeader>
           <TableRow>
-            <TableHead className="w-12">Select</TableHead>
+            <TableHead>
+              <input
+                type="checkbox"
+                checked={selectedItems?.length === requests?.length}
+                onChange={() =>
+                  handleSelectAll(requests, (req) => req.status === "pending")
+                }
+                className="h-4 w-4"
+              />
+            </TableHead>
             <TableHead>Material</TableHead>
             <TableHead>Branch</TableHead>
             <TableHead>Quantity</TableHead>
             <TableHead>Status</TableHead>
-            <TableHead>Date</TableHead>
+            <TableHead>Date Created</TableHead>
+            <TableHead>Date Updated</TableHead>
           </TableRow>
         </TableHeader>
         {requests?.length && !isLoading ? (
@@ -173,8 +269,8 @@ const MaterialRequests = () => {
                 <TableCell>
                   <input
                     type="checkbox"
-                    checked={selectedRequests.includes(request.id)}
-                    onChange={() => toggleRequest(request.id)}
+                    checked={selectedItems.includes(request.id)}
+                    onChange={() => toggleCheck(request.id)}
                     className="h-4 w-4"
                   />
                 </TableCell>
@@ -184,16 +280,13 @@ const MaterialRequests = () => {
                   {request.quantity} {request.material?.unit}
                 </TableCell>
                 <TableCell>
-                  <Badge
-                    variant={
-                      request.status === "pending" ? "warning" : "default"
-                    }
-                  >
-                    {request.status}
-                  </Badge>
+                  <Badge status={request.status}>{request.status}</Badge>
                 </TableCell>
                 <TableCell>
                   {new Date(request.created_at).toLocaleDateString()}
+                </TableCell>
+                <TableCell>
+                  {new Date(request.updated_at).toLocaleDateString()}
                 </TableCell>
               </TableRow>
             ))}

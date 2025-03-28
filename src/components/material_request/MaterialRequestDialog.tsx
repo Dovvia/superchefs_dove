@@ -42,7 +42,7 @@ export const MaterialRequestDialog = ({
         quantity: Number(x?.quantity),
         branch_id: values?.branch,
         user_id: values?.user,
-        status: "pending",
+        status: "pending" as MaterialRequest["status"],
       }));
       const { error } = await supabase
         .from("material_requests")

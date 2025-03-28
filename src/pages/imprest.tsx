@@ -11,7 +11,6 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import { Plus } from "lucide-react";
 import { Dialog, DialogTrigger } from "@/components/ui/dialog";
 import { ImprestDialog } from "@/components/imprest/ImprestDialog";
 import { format } from "date-fns";
@@ -100,11 +99,7 @@ const Imprest = () => {
                     {format(new Date(imprest.created_at), "MMM d, yyyy h:mm a")}
                   </TableCell>
                   <TableCell>
-                    <Badge
-                      variant={`${
-                        imprest?.status === "pending" ? "warning" : "default"
-                      }`}
-                    >
+                    <Badge status={`${imprest?.status}`}>
                       {imprest?.status}
                     </Badge>
                   </TableCell>

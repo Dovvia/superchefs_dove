@@ -31,10 +31,10 @@ const MaterialRequest = () => {
         .from("material_requests")
         .select(
           `*,
-          material:material_id(name, unit, unit_price),
-          branch:branch_id(name),
-          user:user_id(first_name, last_name)
-        `
+        material:material_id(minimum_stock, name, unit, unit_price, inventory:inventory(closing_stock, usage)),
+        branch:branch_id(name),
+        user:user_id(first_name, last_name)
+      `
         )
         .order("created_at", { ascending: false });
 
@@ -51,7 +51,7 @@ const MaterialRequest = () => {
       <div className="flex justify-between items-center">
         <h2 className="text-3xl font-bold tracking-tight">Material request</h2>
         <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
-          <DialogTrigger asChild id="material damage">
+          <DialogTrigger asChild id="edit-material-request">
             <Button>
               <Plus className="mr-2 h-4 w-4" />
               Material request
@@ -74,10 +74,12 @@ const MaterialRequest = () => {
               <TableHead>Cost</TableHead>
               <TableHead>Quantity</TableHead>
               <TableHead>Total cost</TableHead>
-              <TableHead>Request By</TableHead>
+              <TableHead>Requested By</TableHead>
               <TableHead>Branch</TableHead>
               <TableHead>Status</TableHead>
               <TableHead>Date</TableHead>
+              <TableHead>Usage</TableHead>
+              <TableHead>Closing stock</TableHead>
             </TableRow>
           </TableHeader>
           {material_requests?.length && !isLoading ? (
@@ -105,13 +107,7 @@ const MaterialRequest = () => {
                     {material_request?.branch?.name ?? "N / A"}
                   </TableCell>
                   <TableCell>
-                    <Badge
-                      variant={
-                        material_request?.status === "pending"
-                          ? "warning"
-                          : "default"
-                      }
-                    >
+                    <Badge status={material_request?.status}>
                       {material_request?.status}
                     </Badge>
                   </TableCell>
@@ -120,6 +116,20 @@ const MaterialRequest = () => {
                       new Date(material_request.created_at),
                       "MMM d, yyyy h:mm a"
                     )}
+                  </TableCell>
+                  <TableCell>
+                    {material_request?.material?.inventory[0]?.usage}
+                  </TableCell>
+                  <TableCell
+                    style={{
+                      color:
+                        material_request.material?.inventory[0]?.closing_stock <
+                        material_request.material?.minimum_stock
+                          ? "red"
+                          : "green",
+                    }}
+                  >
+                    {material_request?.material?.inventory[0]?.closing_stock}
                   </TableCell>
                 </TableRow>
               ))}
