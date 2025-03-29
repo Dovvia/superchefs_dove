@@ -15,35 +15,35 @@ import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { useCheck } from "@/hooks/use-check";
 import { Dialog, DialogTrigger } from "@/components/ui/dialog";
-import { EditRequestDialog } from "../ui/edit-request";
+import { EditRequestDialog } from "@/components/ui/edit-request";
 import type { EditRequestFormValues } from "@/types/edit-request";
-import PaginationComponent from "@/components/pagination";
 import { PAGE_LIMIT } from "@/constants";
+import PaginationComponent from "../pagination";
 
-const MaterialRequests = () => {
+const ImprestRequests = () => {
   const { toast } = useToast();
+  const [loading, setLoading] = useState(false);
+  const [page, setPage] = useState(1);
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const {
     selectedItems,
     setSelectedItems,
     toggleCheck,
-    resetCheck,
     handleSelectAll,
+    resetCheck,
   } = useCheck();
-  const [page, setPage] = useState(1);
-  const [loading, setLoading] = useState(false);
 
   const { data, refetch, isLoading } = useQuery({
-    queryKey: ["material-requests", page],
+    queryKey: ["imprest-requests", page],
     queryFn: async () => {
       const from = (page - 1) * PAGE_LIMIT;
       const to = from + PAGE_LIMIT - 1;
+
       const { data, error, count } = await supabase
-        .from("material_requests")
+        .from("imprest_requests")
         .select(
           `
           *,
-          material:materials(*),
           branch:branches(*),
           user:user_id(first_name, last_name)
         `,
@@ -82,7 +82,7 @@ const MaterialRequests = () => {
       // Sequentially update each record
       for (const item of itemsToUpdate) {
         const { error } = await supabase
-          .from("material_requests")
+          .from("imprest_requests")
           .update({ quantity: item.quantity })
           .eq("id", item.id);
 
@@ -118,7 +118,7 @@ const MaterialRequests = () => {
     }
   };
 
-  const handleCreateProcurementOrder = async () => {
+  const handleCreateImprestOrder = async () => {
     if (selectedItems.length === 0) {
       toast({
         title: "Error",
@@ -130,38 +130,38 @@ const MaterialRequests = () => {
 
     try {
       setLoading(true);
-      // Create procurement order
+      // Create imprest order
       const { data: updatedOrders, error: updateMRError } = await supabase
-        .from("material_requests")
+        .from("imprest_requests")
         .update({ status: "approved" })
         .in("id", selectedItems)
         .select();
 
       if (updateMRError) throw updateMRError;
 
-      // Now, fetch the newly inserted procurement orders
-      const { data: newProcurementOrders, error: procurementError } =
+      // Now, fetch the newly inserted imprest orders
+      const { data: newImprestOrders, error: imprestOrdersError } =
         await supabase
-          .from("procurement_orders")
+          .from("imprest_orders")
           .insert(
             updatedOrders?.map((uo) => ({
-              material_request_id: uo?.id,
+              imprest_request_id: uo?.id,
               status: uo?.status,
             }))
           )
           .select();
 
-      if (procurementError) throw procurementError;
+      if (imprestOrdersError) throw imprestOrdersError;
 
-      // Create procurement order items
+      // Create imprest order items
       const { error: itemsError } = await supabase
-        .from("procurement_order_items")
+        .from("imprest_order_items")
         .insert(
           selectedItems.map((requestId) => ({
-            procurement_order_id: newProcurementOrders.find(
-              (x) => x?.material_request_id === requestId
+            imprest_order_id: newImprestOrders.find(
+              (x) => x?.imprest_request_id === requestId
             )?.id,
-            material_request_id: requestId,
+            imprest_request_id: requestId,
           }))
         );
 
@@ -172,8 +172,8 @@ const MaterialRequests = () => {
         ?.filter((req) => selectedItems.includes(req.id))
         .map((req) => ({
           branch_id: req.branch_id,
-          title: "Material Request Approved",
-          message: `Your request for ${req.material?.name} has been approved`,
+          title: "Imprest Request Approved",
+          message: `Your request for ${req?.name} has been approved`,
         }));
 
       if (notifications?.length) {
@@ -186,7 +186,7 @@ const MaterialRequests = () => {
 
       toast({
         title: "Success",
-        description: "Procurement order created successfully",
+        description: "Imprest order created successfully",
       });
 
       setSelectedItems([]);
@@ -213,7 +213,7 @@ const MaterialRequests = () => {
   return (
     <div className="space-y-4">
       <div className="flex justify-between items-center">
-        <h2 className="text-2xl font-semibold">Pending Material Requests</h2>
+        <h2 className="text-2xl font-semibold">Pending Imprest Requests</h2>
         <div className="flex items-center space-x-4">
           <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
             <DialogTrigger asChild id="material damage">
@@ -228,19 +228,19 @@ const MaterialRequests = () => {
                 ?.filter((x) => selectedItems?.includes(x?.id))
                 ?.map((x) => ({
                   id: x.id,
-                  name: x.material?.name,
+                  name: x.name,
                   quantity: String(x.quantity),
-                  unit: x.material?.unit,
+                  unit: x.unit,
                 }))}
               handleEditRequest={handleEditRequest}
               loading={loading}
             />
           </Dialog>
           <Button
-            onClick={handleCreateProcurementOrder}
+            onClick={handleCreateImprestOrder}
             disabled={selectedItems.length === 0 || loading}
           >
-            Create Procurement Order
+            Create Imprest Order
           </Button>
         </div>
       </div>
@@ -248,20 +248,28 @@ const MaterialRequests = () => {
       <Table>
         <TableHeader>
           <TableRow>
-            <TableHead>
+            <TableHead className="w-12">
               <input
                 type="checkbox"
-                checked={selectedItems?.length === data?.requests?.length}
+                checked={
+                  selectedItems.length ===
+                    data?.requests?.filter((req) => req.status !== "supplied")
+                      ?.length &&
+                  data?.requests?.some((req) => req.status !== "supplied")
+                }
                 onChange={() =>
                   handleSelectAll(
                     data?.requests,
-                    (req) => req.status === "pending"
+                    (req) => req.status !== "supplied"
                   )
                 }
-                className="h-4 w-4"
+                className="h-4 w-4 disabled:cursor-not-allowed"
+                disabled={data?.requests?.every(
+                  (req) => req.status === "supplied"
+                )}
               />
             </TableHead>
-            <TableHead>Material</TableHead>
+            <TableHead>Name</TableHead>
             <TableHead>Branch</TableHead>
             <TableHead>Quantity</TableHead>
             <TableHead>Status</TableHead>
@@ -281,10 +289,10 @@ const MaterialRequests = () => {
                     className="h-4 w-4"
                   />
                 </TableCell>
-                <TableCell>{request.material?.name}</TableCell>
+                <TableCell className="capitalize">{request?.name}</TableCell>
                 <TableCell>{request.branch?.name}</TableCell>
                 <TableCell>
-                  {request.quantity} {request.material?.unit}
+                  {request.quantity} {request?.unit}
                 </TableCell>
                 <TableCell>
                   <Badge status={request.status}>{request.status}</Badge>
@@ -302,7 +310,7 @@ const MaterialRequests = () => {
           <TableBody>
             <TableRow>
               <TableCell colSpan={5} className="text-center">
-                No current material requests
+                No current imprest requests
               </TableCell>
             </TableRow>
           </TableBody>
@@ -326,4 +334,4 @@ const MaterialRequests = () => {
   );
 };
 
-export default MaterialRequests;
+export default ImprestRequests;

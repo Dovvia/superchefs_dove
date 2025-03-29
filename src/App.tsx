@@ -23,6 +23,7 @@ import Recipes from "./pages/Recipes";
 import Accounts from "./pages/Accounts";
 import Settings from "./pages/Settings";
 import NotFound from "./pages/NotFound";
+import ImprestManagement from "./pages/ImprestManagement";
 
 const queryClient = new QueryClient();
 
@@ -49,6 +50,7 @@ function App() {
                 <Route path="material-request" element={<MaterialRequest />} />
                 <Route path="imprest-request" element={<Imprest />} />
                 <Route path="procurement" element={<Procurement />} />
+                <Route path="manage-imprest" element={<ImprestManagement />} />
                 <Route path="damages" element={<Damages />} />
                 <Route path="users" element={<Users />} />
                 <Route path="accounts" element={<Accounts />} />

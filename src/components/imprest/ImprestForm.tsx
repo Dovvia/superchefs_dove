@@ -1,18 +1,10 @@
 import { useFieldArray, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
-import {
-  Form,
-  FormControl,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from "@/components/ui/form";
+import { Form, FormControl, FormItem, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Plus, Trash2 } from "lucide-react";
-import { useCallback } from "react";
 
 const formSchema = z.object({
   items: z.array(
@@ -60,14 +52,6 @@ const ImprestForm = ({ onSubmit, isLoading, onCancel }: ImprestFormProps) => {
     name: "items",
   });
 
-  const calculateTotalCost = useCallback(
-    (quantity: number, unit_price: number) => {
-      console.log(quantity, unit_price);
-      return quantity * unit_price;
-    },
-    []
-  );
-
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
@@ -86,7 +70,6 @@ const ImprestForm = ({ onSubmit, isLoading, onCancel }: ImprestFormProps) => {
                 </FormControl>
                 <FormMessage />
               </FormItem>
-
               <FormItem className="flex-initial">
                 <FormControl>
                   <Input
@@ -97,7 +80,6 @@ const ImprestForm = ({ onSubmit, isLoading, onCancel }: ImprestFormProps) => {
                 </FormControl>
                 <FormMessage />
               </FormItem>
-
               <FormItem className="flex-initial">
                 <FormControl>
                   <Input
@@ -108,7 +90,6 @@ const ImprestForm = ({ onSubmit, isLoading, onCancel }: ImprestFormProps) => {
                 </FormControl>
                 <FormMessage />
               </FormItem>
-
               <FormItem className="flex-initial">
                 <FormControl>
                   <Input
@@ -119,7 +100,6 @@ const ImprestForm = ({ onSubmit, isLoading, onCancel }: ImprestFormProps) => {
                 </FormControl>
                 <FormMessage />
               </FormItem>
-
               <FormItem className="flex-initial">
                 <FormControl>
                   <Input
@@ -131,7 +111,6 @@ const ImprestForm = ({ onSubmit, isLoading, onCancel }: ImprestFormProps) => {
                 </FormControl>
                 <FormMessage />
               </FormItem>
-
               <Button
                 type="button"
                 variant="destructive"
@@ -144,7 +123,6 @@ const ImprestForm = ({ onSubmit, isLoading, onCancel }: ImprestFormProps) => {
             </div>
           );
         })}
-
         <Button
           type="button"
           variant="outline"
@@ -156,7 +134,6 @@ const ImprestForm = ({ onSubmit, isLoading, onCancel }: ImprestFormProps) => {
           <Plus className="h-4 w-4 mr-2" />
           Add Item
         </Button>
-
         <div className="flex justify-end space-x-2">
           <Button type="button" variant="outline" onClick={onCancel}>
             Cancel
