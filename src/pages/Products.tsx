@@ -29,7 +29,9 @@ import { useUserBranch } from "@/hooks/user-branch";
 const Products = () => {
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const { toast } = useToast();
-  const { data: userBranch } = useUserBranch();
+  const { data: userBranch } = useUserBranch() as {
+    data: { id: string } | null;
+  };
   const queryClient = useQueryClient();
   const [addComplimentaryOpen, setAddComplimentaryOpen] = useState(false);
   const [addDamageOpen, setAddDamageOpen] = useState(false);
@@ -48,8 +50,8 @@ const Products = () => {
           `*, 
         opening_stock:product_inventory(opening_stock), 
         production:product_inventory(production), 
-        ucrr:product_inventory(ucrr), 
-        scrr:product_inventory(scrr),
+        ucrr:product_recipes!product_recipes_product_id_fkey(ucrr, unit_cost, selling_price), 
+        sale_item:sale_items!sale_items_product_id_fkey(quantity),
         product_damage:product_damages!product_damages_product_id_fkey(quantity), 
         product_transfer:product_transfers!product_transfers_product_id_fkey(quantity, from_branch_id, to_branch_id),
         cmp:complimentary_products!complimentary_products_product_id_fkey1(quantity)`
@@ -78,6 +80,8 @@ const Products = () => {
 
       const { error } = await supabase.from("products").insert({
         name: values.name,
+        branch_id: userBranch?.id,
+        unit_cost: values?.unit_cost,
         description: values?.description,
         price: values.price || 0,
         category: values?.category,
@@ -184,13 +188,18 @@ const Products = () => {
               <TableHead>DMG</TableHead>
               <TableHead>Sales</TableHead>
               <TableHead>Close Stock</TableHead>
+              <TableHead>Unit Cost</TableHead>
+              <TableHead>Sales Cost</TableHead>
+              <TableHead>N-S Cost</TableHead>
+              <TableHead>Unit Price</TableHead>
+              <TableHead>Sales Amt</TableHead>
               <TableHead>UCRR</TableHead>
               <TableHead>SCRR</TableHead>
             </TableRow>
           </TableHeader>
-          {products?.length && !isLoading ? (
+          {products && products.length > 0 && !isLoading ? (
             <TableBody>
-              {products?.map((product) => {
+              {products.map((product) => {
                 const transfers = {
                   out:
                     product?.product_transfer?.[0]?.from_branch_id ===
@@ -204,44 +213,90 @@ const Products = () => {
                       : null,
                 };
 
+                const scrr = {
+                  nSalesCost: (product?.cmp?.[0]?.quantity || 0 + product?.product_damage?.[0]?.quantity || 0) * (product.ucrr?.[0]?.unit_cost || 0),
+
+                  salesCost: (product.ucrr?.[0]?.unit_cost || 0) * (product?.sale_item?.[0]?.quantity || 0),
+                  salesAmt: (product.ucrr?.[0]?.selling_price || 0) * (product?.sale_item?.[0]?.quantity || 0),
+                  unitCost: product.ucrr?.[0]?.unit_cost ? product.ucrr?.[0].unit_cost.toFixed(1) : 0,
+                  unitPrice: product.ucrr?.[0]?.selling_price || 0,
+                };
+                const scrrCal = {
+                  scrrp: ((scrr.salesCost + scrr.nSalesCost) / scrr.salesAmt)
+                  * 100 || 0,
+                };
+
                 return (
                   <TableRow key={product.id}>
                     <TableCell className="font-medium">
                       {product.name}
                     </TableCell>
                     <TableCell>{product.category}</TableCell>
-                    <TableCell>{product?.opening_stock?.[0]?.opening_stock}</TableCell>
-                    <TableCell>{product?.production?.[0]?.production}</TableCell>
-                    <TableCell className="text-center">{transfers?.in}</TableCell>
-                    <TableCell className="text-center">{transfers.out}</TableCell>
-                    <TableCell className="text-center">{product?.cmp?.[0]?.quantity}</TableCell>
-                    <TableCell className="text-center">{product?.product_damage?.[0]?.quantity}</TableCell>
-                    <TableCell>{product.sales}</TableCell>
-                    <TableCell>{product.closingStock}</TableCell>
-                    <TableCell>{product.ucrr?.[0]?.ucrr >= 0.75 ?
-                    (<span className="text-green-600">{product.ucrr?.[0]?.ucrr * 100}%</span>) : 
-                    (<span className="text-red-600">{product.ucrr?.[0]?.ucrr * 100}%</span>)}
+                    <TableCell>
+                      {product?.opening_stock?.[0]?.opening_stock }
                     </TableCell>
-                    <TableCell>{product.scrr?.[0]?.scrr >= 0.75 ?
-                    (<span className="text-green-600">{product.scrr?.[0]?.scrr * 100}%</span>) : 
-                    (<span className="text-red-600">{product.scrr?.[0]?.scrr * 100}%</span>)}
+                    <TableCell>
+                      {product?.production?.[0]?.production}
+                    </TableCell>
+                    <TableCell className="text-center">
+                      {transfers?.in}
+                    </TableCell>
+                    <TableCell className="text-center">
+                      {transfers?.out}
+                    </TableCell>
+                    <TableCell className="text-center">
+                      {product?.cmp?.[0]?.quantity}
+                    </TableCell>
+                    <TableCell className="text-center">
+                      {product?.product_damage?.[0]?.quantity}
+                    </TableCell>
+                    <TableCell>{product?.sale_item?.[0]?.quantity}</TableCell>
+                    <TableCell>{product.closingStock}</TableCell>
+                    <TableCell>{scrr?.unitCost}</TableCell>
+                    <TableCell>{scrr?.salesCost?.toFixed(2)}</TableCell>
+                    <TableCell>{scrr?.nSalesCost?.toFixed(2)}</TableCell>
+                    <TableCell>{scrr?.unitPrice}</TableCell>
+                    <TableCell>{scrr?.salesAmt}</TableCell>
+                    
+                    <TableCell>
+                      {product.ucrr?.[0]?.ucrr > 0.75 ? (
+                        <span className="text-red-600">
+                          {product.ucrr?.[0]?.ucrr * 100}%
+                        </span>
+                      ) : (
+                        <span className="text-green-600">
+                          {product.ucrr?.[0]?.ucrr * 100}%
+                        </span>
+                      )}
+                    </TableCell>
+                    
+                    <TableCell>
+                      {scrrCal.scrrp > 75 ? (
+                        <span className="text-red-600">
+                          {scrrCal.scrrp?.toFixed(2)}%
+                        </span>
+                      ) : (
+                        <span className="text-green-600">
+                          {scrrCal.scrrp?.toFixed(2)}%
+                        </span>
+                      )}
                     </TableCell>
                   </TableRow>
                 );
               })}
             </TableBody>
-          ) : products?.length === 0 && !isLoading ? (
+          ) : !isLoading ? (
             <TableBody>
               <TableRow>
-                <TableCell colSpan={5} className="text-center">
-                  No damages recorded yet
+                <TableCell colSpan={12} className="text-center">
+                  No products found.
                 </TableCell>
               </TableRow>
             </TableBody>
           ) : (
             <TableBody>
               <TableRow>
-                <TableCell colSpan={5} className="text-center">
+                <TableCell colSpan={12} className="text-center">
                   Loading, please wait...
                 </TableCell>
               </TableRow>

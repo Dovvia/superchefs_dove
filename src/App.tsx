@@ -3,6 +3,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { AuthProvider } from "./contexts/AuthContext";
+import { ProductionProvider } from "@/context/ProductionContext";
 
 import Layout from "./components/layout/Layout";
 import ProtectedRoute from "./components/ProtectedRoute";
@@ -32,15 +33,17 @@ function App() {
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
         <TooltipProvider>
-          <BrowserRouter>
-            <Routes>
-              <Route path="/auth" element={<Auth />} />
-              <Route
-                path="/"
-                element={
+            <BrowserRouter>
+              <ProductionProvider>
+              <Routes>
+                <Route path="/auth" element={<Auth />} />
+                <Route
+                  path="/"
+                  element={
                   <ProtectedRoute>
                     <Layout />
                   </ProtectedRoute>
+
                 }
               >
                 <Route index element={<Dashboard />} />
@@ -87,12 +90,13 @@ function App() {
                 /> */}
               </Route>
             </Routes>
+           </ProductionProvider>
           </BrowserRouter>
           <Toaster />
         </TooltipProvider>
       </AuthProvider>
     </QueryClientProvider>
   );
-}
+} 
 
 export default App;

@@ -19,6 +19,7 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
+  DialogDescription
 } from "@/components/ui/dialog";
 import { FormValues, SaleForm } from "@/components/sales/SaleForm";
 import { useToast } from "@/components/ui/use-toast";
@@ -137,7 +138,10 @@ const Sales = () => {
           </DialogTrigger>
           <DialogContent className="max-w-2xl">
             <DialogHeader>
-              <DialogTitle>Create New Sale</DialogTitle>
+              <DialogTitle>Record New Sale</DialogTitle>
+              <DialogDescription>
+                Fill in the details to record sales.
+                </DialogDescription>
             </DialogHeader>
             {products && (
               <SaleForm

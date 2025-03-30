@@ -105,7 +105,7 @@ const Sidebar = ({ isOpen, onClose }: SidebarProps) => {
         isOpen ? "translate-x-0" : "-translate-x-full"
       } lg:`}
     >
-      <div className="space-y-4 py-4 bg-white h-full shadow-lg">
+      <div className="space-y-4 py-4 bg-white h-full shadow-lg overflow-y-auto">
         <div className="flex items-center justify-between px-3 lg:">
           <img
             src="/superchefs-logo.png"

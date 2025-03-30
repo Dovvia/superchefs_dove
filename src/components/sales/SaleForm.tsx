@@ -44,6 +44,7 @@ interface SaleFormProps {
   products: Product[];
   onSubmit: (values: FormValues) => Promise<void>;
   isLoading?: boolean;
+  // branchId: string
 }
 
 export const SaleForm = ({ products, onSubmit, isLoading }: SaleFormProps) => {
@@ -112,7 +113,7 @@ export const SaleForm = ({ products, onSubmit, isLoading }: SaleFormProps) => {
                   <SelectItem value="partner">Partner</SelectItem>
                   <SelectItem value="cash">Cash</SelectItem>
                   <SelectItem value="card">Card</SelectItem>
-                  <SelectItem value="other">Transfer</SelectItem>
+                  <SelectItem value="transfer">Transfer</SelectItem>
                 </SelectContent>
               </Select>
               <FormMessage />

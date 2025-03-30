@@ -22,12 +22,16 @@ import {
   Store,
   TrendingUp,
   Users,
+  Timer,
+  Clock,
+  Clock10,
 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { productionData } from "./Production";
-import { useUserBranch } from "@/hooks/user-branch"; // Import the hook
+import { useUserBranch } from "@/hooks/user-branch";
+import { useProductionContext } from "@/context/ProductionContext";
 
 const salesData = [
   { name: "Jan", sales: 4000 },
@@ -55,53 +59,63 @@ const branchPerformance = [
 const COLORS = ["#0088FE", "#00C49F", "#FFBB28", "#FF8042"];
 
 const Dashboard = () => {
-  const { data: recipes, isLoading } = useQuery({
-    queryKey: ["recipes"],
-    queryFn: async () => {
-      const { data, error } = await supabase.from("product_recipes").select(`
-        id,
-        name,
-        yield,
-        description,
-        updated_at,
-        product:products(name, id),
-        recipe_materials(
-          id,
-          material_id,
-          quantity,
-          material:materials(name, unit)
-        )
-      `);
-
-      if (error) throw error;
-      return data || [];
-    },
-  });
-
-  const { data: userBranch, isLoading: isBranchLoading } = useUserBranch(); // Fetch the user's branch
+  const { data: userBranch, isLoading: isBranchLoading } = useUserBranch() as {
+    data: { name: string } | null;
+    isLoading: boolean;
+  };
+  const { productionData } = useProductionContext();
 
   const [recentProduction, setRecentProduction] = useState([]);
 
   useEffect(() => {
     const fetchRecentProduction = async () => {
-      if (recipes && Array.isArray(recipes) && userBranch) {
-        const branchName = userBranch.name;
-        const data = await productionData(recipes as any[], branchName);
-        const recentData = data
-          .map((item) => ({
-            ...item,
-            branch: item.branch,
-            timestamp: item.timestamp,
-          }))
-          .slice(-3);
+      if (userBranch) {
+        try {
+          const { data, error } = await supabase
+            .from("production")
+            .select(
+              `
+            id,
+            branch_name,
+            product_name,
+            yield,
+            timestamp
+          `
+            )
+            .eq("branch_name", userBranch?.name)
+            .order("timestamp", { ascending: false }) // by most recent
+            .limit(20); // last 20 records
 
-        console.log("Recent Production Data:", recentData); // Debug log
-        setRecentProduction(recentData);
+          if (error) {
+            console.error("Error fetching recent production data:", error);
+            return;
+          }
+
+          if (!data || data.length === 0) {
+            console.warn("No recent production data found.");
+            setRecentProduction([]);
+            return;
+          }
+
+          const recentData = data.map((item) => ({
+            branch: item.branch_name || "Unknown Branch",
+            productName: item.product_name || "Unknown Product",
+            yield: item.yield || 0,
+            timestamp: item.timestamp || new Date().toISOString(),
+          }));
+
+          setRecentProduction(recentData);
+        } catch (err) {
+          console.error(
+            "Unexpected error fetching recent production data:",
+            err
+          );
+        }
       }
     };
 
     fetchRecentProduction();
-  }, [recipes, userBranch]);
+  }, [userBranch]);
 
   return (
     <div className="space-y-6">
@@ -342,31 +356,33 @@ const Dashboard = () => {
             <CardTitle>Recent Production Activities</CardTitle>
           </CardHeader>
           <CardContent>
-            {isLoading ? (
-              <p>Loading...</p>
+            {productionData.length === 0 ? (
+              <p>No recent production activities.</p>
             ) : (
               <div className="space-y-4">
-                {recentProduction.map((production, index) => (
-                  <div
-                    key={index}
-                    className="flex items-center justify-between border-b-2"
-                  >
-                    <div className="flex items-center space-y-4 space-x-4">
-                      {" "}
-                      <CakeIcon className="h-9 w-9 text-primary" />
-                      <p className="text-sm font-medium">{production.branch}</p>
-                      <p className="text-xs text-muted-foreground">
-                        was producing
-                      </p>
-                      <p className="text-xs">
+                {productionData.map((record, index) => (
+                  <div key={index} className="flex border-b-2">
+                    <div className="flex w-full items-center justify-between space-y-4">
+                      <div className="flex text-sm items-end gap-3 font-medium">
+                        <CakeIcon className="h-9 w-9 text-primary" />
+                        {record.branch}
+                        {/* <p className="text-xs text-muted-foreground">
+                          was producing
+                        </p> */}
+                      </div>
+
+                      <p className="text-sm ">
                         <span className="text-sm font-bold">
-                          {production.yield}{" "}
+                          {record.yield} {""}
                         </span>
-                        {production.productName}
+                        {record.productName}
                       </p>
-                    </div>
-                    <div className="text-sm font-bold">
-                      {timeAgo(production.timestamp)}{" "}
+                      <div className="flex items-center">
+                        {/* <Clock /> */}
+                        <p className="text-sm font-bold">
+                          {timeAgo(record.timestamp)}
+                        </p>
+                      </div>
                     </div>
                   </div>
                 ))}

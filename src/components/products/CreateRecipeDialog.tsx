@@ -112,12 +112,21 @@ const CreateRecipeDialog: React.FC<CreateRecipeDialogProps> = ({
     value: string | number
   ) => {
     const updatedMaterials = [...selectedMaterials];
-    if (typeof updatedMaterials[index][field] === typeof value) {
-      updatedMaterials[index][field] = value as never;
-      setSelectedMaterials(updatedMaterials);
-    } else {
-      console.warn(`Invalid value type for "${field}"`);
+
+    if (field === "material_id") {
+      const selectedMaterial = materials.find((mat) => mat.id === value);
+      if (selectedMaterial) {
+        updatedMaterials[index].material = {
+          ...updatedMaterials[index].material,
+          name: selectedMaterial.name,
+          unit: selectedMaterial.unit,
+          unit_price: selectedMaterial.unit_price,
+        };
+      }
     }
+
+    updatedMaterials[index][field] = value as never;
+    setSelectedMaterials(updatedMaterials);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -141,24 +150,44 @@ const CreateRecipeDialog: React.FC<CreateRecipeDialogProps> = ({
         (material) =>
           material.material_id && material.quantity > 0 && material.yield > 0
       )
-      .map((material) => ({
-        product_id: selectedProduct,
-        material_id: material.material_id,
-        quantity: material.quantity,
-        material_cost: material.material.unit_price * material.quantity || 0,
-        yield: material.yield,
-        name: material.material?.name || "",
-      }));
+      .map((material) => {
+        const materialCost =
+          material.material.unit_price * material.quantity || 0;
+        console.log(
+          `Material: ${material.material.name}, Unit Price: ${material.material.unit_price}, Quantity: ${material.quantity}, Material Cost: ${materialCost}`
+        );
+        return {
+          product_id: selectedProduct,
+          material_id: material.material_id,
+          quantity: material.quantity,
+          material_cost: materialCost,
+          yield: material.yield,
+          name: material.material?.name || "",
+        };
+      });
 
+    console.log("Recipe Entries:", recipeEntries);
+    const totalMaterialCost = recipeEntries.reduce(
+      (total, material) => total + material.material_cost,
+      0
+    );
+    console.log("Total Material Cost:", totalMaterialCost);
+
+    const selectedProductData = products.find((p) => p.id === selectedProduct);
+    const yields = recipeEntries[0]?.yield || 0;
+    const materialCost = recipeEntries.reduce(
+      (total, material) => total + material.material_cost,
+      0
+    );
     const { error: recipeError } = await supabase
       .from("product_recipes")
       .insert({
-        product_id: selectedProduct,
-        name: `Recipe for ${
-          products.find((p) => p.id === selectedProduct)?.name ||
-          "Unknown Product"
-        }`,
-        yield: recipeEntries[0]?.yield || 0,
+      product_id: selectedProduct,
+      name: `${selectedProductData?.name || "Unknown Product"} Recipe`,
+      yield: yields,
+      material_cost: materialCost,
+      unit_cost: materialCost / yields,
+      selling_price: selectedProductData?.price || 0,
       });
 
     if (recipeError) {
@@ -270,13 +299,18 @@ const CreateRecipeDialog: React.FC<CreateRecipeDialogProps> = ({
           </div>
 
           <div className="space-y-2">
-            <Label>Materials</Label>
+            <div className="flex w-full justify-around p-1">
+              <Label>Materials</Label>
+              <Label>Quantity</Label>
+              <Label>Yield</Label>
+            </div>
+
             {selectedMaterials.map((material, index) => (
               <div key={index} className="flex items-center space-x-2">
                 <Select
                   value={material.material_id}
                   onValueChange={(value) =>
-                  handleMaterialChange(index, "material_id", value)
+                    handleMaterialChange(index, "material_id", value)
                   }
                   required
                 >
@@ -338,7 +372,6 @@ const CreateRecipeDialog: React.FC<CreateRecipeDialogProps> = ({
               type="button"
               variant="text"
               sx={{ height: "25px", color: "#4CAF50" }}
-
               onClick={addMaterialField}
             >
               + Add Material
