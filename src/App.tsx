@@ -24,6 +24,7 @@ import Recipes from "./pages/Recipes";
 import Accounts from "./pages/Accounts";
 import Settings from "./pages/Settings";
 import NotFound from "./pages/NotFound";
+import ImprestManagement from "./pages/ImprestManagement";
 
 const queryClient = new QueryClient();
 
@@ -32,8 +33,8 @@ function App() {
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
         <TooltipProvider>
-          <ProductionProvider>
             <BrowserRouter>
+              <ProductionProvider>
               <Routes>
                 <Route path="/auth" element={<Auth />} />
                 <Route
@@ -42,31 +43,56 @@ function App() {
                   <ProtectedRoute>
                     <Layout />
                   </ProtectedRoute>
-                  }
-                >
-                  <Route index element={<Dashboard />} />
-                  <Route path="inventory" element={<Inventory />} />
-                  <Route path="products" element={<Products />} />
-                  <Route path="sales" element={<Sales />} />
-                  <Route
-                  path="material-request"
-                  element={<MaterialRequest />}
-                  />
-                  <Route path="imprest-request" element={<Imprest />} />
-                  <Route path="procurement" element={<Procurement />} />
-                  <Route path="damages" element={<Damages />} />
-                  <Route path="users" element={<Users />} />
-                  <Route path="accounts" element={<Accounts />} />
-                  <Route path="branches" element={<Branches />} />
-                  <Route path="production" element={<Production />} />
-                  <Route path="recipes" element={<Recipes />} />
-                  <Route path="settings" element={<Settings />} />
-                  <Route path="*" element={<NotFound />} />
-                </Route>
-              </Routes>
-              <Toaster />
-            </BrowserRouter>
-          </ProductionProvider>
+
+                }
+              >
+                <Route index element={<Dashboard />} />
+                <Route path="inventory" element={<Inventory />} />
+                <Route path="products" element={<Products />} />
+                <Route path="sales" element={<Sales />} />
+                <Route path="material-request" element={<MaterialRequest />} />
+                <Route path="imprest-request" element={<Imprest />} />
+                <Route path="procurement" element={<Procurement />} />
+                <Route path="manage-imprest" element={<ImprestManagement />} />
+                <Route path="damages" element={<Damages />} />
+                <Route path="users" element={<Users />} />
+                <Route path="accounts" element={<Accounts />} />
+                <Route path="branches" element={<Branches />} />
+                <Route path="production" element={<Production />} />
+                <Route path="recipes" element={<Recipes />} />
+                <Route path="settings" element={<Settings />} />
+                <Route path="*" element={<NotFound />} />
+
+                {/* <Route 
+                  path="users" 
+                  element={
+                    <RoleProtectedRoute allowedRoles={['admin']}>
+                      <Users />
+                    </RoleProtectedRoute>
+                  } 
+                />
+                <Route 
+                  path="branches" 
+                  element={
+                    <RoleProtectedRoute allowedRoles={['admin']}>
+                      <Branches />
+                    </RoleProtectedRoute>
+                  } 
+                />
+               
+                <Route 
+                  path="accounts" 
+                  element={
+                    <RoleProtectedRoute allowedRoles={['admin']}>
+                      <Accounts />
+                    </RoleProtectedRoute>
+                  } 
+                /> */}
+              </Route>
+            </Routes>
+           </ProductionProvider>
+          </BrowserRouter>
+          <Toaster />
         </TooltipProvider>
       </AuthProvider>
     </QueryClientProvider>

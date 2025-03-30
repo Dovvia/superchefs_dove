@@ -9,13 +9,19 @@ import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { MaterialRequest } from "@/types/material_request";
-import { useUserBranch } from "@/hooks/user-branch";
 import { useAuth } from "@/hooks/auth";
+import { useUserBranch } from "@/hooks/user-branch";
+
 interface MaterialRequestDialogProps {
   onOpenChange: (open: boolean) => void;
   refetch: (
     options?: RefetchOptions
-  ) => Promise<QueryObserverResult<MaterialRequest[], Error>>;
+  ) => Promise<
+    QueryObserverResult<
+      { material_requests: MaterialRequest[]; hasNextPage?: boolean },
+      Error
+    >
+  >;
   requests: string[];
 }
 
@@ -48,7 +54,7 @@ export const MaterialRequestDialog = ({
         quantity: Number(x?.quantity),
         branch_id: userBranchId,
         user_id: user?.id,
-        status: "pending",
+        status: "pending" as MaterialRequest["status"],
       }));
       const { error } = await supabase
         .from("material_requests")

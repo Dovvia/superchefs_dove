@@ -16,6 +16,7 @@ import {
   DollarSign,
   X,
   PackageMinusIcon,
+  HandshakeIcon,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
@@ -60,6 +61,11 @@ const Sidebar = ({ isOpen, onClose }: SidebarProps) => {
       name: "Procurement",
       href: "/procurement",
       icon: Boxes,
+    },
+    {
+      name: "Manage Imprest",
+      href: "/manage-imprest",
+      icon: HandshakeIcon,
     },
     {
       name: "Damages",

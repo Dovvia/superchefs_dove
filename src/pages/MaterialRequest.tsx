@@ -16,31 +16,43 @@ import { Dialog, DialogTrigger } from "@/components/ui/dialog";
 import { MaterialRequestDialog } from "@/components/material_request/MaterialRequestDialog";
 import { format } from "date-fns";
 import { Badge } from "@/components/ui/badge";
+import PaginationComponent from "@/components/pagination";
+import { PAGE_LIMIT } from "@/constants";
 
 const MaterialRequest = () => {
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
+  const [page, setPage] = useState(1);
 
   const {
-    data: material_requests,
+    data,
     refetch: refetchMaterialRequests,
     isLoading,
   } = useQuery({
-    queryKey: ["material_requests"],
+    queryKey: ["material_requests", page],
     queryFn: async () => {
-      const { data, error } = await supabase
+      const from = (page - 1) * PAGE_LIMIT;
+      const to = from + PAGE_LIMIT - 1;
+
+      const { data, error, count } = await supabase
         .from("material_requests")
         .select(
           `*,
-          material:material_id(name, unit, unit_price),
-          branch:branch_id(name),
-          user:user_id(first_name, last_name)
-        `
+        material:material_id(minimum_stock, name, unit, unit_price, inventory:inventory(closing_stock, usage)),
+        branch:branch_id(name),
+        user:user_id(first_name, last_name)
+      `,
+          { count: "exact" }
         )
-        .order("created_at", { ascending: false });
+        .order("created_at", { ascending: false })
+        .range(from, to);
 
       if (error) throw error;
-      return data as unknown as MaterialRequest[];
+      return {
+        material_requests: data as unknown as MaterialRequest[],
+        hasNextPage: count ? to + 1 < count : false,
+      };
     },
+    placeholderData: (prevData) => prevData,
   });
 
   const calculateTotalCost = (quantity: number, unitPrice: number) =>
@@ -51,7 +63,7 @@ const MaterialRequest = () => {
       <div className="flex justify-between items-center">
         <h2 className="text-3xl font-bold tracking-tight">Material request</h2>
         <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
-          <DialogTrigger asChild id="material damage">
+          <DialogTrigger asChild id="edit-material-request">
             <Button>
               <Plus className="mr-2 h-4 w-4" />
               Material request
@@ -60,7 +72,7 @@ const MaterialRequest = () => {
           <MaterialRequestDialog
             onOpenChange={setIsAddDialogOpen}
             refetch={refetchMaterialRequests}
-            requests={material_requests?.map((x) => x?.material_id)}
+            requests={data?.material_requests?.map((x) => x?.material_id)}
           />
         </Dialog>
       </div>
@@ -74,15 +86,17 @@ const MaterialRequest = () => {
               <TableHead>Cost</TableHead>
               <TableHead>Quantity</TableHead>
               <TableHead>Total cost</TableHead>
-              <TableHead>Request By</TableHead>
+              <TableHead>Requested By</TableHead>
               <TableHead>Branch</TableHead>
               <TableHead>Status</TableHead>
               <TableHead>Date</TableHead>
+              <TableHead>Usage</TableHead>
+              <TableHead>Closing stock</TableHead>
             </TableRow>
           </TableHeader>
-          {material_requests?.length && !isLoading ? (
+          {data?.material_requests?.length && !isLoading ? (
             <TableBody>
-              {material_requests?.map((material_request) => (
+              {data?.material_requests?.map((material_request) => (
                 <TableRow key={material_request.id}>
                   <TableCell>{material_request?.material?.name}</TableCell>
                   <TableCell>{material_request?.material?.unit}</TableCell>
@@ -105,13 +119,7 @@ const MaterialRequest = () => {
                     {material_request?.branch?.name ?? "N / A"}
                   </TableCell>
                   <TableCell>
-                    <Badge
-                      variant={
-                        material_request?.status === "pending"
-                          ? "warning"
-                          : "default"
-                      }
-                    >
+                    <Badge status={material_request?.status}>
                       {material_request?.status}
                     </Badge>
                   </TableCell>
@@ -121,10 +129,24 @@ const MaterialRequest = () => {
                       "MMM d, yyyy h:mm a"
                     )}
                   </TableCell>
+                  <TableCell>
+                    {material_request?.material?.inventory[0]?.usage}
+                  </TableCell>
+                  <TableCell
+                    style={{
+                      color:
+                        material_request.material?.inventory[0]?.closing_stock <
+                        material_request.material?.minimum_stock
+                          ? "red"
+                          : "green",
+                    }}
+                  >
+                    {material_request?.material?.inventory[0]?.closing_stock}
+                  </TableCell>
                 </TableRow>
               ))}
             </TableBody>
-          ) : !material_requests?.length && !isLoading ? (
+          ) : !data?.material_requests?.length && !isLoading ? (
             <TableBody>
               <TableRow>
                 <TableCell colSpan={5} className="text-center">
@@ -143,6 +165,12 @@ const MaterialRequest = () => {
           )}
         </Table>
       </div>
+      <PaginationComponent
+        className="justify-end"
+        page={page}
+        setPage={setPage}
+        hasNextPage={data?.hasNextPage || false}
+      />
     </div>
   );
 };

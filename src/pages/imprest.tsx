@@ -11,36 +11,47 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import { Plus } from "lucide-react";
 import { Dialog, DialogTrigger } from "@/components/ui/dialog";
 import { ImprestDialog } from "@/components/imprest/ImprestDialog";
 import { format } from "date-fns";
 import { HandCoinsIcon } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import PaginationComponent from "@/components/pagination";
+import { PAGE_LIMIT } from "@/constants";
 
 const Imprest = () => {
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
+  const [page, setPage] = useState(1);
 
   const {
-    data: imprests,
+    data,
     refetch: refetchImprests,
     isLoading,
   } = useQuery({
-    queryKey: ["imprest-requests"],
+    queryKey: ["imprest_requests", page],
     queryFn: async () => {
-      const { data, error } = await supabase
+      const from = (page - 1) * PAGE_LIMIT;
+      const to = from + PAGE_LIMIT - 1;
+
+      const { data, error, count } = await supabase
         .from("imprest_requests")
         .select(
           `*,
           branch:branch_id(name),
           user:user_id(first_name, last_name)
-        `
+        `,
+          { count: "exact" }
         )
-        .order("created_at", { ascending: false });
+        .order("created_at", { ascending: false })
+        .range(from, to);
 
       if (error) throw error;
-      return data as unknown as Imprest[];
+      return {
+        imprests: data as unknown as Imprest[],
+        hasNextPage: count ? to + 1 < count : false,
+      };
     },
+    placeholderData: (prevData) => prevData,
   });
 
   const calculateTotalCost = (quantity: number, unitPrice: number) =>
@@ -79,9 +90,9 @@ const Imprest = () => {
               <TableHead>Status</TableHead>
             </TableRow>
           </TableHeader>
-          {imprests?.length && !isLoading ? (
+          {data?.imprests?.length && !isLoading ? (
             <TableBody>
-              {imprests?.map((imprest) => (
+              {data?.imprests?.map((imprest) => (
                 <TableRow key={imprest.id}>
                   <TableCell className="capitalize">{imprest?.name}</TableCell>
                   <TableCell>{imprest?.unit}</TableCell>
@@ -100,18 +111,14 @@ const Imprest = () => {
                     {format(new Date(imprest.created_at), "MMM d, yyyy h:mm a")}
                   </TableCell>
                   <TableCell>
-                    <Badge
-                      variant={`${
-                        imprest?.status === "pending" ? "warning" : "default"
-                      }`}
-                    >
+                    <Badge status={`${imprest?.status}`}>
                       {imprest?.status}
                     </Badge>
                   </TableCell>
                 </TableRow>
               ))}
             </TableBody>
-          ) : !imprests?.length && !isLoading ? (
+          ) : !data?.imprests?.length && !isLoading ? (
             <TableBody>
               <TableRow>
                 <TableCell colSpan={5} className="text-center">
@@ -130,6 +137,12 @@ const Imprest = () => {
           )}
         </Table>
       </div>
+      <PaginationComponent
+        className="justify-end"
+        page={page}
+        setPage={setPage}
+        hasNextPage={data?.hasNextPage || false}
+      />
     </div>
   );
 };

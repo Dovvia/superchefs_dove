@@ -17,6 +17,14 @@ const badgeVariants = cva(
         outline: "text-foreground",
         warning:
           "border-transparent bg-yellow-500 text-primary-foreground hover:bg-yellow-400",
+        pending:
+          "border-transparent text-amber-500 bg-amber-100 hover:bg-amber-200",
+        // approved: "border-transparent text-green-500 bg-green-100 hover:bg-green-200",
+        approved:
+          "border-transparent text-emerald-600 bg-emerald-100 hover:bg-emerald-200",
+        supplied: "border-transparent text-sky-600 bg-sky-100 hover:bg-sky-200",
+        rejected:
+          "border-transparent text-rose-600 bg-rose-100 hover:bg-rose-200",
       },
     },
     defaultVariants: {
@@ -27,11 +35,25 @@ const badgeVariants = cva(
 
 export interface BadgeProps
   extends React.HTMLAttributes<HTMLDivElement>,
-    VariantProps<typeof badgeVariants> {}
+    VariantProps<typeof badgeVariants> {
+  status?:
+    | "default"
+    | "secondary"
+    | "destructive"
+    | "outline"
+    | "warning"
+    | "pending"
+    | "approved"
+    | "supplied"
+    | "rejected";
+}
 
-function Badge({ className, variant, ...props }: BadgeProps) {
+function Badge({ className, variant, status, ...props }: BadgeProps) {
   return (
-    <div className={cn(badgeVariants({ variant }), className)} {...props} />
+    <div
+      className={cn(badgeVariants({ variant: status ?? variant }), className)}
+      {...props}
+    />
   );
 }
 
