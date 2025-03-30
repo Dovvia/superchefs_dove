@@ -163,12 +163,16 @@ const Production = () => {
             throw productUpdateError;
           }
         } else {
-          const { error: productCreateError } = await supabase
+            const { error: productCreateError } = await supabase
             .from("product_inventory")
             .insert({
               product_id: recipe.product.id,
               production: recipe.yield,
               opening_stock: 0,
+              name: recipe.product.name,
+              // recipe_id: recipe.id, // primary id from the "product_recipes"
+              branch_id: userBranch && typeof userBranch === "object" && "id" in userBranch ?
+              (userBranch as { id: string }).id : "Unknown Branch",
             });
 
           if (productCreateError) {

@@ -577,6 +577,9 @@ export type Database = {
           name: string;
           product_id: string;
           updated_at: string;
+          unit_cost: number;
+          selling_price: number;
+          ucrr: number;
         };
         Insert: {
           created_at?: string;
@@ -585,6 +588,9 @@ export type Database = {
           name: string;
           product_id: string;
           updated_at?: string;
+          unit_cost: number;
+          selling_price: number;
+          ucrr: number;
         };
         Update: {
           created_at?: string;
@@ -593,6 +599,9 @@ export type Database = {
           name?: string;
           product_id?: string;
           updated_at?: string;
+          unit_cost: number;
+          selling_price: number;
+          ucrr: number;
         };
         Relationships: [
           {
@@ -733,6 +742,13 @@ export type Database = {
           closingStock?: number;
         };
         Relationships: [
+          {
+            foreignKeyName: "products_recipes_id_fkey";
+            columns: ["id"];
+            isOneToOne: false;
+            referencedRelation: "product_recipes";
+            referencedColumns: ["product_id"];
+          },
           {
             foreignKeyName: "products_damages_id_fkey";
             columns: ["id"];

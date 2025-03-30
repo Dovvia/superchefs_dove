@@ -15,6 +15,7 @@ export interface Product {
   name: string;
   description: string | null;
   price: number;
+  unit_cost: number;
   category: string | null;
   image_url: string | null;
   is_active: boolean;
