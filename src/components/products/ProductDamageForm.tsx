@@ -91,7 +91,7 @@ export const ProductDamageForm = ({
                         value={product.id}
                         disabled={!!product?.product_damages?.length}
                       >
-                        {product.name} - ${product.price}
+                        {product.name} - ₦{product.price}
                       </SelectItem>
                     ))}
                   </SelectContent>

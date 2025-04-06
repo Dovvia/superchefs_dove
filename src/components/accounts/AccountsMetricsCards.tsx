@@ -52,10 +52,14 @@ export const AccountsMetricsCards = forwardRef<
           <CardTitle className="text-sm font-medium">Net Profit</CardTitle>
           <TrendingUp className="h-4 w-4 text-primary" />
         </CardHeader>
-        <CardContent>
-          <div className="text-2xl font-bold">
+        <CardContent>{
+          metrics.profit > 0 ?
+          <div className="text-2xl font-bold text-green-600">
             {naira(metrics.profit.toFixed(2))}
-          </div>
+          </div> : 
+          <div className="text-2xl font-bold text-red-600">
+            {naira(metrics.profit.toFixed(2))}
+          </div>}
           <p className="text-xs text-muted-foreground">Revenue - Cost</p>
         </CardContent>
       </Card>
@@ -67,10 +71,14 @@ export const AccountsMetricsCards = forwardRef<
           </CardTitle>
           <Percent className="h-4 w-4 text-muted-foreground" />
         </CardHeader>
-        <CardContent>
-          <div className="text-2xl font-bold">
+        <CardContent> 
+          {metrics.costToRevenueRatio > 75 ?
+          <div className="text-2xl font-bold text-red-600">
+            {metrics.costToRevenueRatio.toFixed(1)}%
+          </div> : <div className="text-2xl font-bold text-green-600">
             {metrics.costToRevenueRatio.toFixed(1)}%
           </div>
+          }
           <p className="text-xs text-muted-foreground">Cost as % of revenue</p>
         </CardContent>
       </Card>

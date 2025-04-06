@@ -160,12 +160,12 @@ const Inventory = () => {
                   <TableCell
                     style={{
                       color:
-                        item.closing_stock < item.material?.minimum_stock
+                        item.quantity < item.material?.minimum_stock
                           ? "red"
                           : "green",
                     }}
                   >
-                    {item.closing_stock}
+                    {item.quantity}
                   </TableCell>
                   <TableCell>{item.material?.minimum_stock}</TableCell>
                   <TableCell>{item.request_order}</TableCell>
@@ -176,7 +176,7 @@ const Inventory = () => {
                     )}
                   </TableCell>
                   <TableCell>
-                    {naira(item.material?.unit_price * item.closing_stock)}
+                    {naira(item.material?.unit_price * item.quantity)}
                   </TableCell>
                   {/* <TableCell>
                   <Button

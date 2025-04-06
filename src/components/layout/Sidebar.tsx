@@ -63,7 +63,7 @@ const Sidebar = ({ isOpen, onClose }: SidebarProps) => {
       icon: Boxes,
     },
     {
-      name: "Manage Imprest",
+      name: "Imprest Mngt.",
       href: "/manage-imprest",
       icon: HandshakeIcon,
     },
