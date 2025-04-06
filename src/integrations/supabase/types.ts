@@ -913,6 +913,7 @@ export type Database = {
       product_inventory: {
         Row: {
           production: number;
+          quantity: number;
           id: string;
           name: string;
           category: string;
@@ -934,6 +935,7 @@ export type Database = {
           product_id: string;
           opening_stock: number;
           production: number;
+          quantity: number;
           // id: string;
           // name: string;
           // category: string;
@@ -951,6 +953,7 @@ export type Database = {
         };
         Update: {
           production: number;
+          quantity: number;
           // id: string;
           // name: string;
           // category: string;

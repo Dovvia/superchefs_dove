@@ -70,11 +70,7 @@ const Production = () => {
     queryKey: ["recipes"],
     queryFn: async () => {
       const { data, error } = await supabase.from("product_recipes").select(`
-          id,
-          name,
-          production_yield as yield,
-          description,
-          updated_at,
+          *,
           product:products(name, id),
           recipe_materials(
             id,
@@ -149,10 +145,11 @@ const Production = () => {
         // Update or create product inventory record
         if (productInvData) {
           newProduction = (productInvData.production || 0) + recipe.yield;
+         const newQuantity = (productInvData.quantity || 0) + recipe.yield;
 
           const { error: productUpdateError } = await supabase
             .from("product_inventory")
-            .update({ production: newProduction })
+            .update({ production: newProduction, quantity: newQuantity })
             .eq("id", productInvData.id);
 
           if (productUpdateError) {
@@ -168,6 +165,7 @@ const Production = () => {
             .insert({
               product_id: recipe.product.id,
               production: recipe.yield,
+              quantity: recipe.yield,
               opening_stock: 0,
               name: recipe.product.name,
               // recipe_id: recipe.id, // primary id from the "product_recipes"
@@ -181,6 +179,48 @@ const Production = () => {
               productCreateError
             );
             throw productCreateError;
+          }
+        }
+
+        // Update material inventory for each material used
+        for (const material of recipe.recipe_materials) {
+          // Get current material inventory record
+          const {data: invData, error: invQueryError} = await supabase
+          .from("inventory")
+          .select("id, quantity, usage")
+          .eq("material_id", material.material_id)
+          .maybeSingle();
+
+          if (invQueryError) {
+            console.error("Error fetching material inventory:", invQueryError);
+            throw invQueryError;
+          }
+          if(!invData){
+            console.error("Material inventory record not found");
+            throw new Error("Material inventory record not found");
+          }
+          const currentQuantity = invData.quantity || 0;
+          const currentUsage = invData.usage || 0;
+
+          if(currentQuantity < material.quantity) {
+            alert(`INSUFFICIENT INVENTORY! No enough ${material.material.name} in stock`);
+            throw new Error(`INSUFFICIENT INVENTORY! No enough ${material.material.name} in stock`);
+          }
+          // New usage and quantity
+          const newUsage = currentUsage + material.quantity;
+          const newQuantity = currentQuantity - material.quantity;
+
+          //Update Inventory
+          const { error: updateError } = await supabase
+          .from("inventory")
+          .update({
+            usage: newUsage,
+            quantity: newQuantity,
+          })  
+          .eq("id", invData.id);
+          if (updateError) {
+            console.error(`Error updating inventory for ${material.material.name}:`, updateError);
+            throw updateError;
           }
         }
 
