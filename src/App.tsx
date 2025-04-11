@@ -1,4 +1,5 @@
-import { BrowserRouter, Route, Routes } from "react-router-dom";
+
+import { BrowserRouter as Router, Route, Routes, Navigation } from "react-router-dom";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
@@ -23,6 +24,7 @@ import Damages from "./pages/Damages";
 import Recipes from "./pages/Recipes";
 import Accounts from "./pages/Accounts";
 import Settings from "./pages/Settings";
+import Admin from "./pages/Admin";
 import NotFound from "./pages/NotFound";
 import ImprestManagement from "./pages/ImprestManagement";
 
@@ -33,7 +35,7 @@ function App() {
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
         <TooltipProvider>
-            <BrowserRouter>
+            <Router>
               <ProductionProvider>
               <Routes>
                 <Route path="/auth" element={<Auth />} />
@@ -52,18 +54,52 @@ function App() {
                 <Route path="sales" element={<Sales />} />
                 <Route path="material-request" element={<MaterialRequest />} />
                 <Route path="imprest-request" element={<Imprest />} />
-                <Route path="procurement" element={<Procurement />} />
-                <Route path="manage-imprest" element={<ImprestManagement />} />
                 <Route path="damages" element={<Damages />} />
-                <Route path="users" element={<Users />} />
+                {/* <Route path="admin" element={<Admin />} /> */}
+                {/* <Route path="users" element={<Users />} />
                 <Route path="accounts" element={<Accounts />} />
-                <Route path="branches" element={<Branches />} />
+                <Route path="branches" element={<Branches />} /> */}
+                {/* <Route path="recipes" element={<Recipes />} /> */}
+                {/* <Route path="procurement" element={<Procurement />} />
+                <Route path="manage-imprest" element={<ImprestManagement />} /> */}
                 <Route path="production" element={<Production />} />
-                <Route path="recipes" element={<Recipes />} />
                 <Route path="settings" element={<Settings />} />
-                <Route path="*" element={<NotFound />} />
+                
 
-                {/* <Route 
+                <Route 
+                path= "admin"
+                element={
+                  <RoleProtectedRoute allowedRoles={['admin']}>
+                    <Admin />
+                  </RoleProtectedRoute>
+                }
+                />
+
+                <Route 
+                  path="manage-imprest" 
+                  element={
+                    <RoleProtectedRoute allowedRoles={['admin']}>
+                      <ImprestManagement />
+                    </RoleProtectedRoute>
+                  } 
+                />
+                <Route 
+                  path="recipes" 
+                  element={
+                    <RoleProtectedRoute allowedRoles={['admin']}>
+                      <Recipes />
+                    </RoleProtectedRoute>
+                  } 
+                />
+                <Route 
+                  path="procurement" 
+                  element={
+                    <RoleProtectedRoute allowedRoles={['admin']}>
+                      <Procurement />
+                    </RoleProtectedRoute>
+                  } 
+                />
+                <Route 
                   path="users" 
                   element={
                     <RoleProtectedRoute allowedRoles={['admin']}>
@@ -87,11 +123,12 @@ function App() {
                       <Accounts />
                     </RoleProtectedRoute>
                   } 
-                /> */}
+                />
               </Route>
+              <Route path="*" element={<NotFound />} />
             </Routes>
            </ProductionProvider>
-          </BrowserRouter>
+          </Router>
           <Toaster />
         </TooltipProvider>
       </AuthProvider>
