@@ -1023,6 +1023,16 @@ export type Database = {
           last_name: string | null;
           updated_at: string;
           branch_id: string;
+          user_id: string | null
+          email: string | null;
+          education: Database["public"]["Enums"]["education"] | null;
+          phone_number: string | null;
+          address: string | null;
+          salary: number | null;
+          nin: number | null;
+          employment_date: string | null;
+          role?: Database["public"]["Enums"]["app_role"];
+
         };
         Insert: {
           created_at?: string;
@@ -1031,6 +1041,15 @@ export type Database = {
           last_name?: string | null;
           updated_at?: string;
           branch_id: string;
+          user_id: string | null
+          email: string | null;
+          education: Database["public"]["Enums"]["education"] | null;
+          phone_number: string | null;
+          address: string | null;
+          salary: number | null;
+          nin: number | null;
+          employment_date: string | null;
+          role?: Database["public"]["Enums"]["app_role"];
         };
         Update: {
           created_at?: string;
@@ -1039,8 +1058,32 @@ export type Database = {
           last_name?: string | null;
           updated_at?: string;
           branch_id?: string;
+          user_id: string | null
+          email: string | null;
+          education: Database["public"]["Enums"]["education"] | null;
+          phone_number: string | null;
+          address: string | null;
+          salary: number | null;
+          nin: number | null;
+          employment_date: string | null;
+          role?: Database["public"]["Enums"]["app_role"];
         };
-        Relationships: [];
+        Relationships: [
+          {
+            foreignKeyName: "profiles_branch_id_fkey";
+            columns: ["branch_id"];
+            isOneToOne: false;
+            referencedRelation: "branches";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "profiles_user_id_fkey";
+            columns: ["user_id"];
+            isOneToOne: false;
+            referencedRelation: "auth.users";
+            referencedColumns: ["id"];
+          }
+        ];
       };
       recipe_materials: {
         Row: {
@@ -1174,6 +1217,7 @@ export type Database = {
           id: string;
           role: Database["public"]["Enums"]["app_role"];
           user_id: string;
+          profile_id: string;
         };
         Insert: {
           branch_id?: string | null;
@@ -1181,6 +1225,7 @@ export type Database = {
           id?: string;
           role?: Database["public"]["Enums"]["app_role"];
           user_id: string;
+          profile_id: string;
         };
         Update: {
           branch_id?: string | null;
@@ -1188,6 +1233,7 @@ export type Database = {
           id?: string;
           role?: Database["public"]["Enums"]["app_role"];
           user_id?: string;
+          profile_id: string;
         };
         Relationships: [
           {
@@ -1213,7 +1259,8 @@ export type Database = {
       };
     };
     Enums: {
-      app_role: "admin" | "staff" | "manager";
+      education: "primary" | "secondary" | "nce" | "nd" | "hnd" | "bachelor" | "master" | "phd" |  "professor";
+      app_role: "staff" | "baker" | "cleaner" | "sales_rep" | "cook" | "manager" | "procurement" | "accountant" |"maintenance" | "quality_control" | "supplier" | "head_office_supplier" | "area_manager" | "admin";
     };
     CompositeTypes: {
       [_ in never]: never;
