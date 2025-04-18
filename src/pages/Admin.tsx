@@ -5,7 +5,7 @@ import UserManagement from "../components/admin/UserManagement";
 import BranchAnalytics from "@/components/admin/BranchAnalytics";
 import { useAuth } from "@/hooks/auth";
 import { Navigate } from "react-router-dom";
-import { Users, BarChart, Building2 } from "lucide-react";
+import { Users, BarChart, BarChartIcon } from "lucide-react";
 
 const Admin = () => {
   const { userRoles } = useAuth();
@@ -17,13 +17,18 @@ const Admin = () => {
     return <Navigate to="/" replace />;
   }
 
+  const handleTabChange = (value: string) => {
+    console.log("Changing tab to:", value);
+    setActiveTab(value);
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h1 className="text-3xl font-bold">Admin Dashboard</h1>
       </div>
 
-      <Tabs defaultValue="users" value={activeTab} onValueChange={setActiveTab}>
+      <Tabs defaultValue="users" value={activeTab} onValueChange={handleTabChange}>
         <div className="mb-6">
           <TabsList className="grid w-full md:w-auto md:inline-flex grid-cols-2 md:grid-cols-none h-auto gap-4 p-1">
             <TabsTrigger 
@@ -37,7 +42,7 @@ const Admin = () => {
               value="branches" 
               className="flex items-center gap-2 px-4 py-2 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
             >
-              <Building2 className="h-4 w-4" />
+              <BarChartIcon className="h-4 w-4" />
               <span>Branch Analytics</span>
             </TabsTrigger>
           </TabsList>
