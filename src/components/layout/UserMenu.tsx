@@ -60,10 +60,7 @@ const UserMenu = () => {
         </DropdownMenuItem>
         <DropdownMenuItem
           className="cursor-pointer"
-          onClick={async () => {
-            await signOut();
-            navigate("/auth");
-          }}
+          onClick={async () => await signOut()}
         >
           <LogOut className="mr-2 h-4 w-4" />
           <span>Log out</span>
