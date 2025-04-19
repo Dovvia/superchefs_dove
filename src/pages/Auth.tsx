@@ -15,21 +15,20 @@ const Auth = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
 
-
-
-
-
   const handleAuth = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
       setLoading(true);
       if (isLogin) {
-        const { error } = await supabase.auth.signInWithPassword({
+        const { data, error } = await supabase.auth.signInWithPassword({
           email,
           password,
         });
+        if (data?.user) {
+          console.log("user: ", data?.user);
+          navigate("/");
+        }
         if (error) throw error;
-        navigate("/");
       } else {
         const { error } = await supabase.auth.signUp({
           email,
@@ -60,7 +59,16 @@ const Auth = () => {
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
       <div className="max-w-md w-full space-y-8">
-        <img src="/superchefs-logo.png" style={{width:"70px",height:"100px", borderRadius:"50%", position:"relative", left:"42%"}} />
+        <img
+          src="/superchefs-logo.png"
+          style={{
+            width: "70px",
+            height: "100px",
+            borderRadius: "50%",
+            position: "relative",
+            left: "42%",
+          }}
+        />
         <div>
           <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
             {isLogin ? "Sign in to your account" : "Create a new account"}
@@ -117,11 +125,7 @@ const Auth = () => {
           </div>
 
           <div>
-            <Button
-              type="submit"
-              className="w-full"
-              disabled={loading}
-            >
+            <Button type="submit" className="w-full" disabled={loading}>
               {loading
                 ? isLogin
                   ? "Signing in..."
@@ -133,7 +137,18 @@ const Auth = () => {
           </div>
         </form>
       </div>
-      <span style={{width:"100%",position:"fixed", bottom:0, backgroundColor:"#f0fff0", textAlign:"center"}}> © fadarse 2025, All Rights Reserved</span>
+      <span
+        style={{
+          width: "100%",
+          position: "fixed",
+          bottom: 0,
+          backgroundColor: "#f0fff0",
+          textAlign: "center",
+        }}
+      >
+        {" "}
+        © fadarse 2025, All Rights Reserved
+      </span>
     </div>
   );
 };

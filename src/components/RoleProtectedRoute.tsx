@@ -17,10 +17,11 @@ const RoleProtectedRoute = ({
     return <Navigate to="/auth" state={{ from: location }} replace />;
   }
 
-  const hasRequiredRole = userRoles?.some((role) =>
-    allowedRoles.includes(role)
-  );
-
+  const hasRequiredRole = Array.isArray(userRoles)
+    ? userRoles.some((role) => allowedRoles.includes(role))
+    : allowedRoles.includes(
+        userRoles as unknown as "admin" | "staff" | "manager"
+      );
   if (!hasRequiredRole) {
     return <Navigate to="/" replace />;
   }
