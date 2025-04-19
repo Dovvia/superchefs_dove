@@ -117,6 +117,35 @@ const Dashboard = () => {
     fetchRecentProduction();
   }, [userBranch]);
 
+  useEffect(() => {
+    const fetchUserRole = async () => {
+      try {
+        const { data: user, error } = await supabase.auth.getUser();
+        if (error) {
+          console.error("Error fetching user:", error);
+          return;
+        }
+
+        const { data: roles, error: roleError } = await supabase
+          .from("user_roles")
+          .select("role")
+          .eq("user_id", user?.user?.id);
+
+        if (roleError) {
+          console.error("Error fetching user roles:", roleError);
+          return;
+        }
+
+        console.log("User:", user);
+        console.log("Roles:", roles);
+      } catch (err) {
+        console.error("Unexpected error fetching user and roles:", err);
+      }
+    };
+
+    fetchUserRole();
+  }, []);
+
   return (
     <div className="space-y-6">
       <h2 className="text-3xl font-bold tracking-tight">Dashboard</h2>
@@ -128,7 +157,7 @@ const Dashboard = () => {
             <TrendingUp className="h-4 w-4 text-primary" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">$45,231.89</div>
+            <div className="text-2xl font-bold">₦45,231.89</div>
             <p className="text-xs text-muted-foreground">
               +20.1% from last month
             </p>

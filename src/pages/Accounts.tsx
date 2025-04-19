@@ -83,6 +83,7 @@ const Accounts = () => {
           items:sale_items(
             quantity,
             unit_price,
+            unit_cost,
             subtotal,
             product:products(*)
           )
@@ -124,7 +125,7 @@ const Accounts = () => {
     sales?.forEach((sale) => {
       sale.items?.forEach((item) => {
         const itemRevenue = item.subtotal;
-        const itemCost = itemRevenue * 0.6;
+        const itemCost = item.unit_cost * item.quantity;
 
         totalRevenue += itemRevenue;
         totalCost += itemCost;

@@ -14,11 +14,14 @@ import {
   ScrollText,
   PackageSearch,
   DollarSign,
+  Settings as Settings,
+  Shield,
   X,
   PackageMinusIcon,
   HandshakeIcon,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import {useAuth} from "@/hooks/auth";
 
 interface SidebarProps {
   isOpen: boolean;
@@ -26,6 +29,12 @@ interface SidebarProps {
 }
 
 const Sidebar = ({ isOpen, onClose }: SidebarProps) => {
+  const { userRoles } = useAuth();                            
+  const isAdmin = userRoles.includes("admin");
+  const isManager = userRoles.includes("manager");
+  // const isSuperAdmin = userRoles.includes("super-admin");
+  // const isAreaManager = userRoles.includes("area-manager");
+
   const navigation = [
     {
       name: "Dashboard",
@@ -61,11 +70,13 @@ const Sidebar = ({ isOpen, onClose }: SidebarProps) => {
       name: "Procurement",
       href: "/procurement",
       icon: Boxes,
+      adminOnly: true,
     },
     {
-      name: "Manage Imprest",
+      name: "Imprest Mngt.",
       href: "/manage-imprest",
       icon: HandshakeIcon,
+      adminOnly: true,
     },
     {
       name: "Damages",
@@ -76,16 +87,19 @@ const Sidebar = ({ isOpen, onClose }: SidebarProps) => {
       name: "Accounts",
       href: "/accounts",
       icon: DollarSign,
+      adminOnly: true,
     },
     {
       name: "Users",
       href: "/users",
       icon: Users,
+      adminOnly: true,
     },
     {
       name: "Branches",
       href: "/branches",
       icon: Building2,
+      adminOnly: true,
     },
     {
       name: "Production",
@@ -96,6 +110,13 @@ const Sidebar = ({ isOpen, onClose }: SidebarProps) => {
       name: "Recipes",
       href: "/recipes",
       icon: ScrollText,
+      adminOnly: true,
+    },
+    {
+      name: "Admin",
+      href: "/admin",
+      icon: Shield,
+      adminOnly: true,
     },
   ];
 
@@ -117,7 +138,23 @@ const Sidebar = ({ isOpen, onClose }: SidebarProps) => {
         </div>
         <div className="px-3 py-2">
           <div className="space-y-3">
-            {navigation.map((item) => (
+            {navigation.map((item) => {
+              // Check if the user has the required role for the item
+              if (item.adminOnly && !isAdmin) {
+                return null; 
+              }
+              // if (item.managerOnly && !isManager) {
+              //   return null; 
+              // }
+              // if (item.areaManagerOnly && !isAreaManager) {
+              //   return null; 
+              // }
+              // if (item.superAdminOnly && !isSuperAdmin) {
+              //   return null; 
+              // }
+           
+              return (
+
               <NavLink
                 key={item.name}
                 to={item.href}
@@ -131,7 +168,8 @@ const Sidebar = ({ isOpen, onClose }: SidebarProps) => {
                 <item.icon className="mr-3 h-4 w-4" />
                 {item.name}
               </NavLink>
-            ))}
+            );
+})}
           </div>
         </div>
       </div>

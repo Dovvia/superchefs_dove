@@ -119,6 +119,47 @@ const ProductTransferDialog = ({
 
       if (transferError) throw transferError;
 
+     // Increment product inventory for recipient branch
+const { data: incrementedQuantity, error: rpcError } = await supabase.rpc('increment_quantity', {
+  branch_id: data.toBranch,
+  product_id: data.product,
+  increment_by: Number(data.quantity),
+});
+
+if (rpcError) throw new Error(`Failed to increment quantity: ${rpcError.message}`);
+
+const { error: addInventoryError } = await supabase
+  .from("product_inventory")
+  .upsert(
+    {
+      branch_id: data.toBranch,
+      product_id: data.product,
+      quantity: incrementedQuantity, // Ensure this value is correct
+    },
+    { onConflict: "branch_id,product_id" }
+  );
+
+if (addInventoryError) throw new Error(`Failed to upsert inventory: ${addInventoryError.message}`);
+
+// Decrement product inventory for sending branch
+const { data: decrementedQuantity, error: decrementRpcError } = await supabase.rpc('decrement_quantity', {
+  branch_id: data.fromBranch,
+  product_id: data.product,
+  decrement_by: Number(data.quantity),
+});
+
+if (decrementRpcError) throw new Error(`Failed to decrement quantity: ${decrementRpcError.message}`);
+
+const { error: subtractInventoryError } = await supabase
+  .from("product_inventory")
+  .update({
+    quantity: decrementedQuantity, 
+  })
+  .eq("branch_id", data.fromBranch)
+  .eq("product_id", data.product);
+
+if (subtractInventoryError) throw new Error(`Failed to update inventory: ${subtractInventoryError.message}`);
+
       // Create notifications for both branches
       const toBranch = branches.find((b) => b.id === data.toBranch);
       const fromBranch = branches.find((b) => b.id === data.fromBranch);
@@ -202,7 +243,7 @@ const ProductTransferDialog = ({
                             value={product.id}
                             disabled={!!product?.product_transfer?.length}
                           >
-                            {product.name} - ${product.price}
+                            {product.name} - ₦{product.price}
                           </SelectItem>
                         ))}
                       </SelectContent>

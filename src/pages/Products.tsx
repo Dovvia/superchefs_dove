@@ -48,7 +48,7 @@ const Products = () => {
         .from("products")
         .select(
           `*, 
-        opening_stock:product_inventory(opening_stock), 
+        inventory:product_inventory(opening_stock, quantity), 
         production:product_inventory(production), 
         ucrr:product_recipes!product_recipes_product_id_fkey(ucrr, unit_cost, selling_price), 
         sale_item:sale_items!sale_items_product_id_fkey(quantity),
@@ -233,7 +233,7 @@ const Products = () => {
                     </TableCell>
                     <TableCell>{product.category}</TableCell>
                     <TableCell>
-                      {product?.opening_stock?.[0]?.opening_stock }
+                      {product?.inventory?.[0]?.opening_stock }
                     </TableCell>
                     <TableCell>
                       {product?.production?.[0]?.production}
@@ -251,7 +251,7 @@ const Products = () => {
                       {product?.product_damage?.[0]?.quantity}
                     </TableCell>
                     <TableCell>{product?.sale_item?.[0]?.quantity}</TableCell>
-                    <TableCell>{product.closingStock}</TableCell>
+                    <TableCell>{product?.inventory?.[0]?.quantity}</TableCell>
                     <TableCell>{scrr?.unitCost}</TableCell>
                     <TableCell>{scrr?.salesCost?.toFixed(2)}</TableCell>
                     <TableCell>{scrr?.nSalesCost?.toFixed(2)}</TableCell>
@@ -261,11 +261,11 @@ const Products = () => {
                     <TableCell>
                       {product.ucrr?.[0]?.ucrr > 0.75 ? (
                         <span className="text-red-600">
-                          {product.ucrr?.[0]?.ucrr * 100}%
+                          {product.ucrr?.[0]?.ucrr * 100 || 0}%
                         </span>
                       ) : (
                         <span className="text-green-600">
-                          {product.ucrr?.[0]?.ucrr * 100}%
+                          {product.ucrr?.[0]?.ucrr * 100 || 0}%
                         </span>
                       )}
                     </TableCell>

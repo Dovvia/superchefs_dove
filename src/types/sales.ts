@@ -9,6 +9,8 @@ export interface SaleItem {
   subtotal: number;
   created_at: string;
   product?: Product;
+  unit_cost: number;
+  
 }
 
 export interface Sale {

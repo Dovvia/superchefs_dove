@@ -1,3 +1,5 @@
+import { useEffect, useState } from "react";
+import { supabase } from "@/integrations/supabase/client";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -35,7 +37,7 @@ const formSchema = z.object({
 });
 
 interface ExtendedProduct extends Product {
-  cmp?: { quantity: number }[];
+  quantity?: number;
 }
 
 interface ComplimentaryProductFormProps {
@@ -61,6 +63,33 @@ export const ComplimentaryProductForm = ({
       recipient: "",
     },
   });
+
+  const [productQuantities, setProductQuantities] = useState<
+  Record<string, number>
+>({});
+  useEffect(() => {
+    // Fetch product quantities from the product_inventory table
+    const fetchQuantities = async () => {
+      const { data, error } = await supabase
+        .from("product_inventory")
+        .select("product_id, quantity");
+
+      if (error) {
+        console.error("Error fetching product quantities:", error);
+        return;
+      }
+
+      // Map quantities to product IDs
+      const quantities = data.reduce((acc, item) => {
+        acc[item.product_id] = item.quantity;
+        return acc;
+      }, {} as Record<string, number>);
+
+      setProductQuantities(quantities);
+    };
+
+    fetchQuantities();
+  }, []);
 
   return (
     <Form {...form}>
@@ -89,15 +118,18 @@ export const ComplimentaryProductForm = ({
                     <SelectValue placeholder="Select a product" />
                   </SelectTrigger>
                   <SelectContent>
-                    {products?.map((product) => (
-                      <SelectItem
-                        key={product.id}
-                        value={product.id}
-                        disabled={!!product?.cmp?.length}
-                      >
-                        {product.name} - ${product.price}
-                      </SelectItem>
-                    ))}
+        {products?.map((product) => {
+          const quantity = productQuantities[product.id] || 0;
+          return (
+            <SelectItem
+              key={product.id}
+              value={product.id}
+              disabled={quantity <= 0}
+            >
+              {product.name} - ₦{product.price} ({quantity > 5 ? `${quantity}` : quantity > 0 ? `${quantity} low stock` : "Out of stock"})
+            </SelectItem>
+          );
+        })}
                   </SelectContent>
                 </Select>
               </FormControl>

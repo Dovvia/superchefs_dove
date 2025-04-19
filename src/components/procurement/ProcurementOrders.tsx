@@ -229,7 +229,7 @@ const ProcurementOrders = () => {
             <DialogTrigger asChild id="procurement order">
               <Button disabled={!selectedItems.length || isLoading}>
                 <Plus className="ml-2 h-4 w-4" />
-                Record Order
+                Accept Order
               </Button>
             </DialogTrigger>
             <FinalizeOrderDialog

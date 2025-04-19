@@ -1,7 +1,7 @@
 
 
 export const timeAgo = (timestamp: Date | number | string |undefined): string => {
-    console.log("Timestamp received:", timestamp);
+    // console.log("Timestamp received:", timestamp);
   if (!timestamp) return "Invalid time";
 
   const now = new Date();
