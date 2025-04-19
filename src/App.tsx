@@ -1,5 +1,9 @@
-
-import { BrowserRouter as Router, Route, Routes, Navigation } from "react-router-dom";
+import {
+  BrowserRouter as Router,
+  Route,
+  Routes,
+  Navigation,
+} from "react-router-dom";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
@@ -35,17 +39,15 @@ function App() {
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
         <TooltipProvider>
-            <Router>
-              <ProductionProvider>
-              <Routes>
-                <Route path="/auth" element={<Auth />} />
-                <Route
-                  path="/"
-                  element={
+          <ProductionProvider>
+            <Routes>
+              <Route path="/auth" element={<Auth />} />
+              <Route
+                path="/"
+                element={
                   <ProtectedRoute>
                     <Layout />
                   </ProtectedRoute>
-
                 }
               >
                 <Route index element={<Dashboard />} />
@@ -64,76 +66,75 @@ function App() {
                 <Route path="manage-imprest" element={<ImprestManagement />} /> */}
                 <Route path="production" element={<Production />} />
                 <Route path="settings" element={<Settings />} />
-                
 
-                <Route 
-                path= "admin"
-                element={
-                  <RoleProtectedRoute allowedRoles={['admin']}>
-                    <Admin />
-                  </RoleProtectedRoute>
-                }
+                <Route
+                  path="admin"
+                  element={
+                    <RoleProtectedRoute allowedRoles={["admin"]}>
+                      <Admin />
+                    </RoleProtectedRoute>
+                  }
                 />
 
-                <Route 
-                  path="manage-imprest" 
+                <Route
+                  path="manage-imprest"
                   element={
-                    <RoleProtectedRoute allowedRoles={['admin']}>
+                    <RoleProtectedRoute allowedRoles={["admin"]}>
                       <ImprestManagement />
                     </RoleProtectedRoute>
-                  } 
+                  }
                 />
-                <Route 
-                  path="recipes" 
+                <Route
+                  path="recipes"
                   element={
-                    <RoleProtectedRoute allowedRoles={['admin']}>
+                    <RoleProtectedRoute allowedRoles={["admin"]}>
                       <Recipes />
                     </RoleProtectedRoute>
-                  } 
+                  }
                 />
-                <Route 
-                  path="procurement" 
+                <Route
+                  path="procurement"
                   element={
-                    <RoleProtectedRoute allowedRoles={['admin']}>
+                    <RoleProtectedRoute allowedRoles={["admin"]}>
                       <Procurement />
                     </RoleProtectedRoute>
-                  } 
+                  }
                 />
-                <Route 
-                  path="users" 
+                <Route
+                  path="users"
                   element={
-                    <RoleProtectedRoute allowedRoles={['admin']}>
+                    <RoleProtectedRoute allowedRoles={["admin"]}>
                       <Users />
                     </RoleProtectedRoute>
-                  } 
+                  }
                 />
-                <Route 
-                  path="branches" 
+                <Route
+                  path="branches"
                   element={
-                    <RoleProtectedRoute allowedRoles={['admin']}>
+                    <RoleProtectedRoute allowedRoles={["admin"]}>
                       <Branches />
                     </RoleProtectedRoute>
-                  } 
+                  }
                 />
-               
-                <Route 
-                  path="accounts" 
+
+                <Route
+                  path="accounts"
                   element={
-                    <RoleProtectedRoute allowedRoles={['admin']}>
+                    <RoleProtectedRoute allowedRoles={["admin"]}>
                       <Accounts />
                     </RoleProtectedRoute>
-                  } 
+                  }
                 />
               </Route>
               <Route path="*" element={<NotFound />} />
             </Routes>
-           </ProductionProvider>
-          </Router>
+          </ProductionProvider>
+
           <Toaster />
         </TooltipProvider>
       </AuthProvider>
     </QueryClientProvider>
   );
-} 
+}
 
 export default App;

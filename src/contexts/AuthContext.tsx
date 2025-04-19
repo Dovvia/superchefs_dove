@@ -1,61 +1,100 @@
 import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { Session, User } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
 import { AuthContext } from "@/hooks/auth";
+import { UserRole } from "@/types/users";
 
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [session, setSession] = useState<Session | null>(null);
   const [user, setUser] = useState<User | null>(null);
-  const [userRoles, setUserRoles] = useState<("admin" | "staff" | "manager")[]>(
-    []
-  );
+  const [userRoles, setUserRoles] = useState<UserRole>(null);
+  const [loading, setLoading] = useState(true);
+  const navigate = useNavigate();
 
   useEffect(() => {
     // Get initial session
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
-      setUser(session?.user ?? null);
-      if (session?.user) {
-        fetchUserRoles(session.user.id);
-      }
-    });
+    let isMounted = true;
+    const initializeAuth = async () => {
+      supabase.auth
+        .getSession()
+        .then(({ data: { session } }) => {
+          setSession(session);
+          if (session) {
+            return supabase
+              .from("user_roles")
+              .select("role")
+              .eq("user_id", session.user.id)
+              .single()
+              .then(({ data: userData, error }) => {
+                if (error) {
+                  console.error("User data fetch error:", error);
+                  if (isMounted) setUser(null);
+                } else if (userData) {
+                  if (isMounted) {
+                    setUserRoles(userData?.role);
+                    setUser(session?.user);
+                  }
+                }
+              });
+          } else {
+            console.log("No session found");
+            if (isMounted) setUser(null);
+          }
+        })
+        .catch((error) => {
+          console.error("Auth check error:", error);
+          if (isMounted) setUser(null);
+        })
+        .finally(() => {
+          if (isMounted) setLoading(false);
+        });
+    };
+
+    initializeAuth();
 
     // Listen for auth changes
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange( async (_event, session) => {
-      setSession(session);
-      setUser(session?.user ?? null);
-      if (session?.user) {
-        await fetchUserRoles(session.user.id);
-      } else {
-        setUserRoles([]);
+    } = supabase.auth.onAuthStateChange((event, session) => {
+      if (event === "SIGNED_IN" && session) {
+        setSession(session);
+        supabase
+          .from("user_roles")
+          .select("role")
+          .eq("user_id", session.user.id)
+          .single()
+          .then(({ data: userData, error }) => {
+            if (!error && userData && isMounted) {
+              setUserRoles(userData?.role);
+              setUser(session?.user);
+            }
+          });
+        navigate("/");
+      } else if (event === "SIGNED_OUT" && isMounted) {
+        setUser(null);
+        navigate("/auth");
       }
     });
 
-    return () => subscription.unsubscribe();
+    return () => {
+      isMounted = false;
+      subscription.unsubscribe();
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const fetchUserRoles = async (userId: string) => {
-    const { data, error } = await supabase
-      .from("user_roles")
-      .select("role")
-      .eq("user_id", userId);
-
-    if (error) {
-      console.error("Error fetching user roles:", error);
-      return;
-    }
-
-    setUserRoles(data.map((r) => r.role));
-  };
-
   const signOut = async () => {
-    await supabase.auth.signOut();
+    const { error } = await supabase.auth.signOut();
+    if (error) {
+      console.error("Error signing out:", error);
+    }
   };
 
   return (
-    <AuthContext.Provider value={{ session, user, userRoles, signOut }}>
+    <AuthContext.Provider
+      value={{ session, user, userRoles, signOut, loading }}
+    >
       {children}
     </AuthContext.Provider>
   );

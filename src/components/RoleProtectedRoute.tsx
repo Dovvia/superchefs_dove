@@ -10,17 +10,22 @@ const RoleProtectedRoute = ({
   children,
   allowedRoles,
 }: RoleProtectedRouteProps) => {
-  const { session, userRoles } = useAuth();
+  const { session, userRoles, loading } = useAuth();
   const location = useLocation();
+
+  if (loading) {
+    return <div className="p-10 text-center">Loading...</div>; // Or a spinner
+  }
 
   if (!session) {
     return <Navigate to="/auth" state={{ from: location }} replace />;
   }
 
-  const hasRequiredRole = userRoles?.some((role) =>
-    allowedRoles.includes(role)
-  );
-
+  const hasRequiredRole = Array.isArray(userRoles)
+    ? userRoles.some((role) => allowedRoles.includes(role))
+    : allowedRoles.includes(
+        userRoles as unknown as "admin" | "staff" | "manager"
+      );
   if (!hasRequiredRole) {
     return <Navigate to="/" replace />;
   }

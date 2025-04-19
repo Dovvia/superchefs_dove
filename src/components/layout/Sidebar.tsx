@@ -21,7 +21,14 @@ import {
   HandshakeIcon,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import {useAuth} from "@/hooks/auth";
+import { useAuth } from "@/hooks/auth";
+import { UserRole } from "@/types/users";
+
+enum PossibleUserRole {
+  admin = "admin",
+  manager = "manager",
+  staff = "staff",
+}
 
 interface SidebarProps {
   isOpen: boolean;
@@ -29,9 +36,13 @@ interface SidebarProps {
 }
 
 const Sidebar = ({ isOpen, onClose }: SidebarProps) => {
-  const { userRoles } = useAuth();                            
-  const isAdmin = userRoles.includes("admin");
-  const isManager = userRoles.includes("manager");
+  const { userRoles } = useAuth();
+  const isAdmin = Array.isArray(userRoles)
+    ? userRoles?.includes("admin")
+    : userRoles === (PossibleUserRole.admin as unknown as UserRole);
+  const isManager = Array.isArray(userRoles)
+    ? userRoles.includes("manager")
+    : userRoles === (PossibleUserRole.manager as unknown as UserRole);
   // const isSuperAdmin = userRoles.includes("super-admin");
   // const isAreaManager = userRoles.includes("area-manager");
 
@@ -141,35 +152,34 @@ const Sidebar = ({ isOpen, onClose }: SidebarProps) => {
             {navigation.map((item) => {
               // Check if the user has the required role for the item
               if (item.adminOnly && !isAdmin) {
-                return null; 
+                return null;
               }
               // if (item.managerOnly && !isManager) {
-              //   return null; 
+              //   return null;
               // }
               // if (item.areaManagerOnly && !isAreaManager) {
-              //   return null; 
+              //   return null;
               // }
               // if (item.superAdminOnly && !isSuperAdmin) {
-              //   return null; 
+              //   return null;
               // }
-           
-              return (
 
-              <NavLink
-                key={item.name}
-                to={item.href}
-                onClick={() => onClose()}
-                className={({ isActive }) =>
-                  `flex items-center rounded-lg px-3 py-2 text-sm font-medium transition-all duration-200 hover:bg-accent hover:text-accent-foreground transform hover:translate-x-1 ${
-                    isActive ? "bg-accent translate-x-1" : "translate-x-0"
-                  }`
-                }
-              >
-                <item.icon className="mr-3 h-4 w-4" />
-                {item.name}
-              </NavLink>
-            );
-})}
+              return (
+                <NavLink
+                  key={item.name}
+                  to={item.href}
+                  onClick={() => onClose()}
+                  className={({ isActive }) =>
+                    `flex items-center rounded-lg px-3 py-2 text-sm font-medium transition-all duration-200 hover:bg-accent hover:text-accent-foreground transform hover:translate-x-1 ${
+                      isActive ? "bg-accent translate-x-1" : "translate-x-0"
+                    }`
+                  }
+                >
+                  <item.icon className="mr-3 h-4 w-4" />
+                  {item.name}
+                </NavLink>
+              );
+            })}
           </div>
         </div>
       </div>
