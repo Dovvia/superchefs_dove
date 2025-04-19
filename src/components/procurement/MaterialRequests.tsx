@@ -49,7 +49,7 @@ const MaterialRequests = () => {
         `,
           { count: "exact" }
         )
-        .eq("status", "pending")
+        // .eq("status", "pending")
         .order("created_at", { ascending: false })
         .range(from, to);
 

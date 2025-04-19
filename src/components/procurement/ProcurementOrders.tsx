@@ -140,9 +140,22 @@ const ProcurementOrders = () => {
 
       // Sequentially update each record
       for (const item of new_items) {
+        const { data: existingData, error: fetchError } = await supabase
+          .from("inventory")
+          .select("quantity")
+          .eq("material_id", item.material_id)
+          .single();
+
+        if (fetchError) {
+          throw new Error(
+            `Failed to fetch current quantity for ${item.material_id}`
+          );
+        }
+
+        const newQuantity = (existingData?.quantity || 0) + item.quantity;
         const { error } = await supabase
           .from("inventory")
-          .update({ procurement: item.quantity })
+          .update({ procurement: item.quantity, quantity: newQuantity })
           .eq("material_id", item.material_id);
 
         if (error) {
