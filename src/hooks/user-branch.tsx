@@ -1,6 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/auth";
 import { supabase } from "@/integrations/supabase/client";
+import { Branch } from "@/types/branch";
 
 export const useUserBranch = () => {
   const { session } = useAuth();
@@ -24,8 +25,7 @@ export const useUserBranch = () => {
         return null;
       }
 
-      console.log("userBranch:", data?.branch);
-      return data?.branch; // Return branch as an object
+      return data?.branch as unknown as Branch; // Return branch as an object
     },
     enabled: !!session?.user?.id,
   });
