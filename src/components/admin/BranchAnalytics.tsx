@@ -25,115 +25,153 @@ import { LineChart, BarChart, Line, Bar, XAxis, YAxis, CartesianGrid, Tooltip, L
 import { Label } from "@/components/ui/label";
 import { ShoppingBag, Package, Banknote, TrendingUp } from "lucide-react";
 
+interface ProductInventoryItem {
+  id: string;
+  quantity: number;
+  product_id: string;
+  branch_id: string;
+  products: {
+    name: string;
+  }[];
+}
+
 interface Branch {
   id: string;
   name: string;
 }
+
 
 const BranchAnalytics = () => {
   const [selectedBranchId, setSelectedBranchId] = useState<string>("");
   const [timeframe, setTimeframe] = useState<"weekly" | "monthly" | "yearly">("monthly");
 
   // Fetch all branches
-  const { data: branches } = useQuery({
+  const { data: branches, isLoading: isLoadingBranches } = useQuery({
     queryKey: ["admin-branches"],
     queryFn: async () => {
       const { data, error } = await supabase
         .from("branches")
         .select("*");
       
-      if (error) throw error;
+      if (error) {
+        console.error("Error fetching branches:", error);
+        throw error;
+      }
       
       return data as Branch[];
     },
   });
 
   // Fetch sales data for selected branch or all branches if none selected
-  const { data: salesData } = useQuery({
+  const { data: salesData, isLoading: isLoadingSales } = useQuery({
     queryKey: ["admin-sales", selectedBranchId, timeframe],
     queryFn: async () => {
-      let query = supabase
-        .from("sales")
-        .select(`
-          id,
-          created_at,
-          total_amount,
-          branch_id,
-          payment_method
-        `)
-        .order("created_at", { ascending: false });
-      
-      if (selectedBranchId) {
-        query = query.eq("branch_id", selectedBranchId);
+      try {
+        let query = supabase
+          .from("sales")
+          .select(`
+            id,
+            created_at,
+            total_amount,
+            branch_id,
+            payment_method
+          `)
+          .order("created_at", { ascending: false });
+        
+        if (selectedBranchId) {
+          query = query.eq("branch_id", selectedBranchId);
+        }
+        
+        const { data, error } = await query;
+        
+        if (error) {
+          console.error("Error fetching sales:", error);
+          throw error;
+        }
+        
+        // Group by date based on timeframe
+        return groupByTimeframe(data || [], timeframe);
+      } catch (error) {
+        console.error("Sales query failed:", error);
+        return []; // Return empty array on error
       }
-      
-      const { data, error } = await query;
-      
-      if (error) throw error;
-      
-      // Group by date based on timeframe
-      return groupByTimeframe(data, timeframe);
     },
-    enabled: !!branches,
+    enabled: true, // Always enable query, don't depend on branches
   });
 
   // Fetch inventory data
-  const { data: inventoryData } = useQuery({
+  const { data: inventoryData, isLoading: isLoadingInventory } = useQuery({
     queryKey: ["admin-inventory", selectedBranchId],
     queryFn: async () => {
-      let query = supabase
-        .from("inventory")
-        .select(`
-          id,
-          quantity,
-          material_id,
-          branch_id,
-          materials (
-            name,
-            unit
-          )
-        `);
-      
-      if (selectedBranchId) {
-        query = query.eq("branch_id", selectedBranchId);
+      try {
+        let query = supabase
+          .from("inventory")
+          .select(`
+            id,
+            quantity,
+            material_id,
+            branch_id,
+            materials (
+              name,
+              unit
+            )
+          `);
+        
+        if (selectedBranchId) {
+          query = query.eq("branch_id", selectedBranchId);
+        }
+        
+        const { data, error } = await query;
+        
+        if (error) {
+          console.error("Error fetching inventory:", error);
+          throw error;
+        }
+        
+        return data || [];
+      } catch (error) {
+        console.error("Inventory query failed:", error);
+        return []; // Return empty array on error  
       }
-      
-      const { data, error } = await query;
-      
-      if (error) throw error;
-      
-      return data;
     },
-    enabled: !!branches,
+    enabled: true, // Always enable
   });
 
   // Fetch product inventory data
-  const { data: productInventoryData } = useQuery({
+  const { data: productInventoryData, isLoading: isLoadingProducts } = useQuery<ProductInventoryItem[]>({
     queryKey: ["admin-product-inventory", selectedBranchId],
     queryFn: async () => {
-      let query = supabase
-        .from("product_inventory")
-        .select(`
-          id,
-          quantity,
-          product_id,
-          branch_id,
-          products (
-            name
-          )
-        `);
-      
-      if (selectedBranchId) {
-        query = query.eq("branch_id", selectedBranchId);
+      try {
+        let query = supabase
+          .from("product_inventory")
+          .select(`
+            id,
+            quantity,
+            product_id,
+            branch_id,
+            products (
+              name
+            )
+          `);
+        
+        if (selectedBranchId) {
+          query = query.eq("branch_id", selectedBranchId);
+        }
+        
+        const { data, error } = await query;
+        
+        if (error) {
+          console.error("Error fetching product inventory:", error);
+          throw error;
+        }
+        
+        return (data || []) as ProductInventoryItem[];
+      } catch (error) {
+        console.error("Product inventory query failed:", error);
+        return []; // Return empty array on error
       }
-      
-      const { data, error } = await query;
-      
-      if (error) throw error;
-      
-      return data;
     },
-    enabled: !!branches,
+    enabled: true, // Always enable
   });
 
   // Helper function to group data by timeframe
@@ -162,7 +200,7 @@ const BranchAnalytics = () => {
         result[key] = 0;
       }
       
-      result[key] += item.total_amount;
+      result[key] += item.total_amount || 0;
     });
     
     return Object.entries(result).map(([name, value]) => ({ name, value }));
@@ -170,7 +208,7 @@ const BranchAnalytics = () => {
 
   // Calculate summary metrics
   const calculateSummaryMetrics = () => {
-    const salesTotal = salesData?.reduce((sum, item) => sum + item.value, 0) || 0;
+    const salesTotal = salesData?.reduce((sum, item) => sum + (item.value || 0), 0) || 0;
     const materialCount = inventoryData?.length || 0;
     const productCount = productInventoryData?.length || 0;
     
@@ -182,10 +220,14 @@ const BranchAnalytics = () => {
   };
   
   const metrics = calculateSummaryMetrics();
-  const branchName = selectedBranchId
-    ? branches?.find(b => b.id === selectedBranchId)?.name || "Unknown Branch"
-    : "All Branches";
+  const branchName = selectedBranchId && branches
+  ? branches.find(b => b.id === selectedBranchId)?.name || "Unknown Branch"
+  : "All Branches";
 
+// Loading state for all queries
+if (isLoadingBranches || isLoadingSales || isLoadingInventory || isLoadingProducts) {
+  return <div>Loading analytics data...</div>;
+}
   return (
     <div className="space-y-6">
       <div className="flex flex-col md:flex-row gap-4 justify-between items-start md:items-center">
@@ -276,7 +318,7 @@ const BranchAnalytics = () => {
             <CardContent className="pt-6">
               <div className="h-[300px]">
                 <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={salesData}>
+                  <BarChart data={salesData || []}>
                     <CartesianGrid strokeDasharray="3 3" />
                     <XAxis dataKey="name" />
                     <YAxis />
@@ -302,9 +344,9 @@ const BranchAnalytics = () => {
               <div className="h-[300px]">
                 <ResponsiveContainer width="100%" height="100%">
                   <BarChart 
-                    data={inventoryData?.map(item => ({
+                    data={(inventoryData || []).map(item => ({
                       name: item.materials?.map(material => material.name).join(", ") || "Unknown",
-                      value: item.quantity
+                      value: item.quantity || 0
                     }))}
                   >
                     <CartesianGrid strokeDasharray="3 3" />
@@ -332,7 +374,7 @@ const BranchAnalytics = () => {
               <div className="h-[300px]">
                 <ResponsiveContainer width="100%" height="100%">
                   <BarChart 
-                    data={productInventoryData?.map(item => ({
+                    data={(productInventoryData || []).map(item => ({
                       name: item.products?.map(product => product.name).join(", ") || "Unknown",
                       value: item.quantity || 0
                     }))}
