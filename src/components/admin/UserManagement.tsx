@@ -43,15 +43,12 @@ type UserWithDetails = {
     branch_id?: string;
     email: string;
     education: string | null;
-    phone: string | null;
+    phone: number | null;
     address: string | null;
     salary: number | null;
     nin: number | null;
     employment_date: string | null;
-    role: {
-      role: string;
-      branch_id?: string;
-    }[];
+    role: string;
   };
   // user_roles: {
   //   role: string;
@@ -72,11 +69,11 @@ const UserManagement = () => {
     password: "",
     firstName: "",
     lastName: "",
-    phone: "",
+    phone: 234,
     address: "",
-    salary: "",
-    nin: "",
-    employment_date: "",
+    salary: 1000,
+    nin: 123,
+    employment_date: new Date().toISOString().split("T")[0], // Set default to today's date
     education: "primary" as 
     | "primary" 
     | "secondary" 
@@ -112,6 +109,14 @@ const UserManagement = () => {
 
   const { toast } = useToast(); // Initialize useToast
 
+  // Add this at the top of your component
+  const queryClient = useQueryClient();
+
+  // Define the refetchUsers function
+  const refetchUsers = async () => {
+    await queryClient.invalidateQueries({ queryKey: ["users"] });
+  };
+
   // Fetch users - Direct database query instead of admin.listUsers which requires service_role key
   const { data: users, isLoading: isLoadingUsers, error: usersError } = useQuery({
     queryKey: ["users"],
@@ -127,14 +132,14 @@ const UserManagement = () => {
         throw profilesError;
       }
 
-      const { data: roles, error: rolesError } = await supabase
-        .from("user_roles")
-        .select("*");
+      // const { data: roles, error: rolesError } = await supabase
+      //   .from("user_roles")
+      //   .select("*");
 
-      if (rolesError) {
-        console.error("Error fetching user roles:", rolesError);
-        throw rolesError;
-      }
+      // if (rolesError) {
+      //   console.error("Error fetching user roles:", rolesError);
+      //   throw rolesError;
+      // }
 
       return profiles.map((profile) => ({
         id: profile.id,
@@ -145,13 +150,13 @@ const UserManagement = () => {
           last_name: profile.last_name || "",
           email: profile.email || "N/A",
           branch_id: profile.branch_id,
-          phone: profile.phone || null,
+          phone: profile.phone || 234,
           address: profile.address || null,
-          salary: profile.salary || null,
-          nin: profile.nin || null,
+          salary: profile.salary || 0,
+          nin: profile.nin || 123,
           employment_date: profile.employment_date || null,
           education: profile.education || null,
-          role: profile.role || [{ role: "N/A" }],
+          role: profile.role || "N/A",
         },
         // user_roles: roles?.filter((r) => r.profile_id === profile.id) || [],
       }));
@@ -222,7 +227,8 @@ const UserManagement = () => {
 
   const handleCreateUser = async (e: React.FormEvent) => {
     e.preventDefault();
-    setCreationLoading(true); // Set loading state to true
+    setCreationLoading(true);
+  
     try {
       // Validate input
       if (!newUser.email || !newUser.password) {
@@ -231,7 +237,7 @@ const UserManagement = () => {
           description: "Email and password are required.",
           variant: "destructive",
         });
-        setCreationLoading(false); // Reset loading state
+        setCreationLoading(false);
         return;
       }
       if (!/\S+@\S+\.\S+/.test(newUser.email)) {
@@ -240,7 +246,7 @@ const UserManagement = () => {
           description: "Invalid email format.",
           variant: "destructive",
         });
-        setCreationLoading(false); // Reset loading state
+        setCreationLoading(false);
         return;
       }
       if (newUser.password.length < 6) {
@@ -249,11 +255,11 @@ const UserManagement = () => {
           description: "Password must be at least 6 characters long.",
           variant: "destructive",
         });
-        setCreationLoading(false); // Reset loading state
+        setCreationLoading(false);
         return;
       }
-
-      // Sign up the user
+  
+      // Sign up the user in auth.users
       const { data: authData, error: authError } = await supabase.auth.signUp({
         email: newUser.email,
         password: newUser.password,
@@ -261,11 +267,11 @@ const UserManagement = () => {
           data: {
             first_name: newUser.firstName,
             last_name: newUser.lastName,
-            role: newUser.role,
+            role: "authenticated", // Default role for auth.users
           },
         },
       });
-
+  
       if (authError) {
         console.error("Auth error:", authError);
         toast({
@@ -273,60 +279,71 @@ const UserManagement = () => {
           description: authError.message,
           variant: "destructive",
         });
-        setCreationLoading(false); // Reset loading state
+        setCreationLoading(false);
         return;
       }
-
+  
       if (authData.user) {
-        // Insert profile data
-        const { error: profileError } = await supabase.from("profiles").insert({
-          user_id: authData.user.id,
-          first_name: newUser.firstName,
-          last_name: newUser.lastName,
-          branch_id: newUser.branchId || null,
-          phone: newUser.phone || null,
-          address: newUser.address || null,
-          salary: newUser.salary || null,
-          nin: newUser.nin || null,
-          employment_date: newUser.employment_date || null,
-          education: newUser.education || null,
-          role: newUser.role,
-        });
-
-        if (profileError) throw profileError;
-
-        // Assign role to the user
-        const { error: roleError } = await supabase.from("user_roles").insert([
-          {
-            user_id: authData.user.id,
-            role: newUser.role,
+        try {
+          // Convert salary and nin to appropriate types
+          const salary = newUser.salary !== null ? newUser.salary : 0;
+          const nin = newUser.nin ? parseInt(newUser.nin.toString(), 10) : 123;
+  
+          // Insert profile data into profiles table
+          const { error: profileError } = await supabase.from("profiles").insert({
+            user_id: authData.user.id, // Reference to auth.users
+            first_name: newUser.firstName,
+            last_name: newUser.lastName,
             branch_id: newUser.branchId || null,
-          },
-        ]);
-
-        if (roleError) throw roleError;
-
-        toast({
-          title: "Success",
-          description: "User created successfully.",
-          variant: "default",
-        });
-
-        setIsCreateModalOpen(false);
-        setNewUser({
-          email: "",
-          password: "",
-          firstName: "",
-          lastName: "",
-          phone: "",
-          address: "",
-          salary: "",
-          nin: "",
-          employment_date: "",
-          education: "primary",
-          role: "staff",
-          branchId: "",
-        });
+            phone: newUser.phone || 234,
+            address: newUser.address || null,
+            salary: salary || 0,
+            nin: nin || 123,
+            employment_date: newUser.employment_date || null,
+            education: newUser.education || null,
+            role: newUser.role || "staff", // Default role for profiles
+          });
+  
+          if (profileError) {
+            console.error("Error inserting into profiles table:", profileError);
+            throw profileError;
+          }
+  
+          toast({
+            title: "Success",
+            description: "User created successfully.",
+            variant: "default",
+          });
+  
+          // Close the dialog and reset the form without reloading the page
+          setIsCreateModalOpen(false);
+          setNewUser({
+            email: "",
+            password: "",
+            firstName: "",
+            lastName: "",
+            phone: 234,
+            address: "",
+            salary: 0,
+            nin: 123,
+            employment_date: new Date().toISOString().split("T")[0],
+            education: "primary",
+            role: "staff",
+            branchId: "",
+          });
+  
+          // Optionally, refetch the users list to reflect the new user in the table
+          await refetchUsers();
+        } catch (error: any) {
+          console.error("Error creating user:", error);
+          toast({
+            title: "Error",
+            description: error.message,
+            variant: "destructive",
+          });
+        } finally {
+          setCreationLoading(false);
+        }
       }
     } catch (error: any) {
       console.error("Error creating user:", error);
@@ -336,9 +353,10 @@ const UserManagement = () => {
         variant: "destructive",
       });
     } finally {
-      setCreationLoading(false); // Reset loading state
+      setCreationLoading(false);
     }
   };
+  
 
   const handleUpdateRole = async (
     role:
@@ -359,35 +377,20 @@ const UserManagement = () => {
   ) => {
     if (selectedUser) {
       try {
-        const { data: existingRoles } = await supabase
-          .from("user_roles")
-          .select("*")
-          .eq("user_id", selectedUser.id)
-          .eq("role", role);
-
-        if (existingRoles && existingRoles.length > 0) {
-          toast({
-            title: "Info",
-            description: "User already has this role.",
-            variant: "default",
-          });
-          return;
-        }
-
-        const { error } = await supabase.from("user_roles").insert({
-          user_id: selectedUser.id,
-          role,
-          branch_id: selectedUser.profile.branch_id,
-        });
-
-        if (error) throw error;
-
+        // Update profile role
+        const { error: profileError } = await supabase
+          .from("profiles")
+          .update({ role })
+          .eq("user_id", selectedUser.id);
+  
+        if (profileError) throw profileError;
+  
         toast({
           title: "Success",
           description: "User role updated successfully.",
           variant: "default",
         });
-
+  
         setIsRoleModalOpen(false);
         setSelectedUser(null);
       } catch (error: any) {
@@ -399,25 +402,18 @@ const UserManagement = () => {
       }
     }
   };
+  
 
   const handleUpdateBranch = async (branchId: string) => {
     if (selectedUser) {
       try {
-        // Update profile branch_id
+        // Update profile branch_id using user_id
         const { error: profileError } = await supabase
           .from("profiles")
           .update({ branch_id: branchId })
-          .eq("id", selectedUser.id);
-
-        if (profileError) throw profileError;
-
-        // Update user_roles branch_id
-        const { error: roleError } = await supabase
-          .from("user_roles")
-          .update({ branch_id: branchId })
           .eq("user_id", selectedUser.id);
 
-        if (roleError) throw roleError;
+        if (profileError) throw profileError;
 
         toast({
           title: "Success",
@@ -576,7 +572,7 @@ const UserManagement = () => {
                 id="phone"
                 value={newUser.phone}
                 onChange={(e) =>
-                    setNewUser({ ...newUser, phone: e.target.value })
+                    setNewUser({ ...newUser, phone: Number(e.target.value) })
                 }
                 />
             </div>
@@ -622,7 +618,7 @@ const UserManagement = () => {
                 id="nin"
                 value={newUser.nin}
                 onChange={(e) =>
-                    setNewUser({ ...newUser, nin: e.target.value })
+                    setNewUser({ ...newUser, nin: Number(e.target.value) })
                 }
                 />
             </div>
@@ -644,7 +640,7 @@ const UserManagement = () => {
                 type="number"
                 value={newUser.salary}
                 onChange={(e) =>
-                    setNewUser({ ...newUser, salary: e.target.value })
+                    setNewUser({ ...newUser, salary: Number(e.target.value) })
                 }
                 />
             </div>
@@ -751,13 +747,12 @@ const UserManagement = () => {
                     </TableCell>
                     <TableCell className="text-center">{user.profile?.email}</TableCell>
                     <TableCell className="text-center">
-                      <div className="flex flex-wrap justify-center gap-1">
-                        {user.profile.role.map((role, index) => (
-                          <Badge key={index} variant="outline">
-                            {role.role}
-                          </Badge>
-                        ))}
-                      </div>
+                      <div className="flex flex-wrap gap-2">
+                          
+                              <Badge  variant="secondary">
+                                {user.profile.role ? user.profile.role : "No Role"}
+                              </Badge>
+                        </div>
                     </TableCell>
                     <TableCell className="text-center">{branchName}</TableCell>
                     <TableCell className="text-right">
@@ -792,12 +787,10 @@ const UserManagement = () => {
                             <div className="space-y-4 py-4">
                               <div className="space-y-2">
                                 <Label>Current Roles</Label>
-                                <div className="flex flex-wrap gap-2">
-                                  {user.profile.role.map((role, index) => (
-                                    <Badge key={index} variant="secondary">
-                                      {role.role}
-                                    </Badge>
-                                  ))}
+                                <div className="flex flex-wrap gap-2">      
+                              <Badge variant="secondary">
+                                {user.profile.role ? user.profile.role : "No Role"}
+                              </Badge>
                                 </div>
                               </div>
                               <div className="space-y-2">

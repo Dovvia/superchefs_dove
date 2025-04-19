@@ -1031,7 +1031,7 @@ export type Database = {
           salary: number | null;
           nin: number | null;
           employment_date: string | null;
-          role?: Database["public"]["Enums"]["app_role"];
+          role?: Database["public"]["Enums"]["app_role"] | null;
 
         };
         Insert: {
@@ -1049,7 +1049,7 @@ export type Database = {
           salary: number | null;
           nin: number | null;
           employment_date: string | null;
-          role?: Database["public"]["Enums"]["app_role"];
+          role?: Database["public"]["Enums"]["app_role"] | null;
         };
         Update: {
           created_at?: string;
@@ -1066,7 +1066,7 @@ export type Database = {
           salary: number | null;
           nin: number | null;
           employment_date: string | null;
-          role?: Database["public"]["Enums"]["app_role"];
+          role?: Database["public"]["Enums"]["app_role"] | null;
         };
         Relationships: [
           {
