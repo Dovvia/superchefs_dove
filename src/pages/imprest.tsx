@@ -1,7 +1,11 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import type { Imprest } from "@/types/imprest";
+import type {
+  Imprest,
+  ImprestOrder,
+  MiniImprestOrderItem,
+} from "@/types/imprest";
 import {
   Table,
   TableBody,
@@ -14,14 +18,26 @@ import { Button } from "@/components/ui/button";
 import { Dialog, DialogTrigger } from "@/components/ui/dialog";
 import { ImprestDialog } from "@/components/imprest/ImprestDialog";
 import { format } from "date-fns";
-import { HandCoinsIcon } from "lucide-react";
+import { HandCoinsIcon, Plus } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import PaginationComponent from "@/components/pagination";
 import { PAGE_LIMIT } from "@/constants";
+import { useCheck } from "@/hooks/use-check";
+import { useToast } from "@/hooks/use-toast";
+import { useUserBranch } from "@/hooks/user-branch";
+import { useAuth } from "@/hooks/auth";
+import { FinalizeOrderDialog } from "@/components/ui/finalize-order";
 
 const Imprest = () => {
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
+  const [isAddDialogOpenAccept, setIsAddDialogOpenAccept] = useState(false);
+  const [loading, setLoading] = useState(false);
   const [page, setPage] = useState(1);
+  const { selectedItems, handleSelectAll, resetCheck, toggleCheck } =
+    useCheck();
+  const { toast } = useToast();
+  const userBranch = useUserBranch();
+  const { user } = useAuth();
 
   const {
     data,
@@ -37,6 +53,7 @@ const Imprest = () => {
         .from("imprest_requests")
         .select(
           `*,
+          orders:imprest_order_items_imprest_request_id_fkey(imprest_order_id),
           branch:branch_id(name),
           user:user_id(first_name, last_name)
         `,
@@ -54,6 +71,77 @@ const Imprest = () => {
     placeholderData: (prevData) => prevData,
   });
 
+  const handleFinalizeOrder = async (values: {
+    items: MiniImprestOrderItem[];
+  }) => {
+    try {
+      setLoading(true);
+      const new_items = values?.items?.map((x) => ({
+        branch_id: userBranch?.data?.id,
+        name: x?.name,
+        quantity: Number(x?.quantity),
+        status: "supplied" as ImprestOrder["status"],
+        unit: x?.unit,
+        imprest_order_id: x?.order_id,
+        user_id: user?.id,
+      }));
+
+      // Get all imprest order IDs that need to be updated
+      const orderIds = new_items.map((item) => item.imprest_order_id);
+
+      // Get all imprest request IDs that need to be updated
+      const imprestIds = values?.items.map((item) => item.id);
+
+      // Batch update procurement_orders in a single query
+      const { error: updateImprestError } = await supabase
+        .from("imprest_requests")
+        .update({ status: "supplied" }) // Set new status
+        .in("id", imprestIds); // Filter all relevant order IDs
+
+      if (updateImprestError) throw updateImprestError;
+
+      // Batch update procurement_orders in a single query
+      const { error: updateError } = await supabase
+        .from("imprest_orders")
+        .update({ status: "supplied" }) // Set new status
+        .in("id", orderIds); // Filter all relevant order IDs
+
+      if (updateError) throw updateError;
+
+      // insert new items into procurement_supplied
+      const { error } = await supabase
+        .from("imprest_supplied")
+        .insert(new_items);
+      if (error) throw error;
+
+      toast({
+        title: "Success",
+        description: `You have successfully recorded ${
+          values.items?.length > 1 ? "orders" : "order"
+        } as supplied`,
+      });
+      await refetchImprests();
+      setIsAddDialogOpenAccept(false);
+      resetCheck();
+    } catch (error) {
+      console.error(
+        `Error recording ${
+          values.items?.length > 1 ? "orders" : "order"
+        } supplied:`,
+        error
+      );
+      toast({
+        title: "Error",
+        description: `Failed to record ${
+          values.items?.length > 1 ? "orders" : "order"
+        } supplied`,
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const calculateTotalCost = (quantity: number, unitPrice: number) =>
     quantity * unitPrice;
 
@@ -61,24 +149,90 @@ const Imprest = () => {
     <div className="space-y-6 p-6">
       <div className="flex justify-between items-center">
         <h2 className="text-3xl font-bold tracking-tight">Imprests</h2>
-        <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
-          <DialogTrigger asChild id="imprest-requests">
-            <Button>
-              <HandCoinsIcon className="ml-2 h-4 w-4" />
-              Create Imprest
-            </Button>
-          </DialogTrigger>
-          <ImprestDialog
-            onOpenChange={setIsAddDialogOpen}
-            refetch={refetchImprests}
-          />
-        </Dialog>
+        <div className="flex justify-between items-center space-x-4">
+          <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
+            <DialogTrigger asChild id="imprest-requests">
+              <Button disabled={!!selectedItems?.length}>
+                <HandCoinsIcon className="ml-2 h-4 w-4" />
+                Create Imprest
+              </Button>
+            </DialogTrigger>
+            <ImprestDialog
+              onOpenChange={setIsAddDialogOpen}
+              refetch={refetchImprests}
+            />
+          </Dialog>
+          <Dialog
+            open={isAddDialogOpenAccept}
+            onOpenChange={setIsAddDialogOpenAccept}
+          >
+            <DialogTrigger asChild id="imprest order">
+              <Button disabled={!selectedItems.length || isLoading}>
+                <Plus className="ml-2 h-4 w-4" />
+                Accept Order
+              </Button>
+            </DialogTrigger>
+            <FinalizeOrderDialog
+              onOpenChange={setIsAddDialogOpenAccept}
+              items={
+                data?.imprests
+                  ?.filter(
+                    (imprest) =>
+                      selectedItems.includes(imprest.id) &&
+                      imprest.status !== "supplied"
+                  )
+                  ?.map((imprest) => {
+                    return selectedItems.includes(imprest?.id)
+                      ? {
+                          id: imprest?.id,
+                          order_id: imprest?.orders?.[0]?.imprest_order_id,
+                          name: imprest?.name,
+                          quantity: String(imprest?.quantity),
+                          unit: imprest?.unit,
+                        }
+                      : null;
+                  })
+
+                  .filter(Boolean) as unknown as MiniImprestOrderItem[]
+              }
+              loading={loading}
+              onSubmit={handleFinalizeOrder}
+            />
+          </Dialog>
+        </div>
       </div>
 
       <div className="border rounded-lg">
         <Table>
           <TableHeader>
             <TableRow>
+              <TableHead>
+                <input
+                  type="checkbox"
+                  checked={
+                    selectedItems.length ===
+                      data?.imprests?.filter(
+                        (imprest) =>
+                          !["supplied", "pending"].includes(imprest.status)
+                      )?.length &&
+                    data?.imprests?.some(
+                      (imprest) =>
+                        !["supplied", "pending"].includes(imprest.status)
+                    )
+                  }
+                  onChange={() =>
+                    handleSelectAll(
+                      data?.imprests,
+                      (imprest) =>
+                        !["supplied", "pending"].includes(imprest.status)
+                    )
+                  }
+                  className="h-4 w-4 disabled:cursor-not-allowed"
+                  disabled={data?.imprests?.every(
+                    (req) => req.status === "supplied"
+                  )}
+                />
+              </TableHead>
               <TableHead>Item</TableHead>
               <TableHead>Unit</TableHead>
               <TableHead>Unit Cost</TableHead>
@@ -94,6 +248,20 @@ const Imprest = () => {
             <TableBody>
               {data?.imprests?.map((imprest) => (
                 <TableRow key={imprest.id}>
+                  <TableCell>
+                    <input
+                      type="checkbox"
+                      checked={
+                        selectedItems.includes(imprest.id) ||
+                        ["supplied", "pending"].includes(imprest.status)
+                      }
+                      onChange={() => toggleCheck(imprest.id)}
+                      className="h-4 w-4 disabled:cursor-not-allowed"
+                      disabled={["supplied", "pending"].includes(
+                        imprest.status
+                      )}
+                    />
+                  </TableCell>
                   <TableCell className="capitalize">{imprest?.name}</TableCell>
                   <TableCell>{imprest?.unit}</TableCell>
                   <TableCell>{imprest?.unit_price}</TableCell>

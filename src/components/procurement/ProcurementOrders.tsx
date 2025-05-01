@@ -1,7 +1,6 @@
 import { useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useReactToPrint } from "react-to-print";
-import { Plus } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import {
@@ -12,13 +11,8 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Dialog, DialogTrigger } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { useCheck } from "@/hooks/use-check";
-import { FinalizeOrderDialog } from "@/components/ui/finalize-order";
-import { useUserBranch } from "@/hooks/user-branch";
-import { useAuth } from "@/hooks/auth";
 import PaginationComponent from "@/components/pagination";
 import { PAGE_LIMIT } from "@/constants";
 
@@ -54,32 +48,18 @@ export interface ProcurementOrder {
   items: ProcurementOrderItem[];
 }
 
-interface FormValues {
-  items: MiniProcurementOrderItem[];
-}
-
 const ProcurementOrders = () => {
   const printRef = useRef<HTMLDivElement>(null);
-  const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
-  const [loading, setLoading] = useState(false);
   const [page, setPage] = useState(1);
-  const { selectedItems, handleSelectAll, resetCheck, toggleCheck } =
-    useCheck();
-  const userBranch = useUserBranch();
-  const { user } = useAuth();
   const { toast } = useToast();
 
-  const {
-    data,
-    isLoading,
-    refetch: refetchOrders,
-  } = useQuery({
+  const { data, isLoading } = useQuery({
     queryKey: ["procurement-orders", page],
     queryFn: async () => {
       const from = (page - 1) * PAGE_LIMIT;
       const to = from + PAGE_LIMIT - 1;
 
-      // Fetch orders from Supabase
+      // Fetch orders
       // Adjust the range to fetch the next set of orders
       const { data, error, count } = await supabase
         .from("procurement_orders")
@@ -106,90 +86,6 @@ const ProcurementOrders = () => {
     },
     placeholderData: (previousData) => previousData,
   });
-
-  const handleFinalizeOrder = async (values: FormValues) => {
-    try {
-      setLoading(true);
-      const new_items = values?.items?.map((x) => ({
-        branch_id: userBranch?.data?.id,
-        name: x?.name,
-        quantity: Number(x?.quantity),
-        status: "supplied" as ProcurementOrder["status"],
-        unit: x?.unit,
-        material_order_id: x?.order_id,
-        material_id: x?.id,
-        user_id: user?.id,
-      }));
-
-      // insert new items into procurement_supplied
-      const { error } = await supabase
-        .from("procurement_supplied")
-        .insert(new_items);
-      if (error) throw error;
-
-      // Get all order IDs that need to be updated
-      const orderIds = new_items.map((item) => item.material_order_id);
-
-      // Batch update procurement_orders in a single query
-      const { error: updateError } = await supabase
-        .from("procurement_orders")
-        .update({ status: "supplied" }) // Set new status
-        .in("id", orderIds); // Filter all relevant order IDs
-
-      if (updateError) throw updateError;
-
-      // Sequentially update each record
-      for (const item of new_items) {
-        const { data: existingData, error: fetchError } = await supabase
-          .from("inventory")
-          .select("quantity")
-          .eq("material_id", item.material_id)
-          .single();
-
-        if (fetchError) {
-          throw new Error(
-            `Failed to fetch current quantity for ${item.material_id}`
-          );
-        }
-
-        const newQuantity = (existingData?.quantity || 0) + item.quantity;
-        const { error } = await supabase
-          .from("inventory")
-          .update({ procurement: item.quantity, quantity: newQuantity })
-          .eq("material_id", item.material_id);
-
-        if (error) {
-          throw new Error(`Failed to update order ${item.material_id}`);
-        }
-      }
-
-      toast({
-        title: "Success",
-        description: `You have successfully recorded ${
-          values.items?.length > 1 ? "orders" : "order"
-        } as supplied`,
-      });
-      await refetchOrders();
-      setIsAddDialogOpen(false);
-      resetCheck();
-    } catch (error) {
-      console.error(
-        `Error recording ${
-          values.items?.length > 1 ? "orders" : "order"
-        } supplied:`,
-        error
-      );
-      toast({
-        title: "Error",
-        description: `Failed to record ${
-          values.items?.length > 1 ? "orders" : "order"
-        } supplied`,
-        variant: "destructive",
-      });
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const handlePrint = useReactToPrint({
     contentRef: printRef,
@@ -225,39 +121,6 @@ const ProcurementOrders = () => {
       <div className="flex justify-between items-center">
         <h2 className="text-2xl font-semibold">Procurement Orders</h2>
         <div className="flex justify-between items-center space-x-4">
-          <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
-            <DialogTrigger asChild id="procurement order">
-              <Button disabled={!selectedItems.length || isLoading}>
-                <Plus className="ml-2 h-4 w-4" />
-                Accept Order
-              </Button>
-            </DialogTrigger>
-            <FinalizeOrderDialog
-              onOpenChange={setIsAddDialogOpen}
-              items={
-                data?.orders
-                  ?.filter(
-                    (order) =>
-                      selectedItems.includes(order.id) &&
-                      order.status !== "supplied"
-                  )
-                  ?.map(({ id, items }) => {
-                    return selectedItems.includes(id)
-                      ? {
-                          id: items[0]?.material_request.material.id,
-                          order_id: id,
-                          name: items[0]?.material_request.material.name,
-                          quantity: String(items[0]?.material_request.quantity),
-                          unit: items[0]?.material_request.material.unit,
-                        }
-                      : null;
-                  })
-                  .filter(Boolean) as unknown as MiniProcurementOrderItem[]
-              }
-              loading={loading}
-              onSubmit={handleFinalizeOrder}
-            />
-          </Dialog>
           <Button onClick={() => handlePrint()}>Print Orders</Button>
         </div>
       </div>
@@ -269,23 +132,9 @@ const ProcurementOrders = () => {
               <TableHead>
                 <input
                   type="checkbox"
-                  checked={
-                    selectedItems.length ===
-                      data?.orders?.filter(
-                        (order) => order.status !== "supplied"
-                      )?.length &&
-                    data?.orders?.some((order) => order.status !== "supplied")
-                  }
-                  onChange={() =>
-                    handleSelectAll(
-                      data?.orders,
-                      (order) => order.status !== "supplied"
-                    )
-                  }
+                  checked={true}
                   className="h-4 w-4 disabled:cursor-not-allowed"
-                  disabled={data?.orders?.every(
-                    (order) => order.status === "supplied"
-                  )}
+                  disabled={true}
                 />
               </TableHead>
               <TableHead>Order ID</TableHead>
@@ -304,13 +153,9 @@ const ProcurementOrders = () => {
                   <TableCell>
                     <input
                       type="checkbox"
-                      checked={
-                        selectedItems.includes(order.id) ||
-                        order.status === "supplied"
-                      }
-                      onChange={() => toggleCheck(order.id)}
+                      checked={true}
                       className="h-4 w-4 disabled:cursor-not-allowed"
-                      disabled={order.status === "supplied"}
+                      disabled={true}
                     />
                   </TableCell>
                   <TableCell>{order.id}</TableCell>

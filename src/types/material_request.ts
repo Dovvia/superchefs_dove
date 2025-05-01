@@ -25,4 +25,8 @@ export interface MaterialRequest {
     unit: string;
     unit_price: number;
   };
+  orders: {
+    procurement_order_id: string;
+  }[];
+  updated_at: string;
 }

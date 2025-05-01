@@ -19,6 +19,7 @@ import { EditRequestDialog } from "../ui/edit-request";
 import type { EditRequestFormValues } from "@/types/edit-request";
 import PaginationComponent from "@/components/pagination";
 import { PAGE_LIMIT } from "@/constants";
+import { MaterialRequest } from "@/types/material_request";
 
 const MaterialRequests = () => {
   const { toast } = useToast();
@@ -44,6 +45,7 @@ const MaterialRequests = () => {
           `
           *,
           material:materials(*),
+          orders:procurement_order_items_material_request_id_fkey(procurement_order_id),
           branch:branches(*),
           user:user_id(first_name, last_name)
         `,
@@ -54,7 +56,10 @@ const MaterialRequests = () => {
         .range(from, to);
 
       if (error) throw error;
-      return { requests: data, hasNextPage: count ? to + 1 < count : false };
+      return {
+        requests: data as MaterialRequest[],
+        hasNextPage: count ? to + 1 < count : false,
+      };
     },
     placeholderData: (prevData) => prevData,
   });
@@ -276,9 +281,13 @@ const MaterialRequests = () => {
                 <TableCell>
                   <input
                     type="checkbox"
-                    checked={selectedItems.includes(request.id)}
+                    checked={
+                      selectedItems.includes(request.id) ||
+                      !!request?.orders?.length
+                    }
                     onChange={() => toggleCheck(request.id)}
                     className="h-4 w-4"
+                    disabled={!!request?.orders?.length}
                   />
                 </TableCell>
                 <TableCell>{request.material?.name}</TableCell>

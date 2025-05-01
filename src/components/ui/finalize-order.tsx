@@ -93,12 +93,14 @@ const FinalizeOrderForm = ({
     name: "items",
   });
 
-  console.log("items", items);
-  console.log("form", form.getValues());
+  const mutate = (data: OrderFormValues) => {
+    onSubmit(data);
+    form.reset();
+  };
 
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+      <form onSubmit={form.handleSubmit(mutate)} className="space-y-4">
         <ul className="list-disc list-inside">
           {fields.map((_, index) => {
             return (
