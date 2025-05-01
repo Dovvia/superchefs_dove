@@ -1,6 +1,12 @@
 import { useState } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
+import {
+  Card,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+  CardContent,
+} from "@/components/ui/card";
 import UserManagement from "../components/admin/UserManagement";
 import BranchAnalytics from "@/components/admin/BranchAnalytics";
 import { useAuth } from "@/hooks/auth";
@@ -9,13 +15,8 @@ import { Users, BarChart, BarChartIcon } from "lucide-react";
 
 const Admin = () => {
   const { userRoles } = useAuth();
+  const [isLoadingBranches, setIsLoadingBranches] = useState(false);
   const [activeTab, setActiveTab] = useState("users");
-
-//   Restrict access to admin users only
-
-  if (!userRoles.includes("admin")) {
-    return <Navigate to="/" replace />;
-  }
 
   const handleTabChange = (value: string) => {
     console.log("Changing tab to:", value);
@@ -28,18 +29,22 @@ const Admin = () => {
         <h1 className="text-3xl font-bold">Admin Dashboard</h1>
       </div>
 
-      <Tabs defaultValue="users" value={activeTab} onValueChange={handleTabChange}>
+      <Tabs
+        defaultValue="users"
+        value={activeTab}
+        onValueChange={handleTabChange}
+      >
         <div className="mb-6">
           <TabsList className="grid w-full md:w-auto md:inline-flex grid-cols-2 md:grid-cols-none h-auto gap-4 p-1">
-            <TabsTrigger 
-              value="users" 
+            <TabsTrigger
+              value="users"
               className="flex items-center gap-2 px-4 py-2 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
             >
               <Users className="h-4 w-4" />
               <span>User Management</span>
             </TabsTrigger>
-            <TabsTrigger 
-              value="branches" 
+            <TabsTrigger
+              value="branches"
               className="flex items-center gap-2 px-4 py-2 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
             >
               <BarChartIcon className="h-4 w-4" />
@@ -71,7 +76,7 @@ const Admin = () => {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <BranchAnalytics />
+              {isLoadingBranches ? <div>Loading...</div> : <BranchAnalytics />}
             </CardContent>
           </Card>
         </TabsContent>

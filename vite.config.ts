@@ -12,6 +12,7 @@ export default defineConfig({
   plugins: [
     react(),
     VitePWA({
+      registerType: "autoUpdate",
       workbox: {
         runtimeCaching: [
           {
@@ -21,24 +22,33 @@ export default defineConfig({
               cacheName: "supabase-api",
               expiration: {
                 maxEntries: 50,
-                maxAgeSeconds: 86400,
+                maxAgeSeconds: 7 * 24 * 60 * 60, // 7 days
+              },
+            },
+          },
+          {
+            urlPattern:
+              /\.(?:js|css|html|png|jpg|jpeg|svg|gif|woff2?|eot|ttf|otf)$/,
+            handler: "CacheFirst",
+            options: {
+              cacheName: "static-assets",
+              expiration: {
+                maxEntries: 100,
+                maxAgeSeconds: 30 * 24 * 60 * 60, // 30 days
               },
             },
           },
         ],
       },
-
-      registerType: "autoUpdate",
       includeAssets: [
+        "dovvia-logo.png",
+        "superchefs-logo.png",
         "favicon.svg",
         "favicon.ico",
         "robots.txt",
         "apple-touch-icon.png",
         "favicon-16x16.png",
         "favicon-32x32.png",
-        "safari-pinned-tab.svg",
-        "site.webmanifest",
-        "mstile-150x150.png",
       ],
       manifest: {
         name: "Dovvia",
@@ -46,47 +56,38 @@ export default defineConfig({
         description:
           "Dovvia is a platform for businesses to administer and manage their operations easily.",
         theme_color: "#ffffff",
+        display: "standalone",
+        start_url: "/",
+        background_color: "#ffffff",
         icons: [
           {
-            src: "dovvia-logo.png",
-            sizes: "any",
+            src: "superchefs-logo192.png",
+            sizes: "192x192",
             type: "image/png",
             purpose: "maskable",
           },
           {
-            src: "apple-touch-icon.png",
-            sizes: "any",
+            src: "apple-touch-icon180.png",
+            sizes: "180x180",
             type: "image/png",
+            purpose: "maskable",
           },
           {
-            src: "dovvia-logo.png",
-            sizes: "192x192",
-            type: "image/png",
-          },
-          {
-            src: "dovvia-logo.png",
+            src: "superchefs-logo512.png",
             sizes: "512x512",
             type: "image/png",
+            purpose: "maskable",
           },
           {
-            src: "safari-pinned-tab.svg",
-            sizes: "any",
-            type: "image/svg+xml",
-          },
-          {
-            src: "site.webmanifest",
-            sizes: "any",
-            type: "application/manifest+json",
-          },
-          {
-            src: "mstile-150x150.png",
+            src: "superchefs-logo150.png",
             sizes: "150x150",
             type: "image/png",
+            purpose: "maskable",
           },
         ],
       },
       devOptions: {
-        enabled: true,
+        enabled: process.env.NODE_ENV === "development",
       },
     }),
   ],

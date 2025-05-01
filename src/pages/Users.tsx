@@ -28,14 +28,14 @@ const Users = () => {
       }
 
       // Then fetch user roles for all profiles
-      const { data: userRoles, error: rolesError } = await supabase
-        .from("user_roles")
-        .select("*");
+      // const { data: userRoles, error: rolesError } = await supabase
+      //   .from("user_roles")
+      //   .select("*");
 
-      if (rolesError) {
-        toast.error("Error loading user roles");
-        throw rolesError;
-      }
+      // if (rolesError) {
+      //   toast.error("Error loading user roles");
+      //   throw rolesError;
+      // }
 
       // Fetch branches for all profiles
       const { data: branches, error: branchesError } = await supabase
@@ -50,17 +50,17 @@ const Users = () => {
       // Combine the data
       const usersWithRolesAndBranches = profiles.map((profile) => ({
         ...profile,
-        user_roles: userRoles.filter((role) => role.user_id === profile.id),
+        // user_roles: userRoles.filter((role) => role.user_id === profile.id),
         branch: branches.find((branch) => branch.id === profile.branch_id),
       }));
 
-      return usersWithRolesAndBranches as (Profile & { user_roles: { role: string }[]; branch: any })[];
+      return usersWithRolesAndBranches as (Profile & { role: string; branch: any; salary: number; phone: number; email: string; address: string; nin: number; employment_date: string; education: any; })[];
     },
   });
   
 
   const filteredUsers = users?.filter((user) => {
-    const matchesRole = selectedRole ? user.user_roles.some((role) => role.role === selectedRole) : true;
+    const matchesRole = selectedRole ? user.role === selectedRole : true;
     const matchesBranch = selectedBranch ? user.branch?.name === selectedBranch : true;
     return matchesRole && matchesBranch;
   });
@@ -71,13 +71,13 @@ const Users = () => {
 
   return (
     <div className="space-y-6">
-      <div className="flex justify-between items-center">
+      {/* <div className="flex justify-between items-center">
         <h2 className="text-3xl font-bold tracking-tight">Users</h2>
         <Button onClick={() => setIsAddUserOpen(true)}>
           <UserPlus className="mr-2 h-4 w-4" />
           Add User
         </Button>
-      </div>
+      </div> */}
 
       <div className="flex space-x-4">
         <select
@@ -86,7 +86,7 @@ const Users = () => {
           className="border p-2 rounded"
         >
           <option value="">All Roles</option>
-          {Array.from(new Set(users?.flatMap((user) => user.user_roles.map((role) => role.role)))).map((role) => (
+          {Array.from(new Set(users?.map((user) => user.role))).map((role) => (
             <option key={role} value={role}>
               {role}
             </option>
@@ -110,33 +110,54 @@ const Users = () => {
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
         {filteredUsers?.map((user) => (
           <Card key={user.id}>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">
-                {user.first_name} {user.last_name}
-              </CardTitle>
-              <UsersIcon className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent className="display:flex flex space-x-8">
-              <div className="space-y-2">
-                {user.user_roles?.map((role, index) => (
-                  <Badge key={index} variant="outline">
-                    {role.role}
-                  </Badge>
-                ))}
-              </div>
-              <div className="space-y-2">
-                {user.branch && (
-                  <Badge variant="default">
-                    {user.branch.name}
-                  </Badge>
-                )}
-              </div>
-            </CardContent>
+        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+          <CardTitle className="text-sm font-medium">
+            {user.first_name} {user.last_name}
+          </CardTitle>
+          <UsersIcon className="h-4 w-4 text-muted-foreground" />
+        </CardHeader>
+        <CardContent className="space-y-2">
+            <div>
+            <strong>Role:</strong>{" "}
+            {user.user_roles?.map((role, index) => (
+              <span key={index}>{role.role}</span>
+            ))}
+            </div>
+            <div>
+            <strong>Branch:</strong>{" "}
+            {user.branch && (
+              <Badge variant={user.branch.name === "HEAD OFFICE" ? "default" : "secondary"}>
+              {user.branch.name}
+              </Badge>
+            )}
+            </div>
+          <div>
+            <strong>Salary:</strong> {user.salary || "N/A"}
+          </div>
+          <div>
+            <strong>Email:</strong> {user.email || "N/A"}
+          </div>
+          <div>
+            <strong>Phone:</strong> {user.phone || "N/A"}
+          </div>
+          <div>
+            <strong>Address:</strong> {user.address || "N/A"}
+          </div>
+          <div>
+            <strong>NIN:</strong> {user.nin || "N/A"}
+          </div>
+          <div>
+            <strong>Employment Date:</strong> {user.employment_date || "N/A"}
+          </div>
+          <div>
+            <strong>Education:</strong> {user.education || "N/A"}
+          </div>
+        </CardContent>
           </Card>
         ))}
       </div>
 
-      <AddUserDialog open={isAddUserOpen} onOpenChange={setIsAddUserOpen} />
+      {/* <AddUserDialog open={isAddUserOpen} onOpenChange={setIsAddUserOpen} /> */}
     </div>
   );
 };
