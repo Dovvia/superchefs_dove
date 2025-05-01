@@ -202,20 +202,34 @@ const UserManagement = () => {
   // Ensure users and branches are defined before filtering
   const filteredUsers = users
     ? users.filter((user) => {
-        const matchesName =
-          `${user.profile?.first_name} ${user.profile?.last_name}`
-            .toLowerCase()
-            .includes(searchName.toLowerCase());
-        const matchesRole: boolean =
+        const profile: UserWithDetails["profile"] = user.profile || {
+          first_name: "N/A",
+          last_name: "N/A",
+          email: "N/A",
+          password: "N/A",
+          branch_id: undefined,
+          user_id: "N/A",
+          phone: 234,
+          address: "N/A",
+          salary: 0,
+          nin: 123,
+          employment_date: "N/A",
+          education: "N/A",
+          role: "N/A",
+        };
+        const matchesName = `${profile.first_name || ""} ${
+          profile.last_name || ""
+        }`
+          .toLowerCase()
+          .includes(searchName.toLowerCase());
+        const matchesRole =
           filterRole === "all" || filterRole === ""
             ? true
-            : user.profile.role.some(
-                (role: { role: string }) => role.role === filterRole
-              );
+            : profile.role === filterRole;
         const matchesBranch =
           filterBranch === "all" || filterBranch === ""
             ? true
-            : user.profile?.branch_id === filterBranch;
+            : profile.branch_id === filterBranch;
 
         return matchesName && matchesRole && matchesBranch;
       })
@@ -246,15 +260,11 @@ const UserManagement = () => {
 
   const handleCreateUser = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (creationLoading) return;
-    // Prevent multiple submissions
-
-    setCreationLoading(true);
-    // Set loading state to true
+    if (creationLoading) return; // Prevent multiple submissions
+    setCreationLoading(true); // Set loading state to true
 
     try {
-      // Validate input
-
+      // // Validate input
       if (!newUser.email || !newUser.password) {
         toast({
           title: "Error",
@@ -263,6 +273,7 @@ const UserManagement = () => {
         });
         return;
       }
+
       if (!/\S+@\S+\.\S+/.test(newUser.email)) {
         toast({
           title: "Error",
@@ -271,6 +282,7 @@ const UserManagement = () => {
         });
         return;
       }
+
       if (newUser.password.length < 6) {
         toast({
           title: "Error",
@@ -279,48 +291,39 @@ const UserManagement = () => {
         });
         return;
       }
-
-      // Step 1: Sign up the user
-
-      const { data: signUpData, error: signUpError } =
-        await supabase.auth.signUp({
-          email: newUser.email,
-          password: newUser.password,
-          options: {
-            data: {
-              first_name: newUser.firstName,
-              last_name: newUser.lastName,
-            },
+      // Call to the Supabase serverless function
+      const response = await fetch(
+        "https://ckkvnnphgceesuftupyj.supabase.co/functions/v1/create-user",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_KEY}`,
           },
-        });
-      if (signUpError) {
-        console.error("Error signing up user:", signUpError);
-        throw new Error(signUpError.message);
-      }
+          body: JSON.stringify({
+            email: newUser.email,
+            password: newUser.password,
+            first_name: newUser.firstName,
+            last_name: newUser.lastName,
+            branch_id: newUser.branchId || null,
+            phone: newUser.phone || 234,
+            address: newUser.address || null,
+            salary: newUser.salary || 0,
+            nin: newUser.nin || 123,
+            employment_date: newUser.employment_date || null,
+            education: newUser.education || null,
+            role: newUser.role || "staff",
+          }),
+        }
+      );
 
-      // Optionally, insert additional profile data into the profiles table
+      const result = await response.json();
 
-      const { error: profileError } = await supabase.from("profiles").insert({
-        user_id: signUpData.user.id,
-        email: newUser.email,
-        first_name: newUser.firstName,
-        last_name: newUser.lastName,
-        branch_id: newUser.branchId || null,
-        phone: newUser.phone || null,
-        address: newUser.address || null,
-        salary: newUser.salary || 0,
-        nin: newUser.nin || 123,
-        employment_date: newUser.employment_date || null,
-        education: newUser.education || null,
-        role: newUser.role || "staff",
-      });
-      if (profileError) {
-        console.error("Error inserting profile data:", profileError);
-        throw new Error(profileError.message);
+      if (!response.ok) {
+        throw new Error(result.message || "Failed to create user.");
       }
 
       // Success
-
       toast({
         title: "Success",
         description: "User created successfully.",
@@ -328,7 +331,6 @@ const UserManagement = () => {
       });
 
       // Close the dialog and reset the form
-
       setIsCreateModalOpen(false);
       setNewUser({
         email: "",
@@ -389,11 +391,11 @@ const UserManagement = () => {
   ) => {
     if (selectedUser) {
       try {
-        // Update profile role
+        // Update profile role in the database
         const { error: profileError } = await supabase
           .from("profiles")
           .update({ role })
-          .eq("user_id", selectedUser.id);
+          .eq("id", selectedUser.id);
 
         if (profileError) throw profileError;
 
@@ -403,9 +405,13 @@ const UserManagement = () => {
           variant: "default",
         });
 
+        // Refetch users to reflect the updated role
+        await refetchUsers();
+
         setIsRoleModalOpen(false);
         setSelectedUser(null);
       } catch (error: any) {
+        console.error("Error updating role:", error);
         toast({
           title: "Error",
           description: `Error updating role: ${error.message}`,
@@ -418,11 +424,11 @@ const UserManagement = () => {
   const handleUpdateBranch = async (branchId: string) => {
     if (selectedUser) {
       try {
-        // Update profile branch_id using user_id
+        // Update profile branch_id in the database
         const { error: profileError } = await supabase
           .from("profiles")
           .update({ branch_id: branchId })
-          .eq("user_id", selectedUser.id);
+          .eq("id", selectedUser.id);
 
         if (profileError) throw profileError;
 
@@ -432,9 +438,13 @@ const UserManagement = () => {
           variant: "default",
         });
 
+        // Refetch users to reflect the updated branch
+        await refetchUsers();
+
         setIsAssignBranchModalOpen(false);
         setSelectedUser(null);
       } catch (error: any) {
+        console.error("Error updating branch:", error);
         toast({
           title: "Error",
           description: `Error updating branch: ${error.message}`,
@@ -768,12 +778,23 @@ const UserManagement = () => {
                     </TableCell>
                     <TableCell className="text-center">
                       <div className="flex flex-wrap gap-2">
-                        <Badge variant="secondary">
-                          {user.profile.role ? user.profile.role : "No Role"}
+                        <Badge
+                          variant={
+                            user.profile?.role === "admin"
+                              ? "default"
+                              : "secondary"
+                          }
+                        >
+                          {user.profile?.role ? user.profile.role : "No Role"}
                         </Badge>
                       </div>
                     </TableCell>
-                    <TableCell className="text-center">{branchName}</TableCell>
+                    <TableCell className="text-center">
+                    {branchName === "HEAD OFFICE" ? (
+                      <span className="text-green-500 font-bold">{branchName}</span>
+                    ) : (
+                      branchName
+                    )}</TableCell>
                     <TableCell className="text-right">
                       <div className="flex justify-end gap-2">
                         <Dialog
@@ -804,7 +825,13 @@ const UserManagement = () => {
                               <div className="space-y-2">
                                 <Label>Current Roles</Label>
                                 <div className="flex flex-wrap gap-2">
-                                  <Badge variant="secondary">
+                                  <Badge
+                                    variant={
+                                      user.profile?.role === "admin"
+                                        ? "default"
+                                        : "secondary"
+                                    }
+                                  >
                                     {user.profile.role
                                       ? user.profile.role
                                       : "No Role"}
@@ -951,7 +978,9 @@ const UserManagement = () => {
                               <div className="space-y-2">
                                 <Label>Current Branch</Label>
                                 <div>
-                                  <Badge variant="secondary">
+                                  <Badge variant={
+                          user.profile?.role === "HEAD OFFICE" ? "default" : "secondary"
+                          }>
                                     {branchName}
                                   </Badge>
                                 </div>

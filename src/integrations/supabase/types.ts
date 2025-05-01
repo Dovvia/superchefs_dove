@@ -187,7 +187,14 @@ export type Database = {
             isOneToOne: false;
             referencedRelation: "materials";
             referencedColumns: ["id"];
-          }
+          },
+           {
+              foreignKeyName: "inventory_branch_id_fkey";
+              columns: ["branch_id"];
+              isOneToOne: false;
+              referencedRelation: "branches";
+              referencedColumns: ["id"];
+            }
         ];
       };
       inventory_transactions: {

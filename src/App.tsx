@@ -10,6 +10,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { AuthProvider } from "./contexts/AuthContext";
 import { ProductionProvider } from "@/context/ProductionContext";
 
+import PWAInstallButton from "@/components/PWAInstallButton";
 import Layout from "./components/layout/Layout";
 import ProtectedRoute from "./components/ProtectedRoute";
 import RoleProtectedRoute from "./components/RoleProtectedRoute";
@@ -40,6 +41,7 @@ function App() {
       <AuthProvider>
         <TooltipProvider>
           <ProductionProvider>
+          <PWAInstallButton />
             <Routes>
               <Route path="/auth" element={<Auth />} />
               <Route
@@ -129,7 +131,6 @@ function App() {
               <Route path="*" element={<NotFound />} />
             </Routes>
           </ProductionProvider>
-
           <Toaster />
         </TooltipProvider>
       </AuthProvider>
