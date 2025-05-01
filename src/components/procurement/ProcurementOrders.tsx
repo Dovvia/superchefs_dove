@@ -13,7 +13,6 @@ import {
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { useCheck } from "@/hooks/use-check";
 import PaginationComponent from "@/components/pagination";
 import { PAGE_LIMIT } from "@/constants";
 
@@ -52,7 +51,6 @@ export interface ProcurementOrder {
 const ProcurementOrders = () => {
   const printRef = useRef<HTMLDivElement>(null);
   const [page, setPage] = useState(1);
-  const { handleSelectAll } = useCheck();
   const { toast } = useToast();
 
   const { data, isLoading } = useQuery({
@@ -135,12 +133,6 @@ const ProcurementOrders = () => {
                 <input
                   type="checkbox"
                   checked={true}
-                  onChange={() =>
-                    handleSelectAll(
-                      data?.orders,
-                      (order) => order.status !== "supplied"
-                    )
-                  }
                   className="h-4 w-4 disabled:cursor-not-allowed"
                   disabled={true}
                 />

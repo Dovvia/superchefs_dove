@@ -1,8 +1,6 @@
 import { useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import capitalize from "lodash/capitalize";
 import { useReactToPrint } from "react-to-print";
-import { Plus } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import {
@@ -13,33 +11,18 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Dialog, DialogTrigger } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { useCheck } from "@/hooks/use-check";
-import { FinalizeOrderDialog } from "@/components/ui/finalize-order";
-import type { ImprestOrder, MiniImprestOrderItem } from "@/types/imprest";
-import { useUserBranch } from "@/hooks/user-branch";
-import { useAuth } from "@/hooks/auth";
+import type { ImprestOrder } from "@/types/imprest";
 import PaginationComponent from "@/components/pagination";
 import { PAGE_LIMIT } from "@/constants";
 
-interface FormValues {
-  items: MiniImprestOrderItem[];
-}
-
 const ImprestOrders = () => {
   const printRef = useRef<HTMLDivElement>(null);
-  const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
-  const [loading, setLoading] = useState(false);
   const [page, setPage] = useState(1);
-  const { selectedItems, handleSelectAll, resetCheck, toggleCheck } =
-    useCheck();
   const { toast } = useToast();
-  const userBranch = useUserBranch();
-  const { user } = useAuth();
 
-  const { data, isLoading, refetch } = useQuery({
+  const { data, isLoading } = useQuery({
     queryKey: ["imprest-orders", page],
     queryFn: async () => {
       const from = (page - 1) * PAGE_LIMIT;
@@ -71,64 +54,6 @@ const ImprestOrders = () => {
     },
     placeholderData: (prevData) => prevData,
   });
-
-  const handleFinalizeOrder = async (values: FormValues) => {
-    try {
-      setLoading(true);
-      const new_items = values?.items?.map((x) => ({
-        branch_id: userBranch?.data?.id,
-        name: x?.name,
-        quantity: Number(x?.quantity),
-        status: "supplied" as ImprestOrder["status"],
-        unit: x?.unit,
-        imprest_order_id: x?.id,
-        user_id: user?.id,
-      }));
-
-      // insert new items into procurement_supplied
-      const { error } = await supabase
-        .from("imprest_supplied")
-        .insert(new_items);
-      if (error) throw error;
-
-      // Get all order IDs that need to be updated
-      const orderIds = new_items.map((item) => item.imprest_order_id);
-
-      // Batch update procurement_orders in a single query
-      const { error: updateError } = await supabase
-        .from("imprest_orders")
-        .update({ status: "supplied" }) // Set new status
-        .in("id", orderIds); // Filter all relevant order IDs
-
-      if (updateError) throw updateError;
-
-      toast({
-        title: "Success",
-        description: `You have successfully recorded ${
-          values.items?.length > 1 ? "orders" : "order"
-        } as supplied`,
-      });
-      await refetch();
-      setIsAddDialogOpen(false);
-      resetCheck();
-    } catch (error) {
-      console.error(
-        `Error recording ${
-          values.items?.length > 1 ? "orders" : "order"
-        } supplied:`,
-        error
-      );
-      toast({
-        title: "Error",
-        description: `Failed to record ${
-          values.items?.length > 1 ? "orders" : "order"
-        } supplied`,
-        variant: "destructive",
-      });
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const handlePrint = useReactToPrint({
     contentRef: printRef,
@@ -164,38 +89,6 @@ const ImprestOrders = () => {
       <div className="flex justify-between items-center">
         <h2 className="text-2xl font-semibold">Imprest Orders</h2>
         <div className="flex justify-between items-center space-x-4">
-          <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
-            <DialogTrigger asChild id="procurement order">
-              <Button disabled={!selectedItems.length || isLoading}>
-                <Plus className="ml-2 h-4 w-4" />
-                Record Order
-              </Button>
-            </DialogTrigger>
-            <FinalizeOrderDialog
-              onOpenChange={setIsAddDialogOpen}
-              items={
-                data?.orders
-                  ?.filter(
-                    (order) =>
-                      selectedItems.includes(order.id) &&
-                      order.status !== "supplied"
-                  )
-                  ?.map(({ id, items }) => {
-                    return selectedItems.includes(id)
-                      ? {
-                          id: id,
-                          name: items[0]?.imprest.name,
-                          quantity: String(items[0]?.imprest.quantity),
-                          unit: items[0]?.imprest.unit,
-                        }
-                      : null;
-                  })
-                  .filter(Boolean) as unknown as MiniImprestOrderItem[]
-              }
-              loading={loading}
-              onSubmit={handleFinalizeOrder}
-            />
-          </Dialog>
           <Button onClick={() => handlePrint()}>Print Orders</Button>
         </div>
       </div>
@@ -207,23 +100,9 @@ const ImprestOrders = () => {
               <TableHead>
                 <input
                   type="checkbox"
-                  checked={
-                    selectedItems.length ===
-                      data?.orders?.filter(
-                        (order) => order.status !== "supplied"
-                      )?.length &&
-                    data?.orders?.some((order) => order.status !== "supplied")
-                  }
-                  onChange={() =>
-                    handleSelectAll(
-                      data?.orders,
-                      (order) => order.status !== "supplied"
-                    )
-                  }
+                  checked={true}
                   className="h-4 w-4 disabled:cursor-not-allowed"
-                  disabled={data?.orders?.every(
-                    (order) => order.status === "supplied"
-                  )}
+                  disabled={true}
                 />
               </TableHead>
               <TableHead>Order ID</TableHead>
@@ -242,13 +121,9 @@ const ImprestOrders = () => {
                   <TableCell>
                     <input
                       type="checkbox"
-                      checked={
-                        selectedItems.includes(order.id) ||
-                        order.status === "supplied"
-                      }
-                      onChange={() => toggleCheck(order.id)}
+                      checked={true}
                       className="h-4 w-4 disabled:cursor-not-allowed"
-                      disabled={order.status === "supplied"}
+                      disabled={true}
                     />
                   </TableCell>
                   <TableCell>{order?.id}</TableCell>

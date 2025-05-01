@@ -15,6 +15,9 @@ export interface Imprest {
   branch: {
     name: string;
   };
+  orders: {
+    imprest_order_id: string;
+  }[];
 }
 
 export interface ImprestOrderItem {
