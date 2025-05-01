@@ -23,8 +23,6 @@ import {
   TrendingUp,
   Users,
   Timer,
-  Clock,
-  Clock10,
 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
@@ -32,6 +30,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { productionData } from "./Production";
 import { useUserBranch } from "@/hooks/user-branch";
 import { useProductionContext } from "@/context/ProductionContext";
+import { Progress } from "@/components/ui/progress";
 
 const salesData = [
   { name: "Jan", sales: 4000 },
@@ -149,7 +148,6 @@ const Dashboard = () => {
   return (
     <div className="space-y-6">
       <h2 className="text-3xl font-bold tracking-tight">Dashboard</h2>
-
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">

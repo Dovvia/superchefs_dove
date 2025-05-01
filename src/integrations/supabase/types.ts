@@ -187,7 +187,14 @@ export type Database = {
             isOneToOne: false;
             referencedRelation: "materials";
             referencedColumns: ["id"];
-          }
+          },
+           {
+              foreignKeyName: "inventory_branch_id_fkey";
+              columns: ["branch_id"];
+              isOneToOne: false;
+              referencedRelation: "branches";
+              referencedColumns: ["id"];
+            }
         ];
       };
       inventory_transactions: {
@@ -1023,8 +1030,9 @@ export type Database = {
           last_name: string | null;
           updated_at: string;
           branch_id: string;
-          user_id: string | null
+          user_id: string | null;
           email: string | null;
+          password: string | null;
           education: Database["public"]["Enums"]["education"] | null;
           phone_number: string | null;
           address: string | null;
@@ -1041,8 +1049,9 @@ export type Database = {
           last_name?: string | null;
           updated_at?: string;
           branch_id: string;
-          user_id: string | null
+          user_id: string | null;
           email: string | null;
+          password: string | null;
           education: Database["public"]["Enums"]["education"] | null;
           phone_number: string | null;
           address: string | null;
@@ -1058,8 +1067,9 @@ export type Database = {
           last_name?: string | null;
           updated_at?: string;
           branch_id?: string;
-          user_id: string | null
+          user_id: string | null;
           email: string | null;
+          password: string | null;
           education: Database["public"]["Enums"]["education"] | null;
           phone_number: string | null;
           address: string | null;

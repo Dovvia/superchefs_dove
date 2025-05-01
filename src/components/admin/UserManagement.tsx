@@ -28,6 +28,7 @@ import {
 } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Progress } from "@/components/ui/progress";
 import { UserPlus, Edit2, UserCog, Building2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
@@ -41,7 +42,9 @@ type UserWithDetails = {
     first_name: string;
     last_name: string;
     branch_id?: string;
+    user_id: string;
     email: string;
+    password: string;
     education: string | null;
     phone: number | null;
     address: string | null;
@@ -56,14 +59,15 @@ type UserWithDetails = {
   // }[];
 };
 
-
 const UserManagement = () => {
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [creationLoading, setCreationLoading] = useState(false);
   const [createUser, setCreateUser] = useState(true);
   const [isRoleModalOpen, setIsRoleModalOpen] = useState(false);
   const [isAssignBranchModalOpen, setIsAssignBranchModalOpen] = useState(false);
-  const [selectedUser, setSelectedUser] = useState<UserWithDetails | null>(null);
+  const [selectedUser, setSelectedUser] = useState<UserWithDetails | null>(
+    null
+  );
   const [newUser, setNewUser] = useState({
     email: "",
     password: "",
@@ -74,16 +78,16 @@ const UserManagement = () => {
     salary: 1000,
     nin: 123,
     employment_date: new Date().toISOString().split("T")[0], // Set default to today's date
-    education: "primary" as 
-    | "primary" 
-    | "secondary" 
-    | "nce" 
-    | "nd" 
-    | "hnd" 
-    | "bachelor" 
-    | "master" 
-    | "phd" 
-    |  "professor",
+    education: "primary" as
+      | "primary"
+      | "secondary"
+      | "nce"
+      | "nd"
+      | "hnd"
+      | "bachelor"
+      | "master"
+      | "phd"
+      | "professor",
     role: "staff" as
       | "staff"
       | "baker"
@@ -118,7 +122,11 @@ const UserManagement = () => {
   };
 
   // Fetch users - Direct database query instead of admin.listUsers which requires service_role key
-  const { data: users, isLoading: isLoadingUsers, error: usersError } = useQuery({
+  const {
+    data: users,
+    isLoading: isLoadingUsers,
+    error: usersError,
+  } = useQuery({
     queryKey: ["users"],
     queryFn: async () => {
       console.log("Fetching users from profiles table");
@@ -149,7 +157,9 @@ const UserManagement = () => {
           first_name: profile.first_name || "",
           last_name: profile.last_name || "",
           email: profile.email || "N/A",
+          password: profile.password || "N/A",
           branch_id: profile.branch_id,
+          user_id: profile.user_id || "N/A",
           phone: profile.phone || 234,
           address: profile.address || null,
           salary: profile.salary || 0,
@@ -163,7 +173,11 @@ const UserManagement = () => {
     },
   });
 
-  const { data: branches, isLoading: isLoadingBranches, error: branchesError } = useQuery({
+  const {
+    data: branches,
+    isLoading: isLoadingBranches,
+    error: branchesError,
+  } = useQuery({
     queryKey: ["branches"],
     queryFn: async () => {
       const { data, error } = await supabase.from("branches").select("*");
@@ -188,15 +202,34 @@ const UserManagement = () => {
   // Ensure users and branches are defined before filtering
   const filteredUsers = users
     ? users.filter((user) => {
-        const matchesName = `${user.profile?.first_name} ${user.profile?.last_name}`
+        const profile: UserWithDetails["profile"] = user.profile || {
+          first_name: "N/A",
+          last_name: "N/A",
+          email: "N/A",
+          password: "N/A",
+          branch_id: undefined,
+          user_id: "N/A",
+          phone: 234,
+          address: "N/A",
+          salary: 0,
+          nin: 123,
+          employment_date: "N/A",
+          education: "N/A",
+          role: "N/A",
+        };
+        const matchesName = `${profile.first_name || ""} ${
+          profile.last_name || ""
+        }`
           .toLowerCase()
           .includes(searchName.toLowerCase());
-        const matchesRole: boolean = filterRole === "all" || filterRole === ""
-          ? true
-          : user.profile.role.some((role: { role: string }) => role.role === filterRole);
-        const matchesBranch = filterBranch === "all" || filterBranch === ""
-          ? true
-          : user.profile?.branch_id === filterBranch;
+        const matchesRole =
+          filterRole === "all" || filterRole === ""
+            ? true
+            : profile.role === filterRole;
+        const matchesBranch =
+          filterBranch === "all" || filterBranch === ""
+            ? true
+            : profile.branch_id === filterBranch;
 
         return matchesName && matchesRole && matchesBranch;
       })
@@ -227,136 +260,117 @@ const UserManagement = () => {
 
   const handleCreateUser = async (e: React.FormEvent) => {
     e.preventDefault();
-    setCreationLoading(true);
-  
+    if (creationLoading) return; // Prevent multiple submissions
+    setCreationLoading(true); // Set loading state to true
+
     try {
-      // Validate input
+      // // Validate input
       if (!newUser.email || !newUser.password) {
         toast({
           title: "Error",
           description: "Email and password are required.",
           variant: "destructive",
         });
-        setCreationLoading(false);
         return;
       }
+
       if (!/\S+@\S+\.\S+/.test(newUser.email)) {
         toast({
           title: "Error",
           description: "Invalid email format.",
           variant: "destructive",
         });
-        setCreationLoading(false);
         return;
       }
+
       if (newUser.password.length < 6) {
         toast({
           title: "Error",
           description: "Password must be at least 6 characters long.",
           variant: "destructive",
         });
-        setCreationLoading(false);
         return;
       }
-  
-      // Sign up the user in auth.users
-      const { data: authData, error: authError } = await supabase.auth.signUp({
-        email: newUser.email,
-        password: newUser.password,
-        options: {
-          data: {
-            first_name: newUser.firstName,
-            last_name: newUser.lastName,
-            role: "authenticated", // Default role for auth.users
+      // Call to the Supabase serverless function
+      const response = await fetch(
+        "https://ckkvnnphgceesuftupyj.supabase.co/functions/v1/create-user",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_KEY}`,
           },
-        },
-      });
-  
-      if (authError) {
-        console.error("Auth error:", authError);
-        toast({
-          title: "Sign-up Failed",
-          description: authError.message,
-          variant: "destructive",
-        });
-        setCreationLoading(false);
-        return;
-      }
-  
-      if (authData.user) {
-        try {
-          // Convert salary and nin to appropriate types
-          const salary = newUser.salary !== null ? newUser.salary : 0;
-          const nin = newUser.nin ? parseInt(newUser.nin.toString(), 10) : 123;
-  
-          // Insert profile data into profiles table
-          const { error: profileError } = await supabase.from("profiles").insert({
-            user_id: authData.user.id, // Reference to auth.users
+          body: JSON.stringify({
+            email: newUser.email,
+            password: newUser.password,
             first_name: newUser.firstName,
             last_name: newUser.lastName,
             branch_id: newUser.branchId || null,
             phone: newUser.phone || 234,
             address: newUser.address || null,
-            salary: salary || 0,
-            nin: nin || 123,
+            salary: newUser.salary || 0,
+            nin: newUser.nin || 123,
             employment_date: newUser.employment_date || null,
             education: newUser.education || null,
-            role: newUser.role || "staff", // Default role for profiles
-          });
-  
-          if (profileError) {
-            console.error("Error inserting into profiles table:", profileError);
-            throw profileError;
-          }
-  
-          toast({
-            title: "Success",
-            description: "User created successfully.",
-            variant: "default",
-          });
-  
-          // Close the dialog and reset the form without reloading the page
-          setIsCreateModalOpen(false);
-          setNewUser({
-            email: "",
-            password: "",
-            firstName: "",
-            lastName: "",
-            phone: 234,
-            address: "",
-            salary: 0,
-            nin: 123,
-            employment_date: new Date().toISOString().split("T")[0],
-            education: "primary",
-            role: "staff",
-            branchId: "",
-          });
-  
-          // Optionally, refetch the users list to reflect the new user in the table
-          await refetchUsers();
-        } catch (error: any) {
-          console.error("Error creating user:", error);
-          toast({
-            title: "Error",
-            description: error.message,
-            variant: "destructive",
-          });
-        } finally {
-          setCreationLoading(false);
+            role: newUser.role || "staff",
+          }),
         }
+      );
+
+      const result = await response.json();
+
+      if (!response.ok) {
+        throw new Error(result.message || "Failed to create user.");
       }
+
+      // Success
+      toast({
+        title: "Success",
+        description: "User created successfully.",
+        variant: "default",
+      });
+
+      // Close the dialog and reset the form
+      setIsCreateModalOpen(false);
+      setNewUser({
+        email: "",
+        password: "",
+        firstName: "",
+        lastName: "",
+        phone: 234,
+        address: "",
+        salary: 0,
+        nin: 123,
+        employment_date: new Date().toISOString().split("T")[0],
+        education: "primary",
+        role: "staff",
+        branchId: "",
+      });
+
+      // Refetch the users list to reflect the new user in the table
+      await refetchUsers();
     } catch (error: any) {
       console.error("Error creating user:", error);
       toast({
         title: "Error",
-        description: error.message,
+        description: error.message || "An unexpected error occurred.",
         variant: "destructive",
       });
     } finally {
       setCreationLoading(false);
     }
   };
-  
+  //   }; catch (error: any) {
+  //     console.error("Error creating user:", error);
+  //     toast({
+  //       title: "Error",
+  //       description: error.message,
+  //       variant: "destructive",
+  //     });
+  //   } finally {
+  //     setCreationLoading(false);
+  //   }
+  // };
 
   const handleUpdateRole = async (
     role:
@@ -377,23 +391,27 @@ const UserManagement = () => {
   ) => {
     if (selectedUser) {
       try {
-        // Update profile role
+        // Update profile role in the database
         const { error: profileError } = await supabase
           .from("profiles")
           .update({ role })
-          .eq("user_id", selectedUser.id);
-  
+          .eq("id", selectedUser.id);
+
         if (profileError) throw profileError;
-  
+
         toast({
           title: "Success",
           description: "User role updated successfully.",
           variant: "default",
         });
-  
+
+        // Refetch users to reflect the updated role
+        await refetchUsers();
+
         setIsRoleModalOpen(false);
         setSelectedUser(null);
       } catch (error: any) {
+        console.error("Error updating role:", error);
         toast({
           title: "Error",
           description: `Error updating role: ${error.message}`,
@@ -402,16 +420,15 @@ const UserManagement = () => {
       }
     }
   };
-  
 
   const handleUpdateBranch = async (branchId: string) => {
     if (selectedUser) {
       try {
-        // Update profile branch_id using user_id
+        // Update profile branch_id in the database
         const { error: profileError } = await supabase
           .from("profiles")
           .update({ branch_id: branchId })
-          .eq("user_id", selectedUser.id);
+          .eq("id", selectedUser.id);
 
         if (profileError) throw profileError;
 
@@ -421,9 +438,13 @@ const UserManagement = () => {
           variant: "default",
         });
 
+        // Refetch users to reflect the updated branch
+        await refetchUsers();
+
         setIsAssignBranchModalOpen(false);
         setSelectedUser(null);
       } catch (error: any) {
+        console.error("Error updating branch:", error);
         toast({
           title: "Error",
           description: `Error updating branch: ${error.message}`,
@@ -452,7 +473,7 @@ const UserManagement = () => {
               <SelectValue placeholder="Filter by role" />
             </SelectTrigger>
             <SelectContent className="bg-white border rounded-md shadow-md">
-              <SelectItem value="all">All Roles</SelectItem> 
+              <SelectItem value="all">All Roles</SelectItem>
               <SelectItem value="staff">Staff</SelectItem>
               <SelectItem value="baker">Baker</SelectItem>
               <SelectItem value="cleaner">Cleaner</SelectItem>
@@ -464,7 +485,9 @@ const UserManagement = () => {
               <SelectItem value="maintenance">Maintenance</SelectItem>
               <SelectItem value="quality_control">Quality Control</SelectItem>
               <SelectItem value="supplier">Supplier</SelectItem>
-              <SelectItem value="head_office_supplier">Head Office Supplier</SelectItem>
+              <SelectItem value="head_office_supplier">
+                Head Office Supplier
+              </SelectItem>
               <SelectItem value="area_manager">Area Manager</SelectItem>
               <SelectItem value="admin">Admin</SelectItem>
             </SelectContent>
@@ -492,8 +515,8 @@ const UserManagement = () => {
             className="flex items-center gap-2"
             onClick={handleAddUserClick}
           >
-                <UserPlus className="h-4 w-4" />
-                <span>Add User</span>  
+            <UserPlus className="h-4 w-4" />
+            <span>Add User</span>
           </Button>
         </div>
 
@@ -503,87 +526,91 @@ const UserManagement = () => {
             <DialogHeader>
               <DialogTitle>Add New User</DialogTitle>
               <DialogDescription>
-            Add a new user to the system with their details and role/access level.
+                Add a new user to the system with their details and role/access
+                level.
               </DialogDescription>
             </DialogHeader>
-            <form onSubmit={handleCreateUser} className="space-y-4 overflow-auto max-h-[80vh] p-6">
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="firstName">First Name</Label>
-                <Input
-                  id="firstName"
-                  value={newUser.firstName}
-                  onChange={(e) =>
-                setNewUser({ ...newUser, firstName: e.target.value })
-                  }
-                  required
-                />
+            <form
+              onSubmit={handleCreateUser}
+              className="space-y-4 overflow-auto max-h-[80vh] p-6"
+            >
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="firstName">First Name</Label>
+                  <Input
+                    id="firstName"
+                    value={newUser.firstName}
+                    onChange={(e) =>
+                      setNewUser({ ...newUser, firstName: e.target.value })
+                    }
+                    required
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="lastName">Last Name</Label>
+                  <Input
+                    id="lastName"
+                    value={newUser.lastName}
+                    onChange={(e) =>
+                      setNewUser({ ...newUser, lastName: e.target.value })
+                    }
+                    required
+                  />
+                </div>
               </div>
-              <div className="space-y-2">
-                <Label htmlFor="lastName">Last Name</Label>
-                <Input
-                  id="lastName"
-                  value={newUser.lastName}
-                  onChange={(e) =>
-                setNewUser({ ...newUser, lastName: e.target.value })
-                  }
-                  required
-                />
-              </div>
-            </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
-              <Input
-                id="email"
-                type="email"
-                value={newUser.email}
-                onChange={(e) =>
-                  setNewUser({ ...newUser, email: e.target.value })
-                }
-                required
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="password">Password</Label>
-              <Input
-                id="password"
-                type="password"
-                value={newUser.password}
-                onChange={(e) =>
-                  setNewUser({ ...newUser, password: e.target.value })
-                }
-                required
-              />
-            </div>
-            <div className="space-y-2">
+              <div className="space-y-2">
+                <Label htmlFor="email">Email</Label>
+                <Input
+                  id="email"
+                  type="email"
+                  value={newUser.email}
+                  onChange={(e) =>
+                    setNewUser({ ...newUser, email: e.target.value })
+                  }
+                  required
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="password">Password</Label>
+                <Input
+                  id="password"
+                  type="password"
+                  value={newUser.password}
+                  onChange={(e) =>
+                    setNewUser({ ...newUser, password: e.target.value })
+                  }
+                  required
+                />
+              </div>
+              <div className="space-y-2">
                 <Label htmlFor="address">Address</Label>
                 <Input
-                id="address"
-                value={newUser.address}
-                onChange={(e) =>
+                  id="address"
+                  value={newUser.address}
+                  onChange={(e) =>
                     setNewUser({ ...newUser, address: e.target.value })
-                }
+                  }
                 />
-            </div>
-            <div className="space-y-2">
+              </div>
+              <div className="space-y-2">
                 <Label htmlFor="phone">Phone</Label>
                 <Input
-                id="phone"
-                value={newUser.phone}
-                onChange={(e) =>
+                  id="phone"
+                  value={newUser.phone}
+                  onChange={(e) =>
                     setNewUser({ ...newUser, phone: Number(e.target.value) })
-                }
+                  }
                 />
-            </div>
-            <div className="space-y-2">
+              </div>
+              <div className="space-y-2">
                 <Label htmlFor="education">Education</Label>
                 <Select
-                value={newUser.education}
-                onValueChange={(value) =>
+                  value={newUser.education}
+                  onValueChange={(value) =>
                     setNewUser({
-                    ...newUser,
-                    education: value as
+                      ...newUser,
+                      education: value as
                         | "primary"
                         | "secondary"
                         | "nce"
@@ -594,12 +621,12 @@ const UserManagement = () => {
                         | "phd"
                         | "professor",
                     })
-                }
+                  }
                 >
-                <SelectTrigger>
+                  <SelectTrigger>
                     <SelectValue placeholder="Select education level" />
-                </SelectTrigger>
-                <SelectContent>
+                  </SelectTrigger>
+                  <SelectContent>
                     <SelectItem value="primary">Primary</SelectItem>
                     <SelectItem value="secondary">Secondary</SelectItem>
                     <SelectItem value="nce">NCE</SelectItem>
@@ -609,117 +636,118 @@ const UserManagement = () => {
                     <SelectItem value="master">Master</SelectItem>
                     <SelectItem value="phd">PhD</SelectItem>
                     <SelectItem value="professor">Professor</SelectItem>
-                </SelectContent>
+                  </SelectContent>
                 </Select>
-            </div>
-            <div className="space-y-2">
+              </div>
+              <div className="space-y-2">
                 <Label htmlFor="nin">NIN</Label>
                 <Input
-                id="nin"
-                value={newUser.nin}
-                onChange={(e) =>
+                  id="nin"
+                  value={newUser.nin}
+                  onChange={(e) =>
                     setNewUser({ ...newUser, nin: Number(e.target.value) })
-                }
+                  }
                 />
-            </div>
-            <div className="space-y-2">
+              </div>
+              <div className="space-y-2">
                 <Label htmlFor="employment_date">Employment Date</Label>
                 <Input
-                id="employment_date"
-                type="date"
-                value={newUser.employment_date}
-                onChange={(e) =>
+                  id="employment_date"
+                  type="date"
+                  value={newUser.employment_date}
+                  onChange={(e) =>
                     setNewUser({ ...newUser, employment_date: e.target.value })
-                }
+                  }
                 />
-            </div>
-            <div className="space-y-2">
+              </div>
+              <div className="space-y-2">
                 <Label htmlFor="salary">Salary</Label>
                 <Input
-                id="salary"
-                type="number"
-                value={newUser.salary}
-                onChange={(e) =>
+                  id="salary"
+                  type="number"
+                  value={newUser.salary}
+                  onChange={(e) =>
                     setNewUser({ ...newUser, salary: Number(e.target.value) })
-                }
+                  }
                 />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="role">Role</Label>
-              <Select
-                value={newUser.role}
-                onValueChange={(value) =>
-                  setNewUser({
-                ...newUser,
-                role: value as
-                  | "staff"
-                  | "baker"
-                  | "cleaner"
-                  | "sales_rep"
-                  | "cook"
-                  | "manager"
-                  | "procurement"
-                  | "accountant"
-                  | "maintenance"
-                  | "quality_control"
-                  | "supplier"
-                  | "head_office_supplier"
-                  | "area_manager"
-                  | "admin",
-                  })
-                }
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Select role" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="staff">Staff</SelectItem>
-                  <SelectItem value="baker">Baker</SelectItem>
-                  <SelectItem value="cleaner">Cleaner</SelectItem>
-                  <SelectItem value="sales_rep">Sales-Rep</SelectItem>
-                  <SelectItem value="cook">Cook</SelectItem>
-                  <SelectItem value="manager">Manager</SelectItem>
-                  <SelectItem value="procurement">Procurement</SelectItem>
-                  <SelectItem value="accountant">Accountant</SelectItem>
-                  <SelectItem value="maintenance">Maintenance</SelectItem>
-                  <SelectItem value="quality_control">
-                Quality Control
-                  </SelectItem>
-                  <SelectItem value="supplier">Supplier</SelectItem>
-                  <SelectItem value="head_office_supplier">
-                Head Office Supplier
-                  </SelectItem>
-                  <SelectItem value="area_manager">Area Manager</SelectItem>
-                  <SelectItem value="admin">Admin</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="branch">Branch</Label>
-              <Select
-                value={newUser.branchId}
-                onValueChange={(value) =>
-                  setNewUser({ ...newUser, branchId: value })
-                }
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Select branch" />
-                </SelectTrigger>
-                <SelectContent>
-                  {branches?.map((branch) => (
-                <SelectItem key={branch.id} value={branch.id}>
-                  {branch.name}
-                </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <DialogFooter>
-              <Button type="submit" disabled={creationLoading}>
-                {creationLoading ? "Creating..." : "Create User"}
-              </Button>
-            </DialogFooter>
-              </form>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="role">Role</Label>
+                <Select
+                  value={newUser.role}
+                  onValueChange={(value) =>
+                    setNewUser({
+                      ...newUser,
+                      role: value as
+                        | "staff"
+                        | "baker"
+                        | "cleaner"
+                        | "sales_rep"
+                        | "cook"
+                        | "manager"
+                        | "procurement"
+                        | "accountant"
+                        | "maintenance"
+                        | "quality_control"
+                        | "supplier"
+                        | "head_office_supplier"
+                        | "area_manager"
+                        | "admin",
+                    })
+                  }
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select role" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="staff">Staff</SelectItem>
+                    <SelectItem value="baker">Baker</SelectItem>
+                    <SelectItem value="cleaner">Cleaner</SelectItem>
+                    <SelectItem value="sales_rep">Sales-Rep</SelectItem>
+                    <SelectItem value="cook">Cook</SelectItem>
+                    <SelectItem value="manager">Manager</SelectItem>
+                    <SelectItem value="procurement">Procurement</SelectItem>
+                    <SelectItem value="accountant">Accountant</SelectItem>
+                    <SelectItem value="maintenance">Maintenance</SelectItem>
+                    <SelectItem value="quality_control">
+                      Quality Control
+                    </SelectItem>
+                    <SelectItem value="supplier">Supplier</SelectItem>
+                    <SelectItem value="head_office_supplier">
+                      Head Office Supplier
+                    </SelectItem>
+                    <SelectItem value="area_manager">Area Manager</SelectItem>
+                    <SelectItem value="admin">Admin</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="branch">Branch</Label>
+                <Select
+                  value={newUser.branchId}
+                  onValueChange={(value) =>
+                    setNewUser({ ...newUser, branchId: value })
+                  }
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select branch" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {branches?.map((branch) => (
+                      <SelectItem key={branch.id} value={branch.id}>
+                        {branch.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <DialogFooter>
+                <Button type="submit" disabled={creationLoading}>
+                  {creationLoading ? <Progress className="mr-2" /> : null}
+                  {creationLoading ? "Creating..." : "Create User"}
+                </Button>
+              </DialogFooter>
+            </form>
           </DialogContent>
         </Dialog>
 
@@ -745,22 +773,32 @@ const UserManagement = () => {
                     <TableCell>
                       {user.profile?.first_name} {user.profile?.last_name}
                     </TableCell>
-                    <TableCell className="text-center">{user.profile?.email}</TableCell>
+                    <TableCell className="text-center">
+                      {user.profile?.email}
+                    </TableCell>
                     <TableCell className="text-center">
                       <div className="flex flex-wrap gap-2">
-                          
-                              <Badge  variant="secondary">
-                                {user.profile.role ? user.profile.role : "No Role"}
-                              </Badge>
-                        </div>
+                        <Badge
+                          variant={
+                            user.profile?.role === "admin"
+                              ? "default"
+                              : "secondary"
+                          }
+                        >
+                          {user.profile?.role ? user.profile.role : "No Role"}
+                        </Badge>
+                      </div>
                     </TableCell>
-                    <TableCell className="text-center">{branchName}</TableCell>
+                    <TableCell className="text-center">
+                    {branchName === "HEAD OFFICE" ? (
+                      <span className="text-green-500 font-bold">{branchName}</span>
+                    ) : (
+                      branchName
+                    )}</TableCell>
                     <TableCell className="text-right">
                       <div className="flex justify-end gap-2">
                         <Dialog
-                          open={
-                            isRoleModalOpen && selectedUser?.id === user.id
-                          }
+                          open={isRoleModalOpen && selectedUser?.id === user.id}
                           onOpenChange={(open) => {
                             setIsRoleModalOpen(open);
                             if (!open) setSelectedUser(null);
@@ -779,18 +817,25 @@ const UserManagement = () => {
                             <DialogHeader>
                               <DialogTitle>Update User Role</DialogTitle>
                               <DialogDescription>
-                                Assign a new role to{" "}
-                                {user.profile?.first_name}{" "}
+                                Assign a new role to {user.profile?.first_name}{" "}
                                 {user.profile?.last_name}
                               </DialogDescription>
                             </DialogHeader>
                             <div className="space-y-4 py-4">
                               <div className="space-y-2">
                                 <Label>Current Roles</Label>
-                                <div className="flex flex-wrap gap-2">      
-                              <Badge variant="secondary">
-                                {user.profile.role ? user.profile.role : "No Role"}
-                              </Badge>
+                                <div className="flex flex-wrap gap-2">
+                                  <Badge
+                                    variant={
+                                      user.profile?.role === "admin"
+                                        ? "default"
+                                        : "secondary"
+                                    }
+                                  >
+                                    {user.profile.role
+                                      ? user.profile.role
+                                      : "No Role"}
+                                  </Badge>
                                 </div>
                               </div>
                               <div className="space-y-2">
@@ -799,25 +844,19 @@ const UserManagement = () => {
                                   <Button
                                     style={{ marginLeft: "8px" }}
                                     variant="outline"
-                                    onClick={() =>
-                                      handleUpdateRole("staff")
-                                    }
+                                    onClick={() => handleUpdateRole("staff")}
                                   >
                                     Staff
                                   </Button>
                                   <Button
                                     variant="outline"
-                                    onClick={() =>
-                                      handleUpdateRole("baker")
-                                    }
+                                    onClick={() => handleUpdateRole("baker")}
                                   >
                                     Baker
                                   </Button>
                                   <Button
                                     variant="outline"
-                                    onClick={() =>
-                                      handleUpdateRole("cleaner")
-                                    }
+                                    onClick={() => handleUpdateRole("cleaner")}
                                   >
                                     Cleaner
                                   </Button>
@@ -831,17 +870,13 @@ const UserManagement = () => {
                                   </Button>
                                   <Button
                                     variant="outline"
-                                    onClick={() =>
-                                      handleUpdateRole("cook")
-                                    }
+                                    onClick={() => handleUpdateRole("cook")}
                                   >
                                     Cook
                                   </Button>
                                   <Button
                                     variant="outline"
-                                    onClick={() =>
-                                      handleUpdateRole("manager")
-                                    }
+                                    onClick={() => handleUpdateRole("manager")}
                                   >
                                     Manager
                                   </Button>
@@ -879,18 +914,14 @@ const UserManagement = () => {
                                   </Button>
                                   <Button
                                     variant="outline"
-                                    onClick={() =>
-                                      handleUpdateRole("supplier")
-                                    }
+                                    onClick={() => handleUpdateRole("supplier")}
                                   >
                                     Supplier
                                   </Button>
                                   <Button
                                     variant="outline"
                                     onClick={() =>
-                                      handleUpdateRole(
-                                        "head_office_supplier"
-                                      )
+                                      handleUpdateRole("head_office_supplier")
                                     }
                                   >
                                     Head Office Supplier
@@ -906,9 +937,7 @@ const UserManagement = () => {
 
                                   <Button
                                     variant="outline"
-                                    onClick={() =>
-                                      handleUpdateRole("admin")
-                                    }
+                                    onClick={() => handleUpdateRole("admin")}
                                   >
                                     Admin
                                   </Button>
@@ -949,7 +978,9 @@ const UserManagement = () => {
                               <div className="space-y-2">
                                 <Label>Current Branch</Label>
                                 <div>
-                                  <Badge variant="secondary">
+                                  <Badge variant={
+                          user.profile?.role === "HEAD OFFICE" ? "default" : "secondary"
+                          }>
                                     {branchName}
                                   </Badge>
                                 </div>
