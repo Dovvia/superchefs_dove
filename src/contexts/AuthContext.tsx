@@ -22,7 +22,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
           setSession(session);
           if (session) {
             return supabase
-              .from("user_roles")
+              .from("profiles")
               .select("role")
               .eq("user_id", session.user.id)
               .single()
@@ -60,7 +60,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       if (event === "SIGNED_IN" && session) {
         setSession(session);
         supabase
-          .from("user_roles")
+          .from("profiles")
           .select("role")
           .eq("user_id", session.user.id)
           .single()
