@@ -12,9 +12,9 @@ export const useUserBranch = () => {
       if (!session?.user?.id) return null;
 
       const { data, error } = await supabase
-        .from("user_roles")
+        .from("profiles")
         .select(
-          `branch:branches!user_roles_branch_id_fkey(*)
+          `branch:branches!profiles_branch_id_fkey(*)
         `
         )
         .eq("user_id", session.user.id)

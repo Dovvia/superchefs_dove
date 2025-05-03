@@ -126,7 +126,7 @@ const Dashboard = () => {
         }
 
         const { data: roles, error: roleError } = await supabase
-          .from("user_roles")
+          .from("profiles")
           .select("role")
           .eq("user_id", user?.user?.id);
 
