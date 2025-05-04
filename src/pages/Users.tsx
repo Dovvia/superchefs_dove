@@ -70,7 +70,7 @@ const Users = () => {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 p-3 bg-white rounded-lg shadow-md w-full mx-auto margin-100">
       {/* <div className="flex justify-between items-center">
         <h2 className="text-3xl font-bold tracking-tight">Users</h2>
         <Button onClick={() => setIsAddUserOpen(true)}>
@@ -111,47 +111,54 @@ const Users = () => {
         {filteredUsers?.map((user) => (
           <Card key={user.id}>
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-          <CardTitle className="text-sm font-medium">
+          <CardTitle className="text-sm justify-center font-medium">
             {user.first_name} {user.last_name}
           </CardTitle>
           <UsersIcon className="h-4 w-4 text-muted-foreground" />
         </CardHeader>
         <CardContent className="space-y-2">
-            <div>
-            <strong>Role:</strong>{" "}
-            {user.user_roles?.map((role, index) => (
-              <span key={index}>{role.role}</span>
-            ))}
-            </div>
-            <div>
-            <strong>Branch:</strong>{" "}
-            {user.branch && (
-              <Badge variant={user.branch.name === "HEAD OFFICE" ? "default" : "secondary"}>
+          <details>
+            <summary className="cursor-pointer">
+              <strong>Details</strong>
+            </summary>
+            <div className="mt-2 space-y-2">
+              <div>
+          <strong>Role:</strong>{" "}
+          {user.user_roles?.map((role, index) => (
+            <span key={index}>{role.role}</span>
+          ))}
+              </div>
+              <div>
+          <strong>Branch:</strong>{" "}
+          {user.branch && (
+            <Badge variant={user.branch.name === "HEAD OFFICE" ? "default" : "secondary"}>
               {user.branch.name}
-              </Badge>
-            )}
+            </Badge>
+          )}
+              </div>
+              <div>
+          <strong>Salary:</strong> {user.salary || "N/A"}
+              </div>
+              <div>
+          <strong>Email:</strong> {user.email || "N/A"}
+              </div>
+              <div>
+          <strong>Phone:</strong> {user.phone || "N/A"}
+              </div>
+              <div>
+          <strong>Address:</strong> {user.address || "N/A"}
+              </div>
+              <div>
+          <strong>NIN:</strong> {user.nin || "N/A"}
+              </div>
+              <div>
+          <strong>Employment Date:</strong> {user.employment_date || "N/A"}
+              </div>
+              <div>
+          <strong>Education:</strong> {user.education || "N/A"}
+              </div>
             </div>
-          <div>
-            <strong>Salary:</strong> {user.salary || "N/A"}
-          </div>
-          <div>
-            <strong>Email:</strong> {user.email || "N/A"}
-          </div>
-          <div>
-            <strong>Phone:</strong> {user.phone || "N/A"}
-          </div>
-          <div>
-            <strong>Address:</strong> {user.address || "N/A"}
-          </div>
-          <div>
-            <strong>NIN:</strong> {user.nin || "N/A"}
-          </div>
-          <div>
-            <strong>Employment Date:</strong> {user.employment_date || "N/A"}
-          </div>
-          <div>
-            <strong>Education:</strong> {user.education || "N/A"}
-          </div>
+          </details>
         </CardContent>
           </Card>
         ))}

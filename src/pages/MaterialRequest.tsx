@@ -175,15 +175,14 @@ const MaterialRequest = () => {
     quantity * unitPrice;
 
   return (
-    <div className="space-y-6 p-6">
+    <div className="space-y-6 p-3 bg-white rounded-lg shadow-md w-full mx-auto margin-100">
       <div className="flex justify-between items-center">
-        <h2 className="text-3xl font-bold tracking-tight">Material request</h2>
-        <div className="flex justify-between items-center space-x-4">
+        <h2 className="text-3xl font-bold tracking-tight">Material requests</h2>
+        <div className="flex flex-col sm:flex-row justify-between items-center space-y-2 sm:space-y-0 sm:space-x-2">
           <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
             <DialogTrigger asChild id="edit-material-request">
               <Button disabled={!!selectedItems.length || isLoading}>
-                <Plus className="mr-2 h-4 w-4" />
-                Material request
+          Make request
               </Button>
             </DialogTrigger>
             <MaterialRequestDialog
@@ -198,32 +197,31 @@ const MaterialRequest = () => {
           >
             <DialogTrigger asChild id="procurement order">
               <Button disabled={!selectedItems.length || isLoading}>
-                <Plus className="ml-2 h-4 w-4" />
-                Accept Order
+          Accept Order
               </Button>
             </DialogTrigger>
             <FinalizeOrderDialog
               onOpenChange={setIsAddDialogOpenAccept}
               items={
-                data?.material_requests
-                  ?.filter(
-                    (req) =>
-                      selectedItems.includes(req.id) &&
-                      req.status !== "supplied"
-                  )
-                  ?.map((req) => {
-                    return selectedItems.includes(req?.id)
-                      ? {
-                          id: req?.material_id,
-                          order_id: req?.orders?.[0]?.procurement_order_id,
-                          name: req?.material?.name,
-                          quantity: String(req?.quantity),
-                          unit: req?.material.unit,
-                        }
-                      : null;
-                  })
+          data?.material_requests
+            ?.filter(
+              (req) =>
+                selectedItems.includes(req.id) &&
+                req.status !== "supplied"
+            )
+            ?.map((req) => {
+              return selectedItems.includes(req?.id)
+                ? {
+              id: req?.material_id,
+              order_id: req?.orders?.[0]?.procurement_order_id,
+              name: req?.material?.name,
+              quantity: String(req?.quantity),
+              unit: req?.material.unit,
+            }
+                : null;
+            })
 
-                  .filter(Boolean) as unknown as MiniProcurementOrderItem[]
+            .filter(Boolean) as unknown as MiniProcurementOrderItem[]
               }
               loading={loading}
               onSubmit={handleFinalizeOrder}

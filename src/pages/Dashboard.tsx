@@ -146,7 +146,7 @@ const Dashboard = () => {
   }, []);
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 p-3 bg-white rounded-lg shadow-md w-full mx-auto margin-100">
       <h2 className="text-3xl font-bold tracking-tight">Dashboard</h2>
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         <Card>

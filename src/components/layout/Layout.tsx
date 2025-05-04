@@ -21,7 +21,7 @@ const Layout = () => {
       // className="pt-16 lg:pl-64"
       >
         <div 
-        className="container py-6"
+        className="container mx-auto px-0.5 sm:px-6 lg:px-8 flex flex-col min-h-screen py-4"
         >
           <Outlet />
         </div>

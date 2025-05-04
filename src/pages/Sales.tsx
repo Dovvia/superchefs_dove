@@ -126,13 +126,13 @@ const Sales = () => {
   };
 
   return (
-    <div className="space-y-6 p-6">
+    <div className="space-y-6 p-3 bg-white rounded-lg shadow-md w-full mx-auto margin-100">
       <div className="flex justify-between items-center">
         <h2 className="text-3xl font-bold tracking-tight">Sales</h2>
         <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
           <DialogTrigger asChild>
             <Button>
-              <Plus className="mr-2 h-4 w-4" />
+              <Plus className="h-4 w-4" />
               New Sale
             </Button>
           </DialogTrigger>

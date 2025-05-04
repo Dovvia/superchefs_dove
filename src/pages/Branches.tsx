@@ -182,7 +182,7 @@ const Branches = () => {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 p-3 bg-white rounded-lg shadow-md w-full mx-auto margin-100">
       <div className="flex justify-between items-center">
         <h1 className="text-3xl font-bold">Branches</h1>
         <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
