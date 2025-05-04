@@ -335,7 +335,7 @@ const Production = () => {
   });
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 p-3 bg-white rounded-lg shadow-md w-full mx-auto margin-100">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
           <Utensils className="h-6 w-6" />
@@ -367,13 +367,12 @@ const Production = () => {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <Accordion type="single" collapsible>
-                <AccordionItem value="materials">
-                  <AccordionTrigger className="flex items-center gap-2">
-                    <Layers className="h-4 w-4" />
+              <details>
+                <summary className="w-1/2 cursor-pointer color-green-500 hover:text-green-700">
+                  <span>
                     Materials Required
-                  </AccordionTrigger>
-                  <AccordionContent>
+                  </span>
+                </summary>            
                     <div className="space-y-2">
                       {recipe.recipe_materials.map((material) => (
                         <div
@@ -388,10 +387,10 @@ const Production = () => {
                         </div>
                       ))}
                     </div>
-                    <div className="flex items-end justify-between w-full gap-1">
-                      <span className="text-sm text-muted-foreground">
+                    <div className="flex justify-end mt-2">
+                      {/* <span className="text-sm text-muted-foreground">
                         Click to produce 👉🏽
-                      </span>
+                      </span> */}
                       <Button
                         onClick={() => createDialog(recipe)}
                         style={{
@@ -404,9 +403,7 @@ const Production = () => {
                         produce
                       </Button>
                     </div>
-                  </AccordionContent>
-                </AccordionItem>
-              </Accordion>
+                  </details>
             </CardContent>
           </Card>
         ))}

@@ -219,7 +219,7 @@ const MaterialRequests = () => {
     <div className="space-y-4">
       <div className="flex justify-between items-center">
         <h2 className="text-2xl font-semibold">Pending Material Requests</h2>
-        <div className="flex items-center space-x-4">
+        <div className="flex flex-col sm:flex-row justify-between items-center space-y-2 sm:space-y-0 sm:space-x-2">
           <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
             <DialogTrigger asChild id="material damage">
               <Button disabled={selectedItems.length === 0 || loading}>
@@ -245,7 +245,7 @@ const MaterialRequests = () => {
             onClick={handleCreateProcurementOrder}
             disabled={selectedItems.length === 0 || loading}
           >
-            Create Procurement Order
+            Create Proc. Order
           </Button>
         </div>
       </div>

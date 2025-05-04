@@ -146,14 +146,14 @@ const Imprest = () => {
     quantity * unitPrice;
 
   return (
-    <div className="space-y-6 p-6">
+    <div className="space-y-6 p-3 bg-white rounded-lg shadow-md w-full mx-auto margin-100">
       <div className="flex justify-between items-center">
         <h2 className="text-3xl font-bold tracking-tight">Imprests</h2>
-        <div className="flex justify-between items-center space-x-4">
+        <div className="flex flex-col sm:flex-row justify-between items-center space-y-2 sm:space-y-0 sm:space-x-2">
           <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
             <DialogTrigger asChild id="imprest-requests">
               <Button disabled={!!selectedItems?.length}>
-                <HandCoinsIcon className="ml-2 h-4 w-4" />
+                <HandCoinsIcon className="h-4 w-4" />
                 Create Imprest
               </Button>
             </DialogTrigger>
@@ -168,7 +168,7 @@ const Imprest = () => {
           >
             <DialogTrigger asChild id="imprest order">
               <Button disabled={!selectedItems.length || isLoading}>
-                <Plus className="ml-2 h-4 w-4" />
+                <Plus className="h-4 w-4" />
                 Accept Order
               </Button>
             </DialogTrigger>

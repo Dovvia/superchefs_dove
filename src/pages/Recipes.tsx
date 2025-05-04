@@ -8,13 +8,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import {
-  Accordion,
-  AccordionContent,
-  AccordionItem,
-  AccordionTrigger,
-} from "@/components/ui/accordion";
-import { ScrollText, UserPlus, Edit } from "lucide-react";
+import { ScrollText, UserPlus, Edit, Plus } from "lucide-react";
 import CreateRecipeDialog from "@/components/products/CreateRecipeDialog";
 import {
   Dialog,
@@ -163,12 +157,12 @@ const Recipes = () => {
   };
 
   return (
-    <div className="p-6 space-y-6">
+    <div className="space-y-6 p-3 bg-white rounded-lg shadow-md w-full mx-auto margin-100">
       <div className="flex items-center justify-between">
-        <h1 className="text-3xl font-bold">Production Recipes</h1>
-        <Button onClick={() => setIsCreateRecipeOpen(true)}>
-          <UserPlus className="mr-2 h-4 w-4" />
-          Create Recipe
+        <h1 className="text-3xl font-bold">Recipes</h1>
+        <Button onClick={() => setIsCreateRecipeOpen(true)} style={{ marginLeft: "auto", backgroundColor: "transparent", color: "green" }}>
+          <Plus className=" h-4 w-4" />
+          Add Recipe
         </Button>
       </div>
       {isLoading && <p>Loading... </p>}
@@ -181,25 +175,32 @@ const Recipes = () => {
                 <div className="flex items-center gap-2">
                   <ScrollText className="h-5 w-5" />
                   <CardTitle>{recipe.product.name}</CardTitle>
-                  <Button
-                    style={{ marginLeft: "auto" }}
+                    <Button
+                    style={{ marginLeft: "auto", backgroundColor: "transparent", color: "green" }}
                     onClick={() => handleEdit(recipe)}
                     size="sm"
-                  >
+                    >
                     <Edit className="h-4 w-4" />
-                  </Button>
+                    </Button>
                 </div>
                 <CardDescription>
                   {recipe.description && <p>{recipe.description}</p>}
+                  <span className="flex items-center gap-2 text-sm text-muted-foreground">
+                        {recipe.recipe_materials.length} items
+                      </span>
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                <Accordion type="single" collapsible>
-                  <AccordionItem value="materials">
-                    <AccordionTrigger className="flex items-center gap-2">
-                      Materials Required
-                    </AccordionTrigger>
-                    <AccordionContent>
+                <details>
+                  <summary className="w-1/4 cursor-pointer color-green-500 hover:text-green-700">
+                    <span className="font-medium">
+                      Materials
+                    </span>
+                      
+                  </summary>
+                     
+
+                    
                       <div className="space-y-2">
                         {recipe.recipe_materials.map((material) => (
                           <div
@@ -213,12 +214,12 @@ const Recipes = () => {
                           </div>
                         ))}
                       </div>
-                      <div className="flex items-end justify-center w-1/2 gap-1 border border-black">
-                        Yield = <strong>{recipe.yield}</strong>
-                      </div>
-                    </AccordionContent>
-                  </AccordionItem>
-                </Accordion>
+                        <div className="flex bg-green-700 items-end justify-center h-5 w-1/4 gap-1 border rounded-md p- mt-4 shadow-md">
+                        <span className="text-sm text-white">
+                          Yield = <strong>{recipe.yield}</strong>
+                        </span>
+                        </div>
+               </details>
               </CardContent>
             </Card>
           ))}

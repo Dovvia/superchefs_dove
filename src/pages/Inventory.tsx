@@ -100,21 +100,21 @@ const Inventory = () => {
       <div className="flex justify-between items-center">
         <h2 className="text-3xl font-bold tracking-tight">Inventory</h2>
         <Button onClick={() => setIsAddDialogOpen(true)}>
-          <Plus className="mr-2 h-4 w-4" />
+          <Plus className="h-4 w-4" />
           Add Material
         </Button>
       </div>
 
-      <div className="flex space-x-4">
+      <div className="flex flex-wrap space-x-4 sm:grid sm:gap-4 sm:grid-cols-1 gap-1 items-start">
         <input
           type="text"
           placeholder="Search material"
-          className="border p-2 rounded h-8"
+          className="border ml-4 p-2 rounded h-8 w-1/2"
           onChange={(e) => setFilterName(e.target.value)}
         />
         <input
           type="date"
-          className="border p-2 rounded h-8"
+          className="border p-2 rounded h-8 w-1/2"
           onChange={(e) => setFilterDate(e.target.value)}
         />
       </div>

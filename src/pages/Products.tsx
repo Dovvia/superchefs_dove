@@ -116,62 +116,74 @@ const Products = () => {
   };
 
   return (
-    <div className="space-y-6 p-6">
+    <div className="space-y-6 p-3 bg-white rounded-lg shadow-md w-full mx-auto margin-100">
       <div className="flex justify-between items-center">
         <h2 className="text-3xl font-bold tracking-tight">Products</h2>
-        <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
-          <DialogTrigger asChild>
-            <Button>
-              <Plus className="mr-2 h-4 w-4" />
-              Add Product
-            </Button>
-          </DialogTrigger>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>Add New Product</DialogTitle>
-            </DialogHeader>
-            <ProductForm onSubmit={handleAddProduct} />
-          </DialogContent>
-        </Dialog>
+        <div className="absolute z-10 w-full grid grid-cols-4 bg-transparent">
+          <details className="group absolute">
+            <summary className="cursor-pointer hover:text-green-600 p-2">
+              <span className="text-lg font-semibold">Actions</span>
+            </summary>
+            <div className="absolute bg-gray-200 shadow-lg rounded-lg p-4">
+              <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
+                <DialogTrigger asChild>
+                  <Button className="m-0.5">
+                    <Plus className="h-4 w-4" />
+                    Add Product
+                  </Button>
+                </DialogTrigger>
+                <DialogContent>
+                  <DialogHeader>
+                    <DialogTitle>Add New Product</DialogTitle>
+                  </DialogHeader>
+                  <ProductForm onSubmit={handleAddProduct} />
+                </DialogContent>
+              </Dialog>
 
-        <Button onClick={() => setAddComplimentaryOpen(true)}>
-          <Plus className="mr-2 h-4 w-4" />
-          Add CMP
-        </Button>
-        {addComplimentaryOpen && (
-          <ComplimentaryProductDialog
-            open={addComplimentaryOpen}
-            onOpenChange={setAddComplimentaryOpen}
-            products={products}
-            onSuccess={handleOnSuccess}
-          />
-        )}
+              <Button
+                className="m-0.5"
+                onClick={() => setAddComplimentaryOpen(true)}
+              >
+                <Plus className="h-4 w-4" />
+                Add CMP
+              </Button>
+              {addComplimentaryOpen && (
+                <ComplimentaryProductDialog
+                  open={addComplimentaryOpen}
+                  onOpenChange={setAddComplimentaryOpen}
+                  products={products}
+                  onSuccess={handleOnSuccess}
+                />
+              )}
 
-        <Button onClick={() => setAddDamageOpen(true)}>
-          <Plus className="mr-2 h-4 w-4" />
-          Add Damages
-        </Button>
-        {addDamageOpen && (
-          <ProductDamageDialog
-            products={products}
-            open={addDamageOpen}
-            onOpenChange={setAddDamageOpen}
-            onSuccess={handleOnSuccess}
-          />
-        )}
+              <Button className="m-0.5" onClick={() => setAddDamageOpen(true)}>
+                <Plus className="h-4 w-4" />
+                Add Damages
+              </Button>
+              {addDamageOpen && (
+                <ProductDamageDialog
+                  products={products}
+                  open={addDamageOpen}
+                  onOpenChange={setAddDamageOpen}
+                  onSuccess={handleOnSuccess}
+                />
+              )}
 
-        <Button onClick={() => setAddTransferOpen(true)}>
-          <Plus className="mr-2 h-4 w-4" />
-          Transfer
-        </Button>
-        {addTransferOpen && (
-          <ProductTransferDialog
-            products={products as Product[]}
-            open={addTransferOpen}
-            onOpenChange={setAddTransferOpen}
-            onSuccess={handleOnSuccess}
-          />
-        )}
+              <Button className="m-0.5" onClick={() => setAddTransferOpen(true)}>
+                <Plus className="h-4 w-4" />
+                Transfer
+              </Button>
+              {addTransferOpen && (
+                <ProductTransferDialog
+                  products={products as Product[]}
+                  open={addTransferOpen}
+                  onOpenChange={setAddTransferOpen}
+                  onSuccess={handleOnSuccess}
+                />
+              )}
+            </div>
+          </details>
+        </div>
       </div>
 
       <div className="border rounded-lg">
@@ -214,16 +226,26 @@ const Products = () => {
                 };
 
                 const scrr = {
-                  nSalesCost: (product?.cmp?.[0]?.quantity || 0 + product?.product_damage?.[0]?.quantity || 0) * (product.ucrr?.[0]?.unit_cost || 0),
+                  nSalesCost:
+                    (product?.cmp?.[0]?.quantity || 0 +
+                      product?.product_damage?.[0]?.quantity || 0) *
+                    (product.ucrr?.[0]?.unit_cost || 0),
 
-                  salesCost: (product.ucrr?.[0]?.unit_cost || 0) * (product?.sale_item?.[0]?.quantity || 0),
-                  salesAmt: (product.ucrr?.[0]?.selling_price || 0) * (product?.sale_item?.[0]?.quantity || 0),
-                  unitCost: product.ucrr?.[0]?.unit_cost ? product.ucrr?.[0].unit_cost.toFixed(1) : 0,
+                  salesCost:
+                    (product.ucrr?.[0]?.unit_cost || 0) *
+                    (product?.sale_item?.[0]?.quantity || 0),
+                  salesAmt:
+                    (product.ucrr?.[0]?.selling_price || 0) *
+                    (product?.sale_item?.[0]?.quantity || 0),
+                  unitCost: product.ucrr?.[0]?.unit_cost
+                    ? product.ucrr?.[0].unit_cost.toFixed(1)
+                    : 0,
                   unitPrice: product.ucrr?.[0]?.selling_price || 0,
                 };
                 const scrrCal = {
-                  scrrp: ((scrr.salesCost + scrr.nSalesCost) / scrr.salesAmt)
-                  * 100 || 0,
+                  scrrp:
+                    ((scrr.salesCost + scrr.nSalesCost) / scrr.salesAmt) *
+                      100 || 0,
                 };
 
                 return (
@@ -233,11 +255,9 @@ const Products = () => {
                     </TableCell>
                     <TableCell>{product.category}</TableCell>
                     <TableCell>
-                      {product?.inventory?.[0]?.opening_stock }
+                      {product?.inventory?.[0]?.opening_stock}
                     </TableCell>
-                    <TableCell>
-                      {product?.production?.[0]?.production}
-                    </TableCell>
+                    <TableCell>{product?.production?.[0]?.production}</TableCell>
                     <TableCell className="text-center">
                       {transfers?.in}
                     </TableCell>
@@ -257,7 +277,7 @@ const Products = () => {
                     <TableCell>{scrr?.nSalesCost?.toFixed(2)}</TableCell>
                     <TableCell>{scrr?.unitPrice}</TableCell>
                     <TableCell>{scrr?.salesAmt}</TableCell>
-                    
+
                     <TableCell>
                       {product.ucrr?.[0]?.ucrr > 0.75 ? (
                         <span className="text-red-600">
@@ -269,7 +289,7 @@ const Products = () => {
                         </span>
                       )}
                     </TableCell>
-                    
+
                     <TableCell>
                       {scrrCal.scrrp > 75 ? (
                         <span className="text-red-600">
