@@ -151,45 +151,6 @@ const Dashboard = () => {
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Revenue</CardTitle>
-            <TrendingUp className="h-4 w-4 text-primary" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">₦45,231.89</div>
-            <p className="text-xs text-muted-foreground">
-              +20.1% from last month
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Products Sold</CardTitle>
-            <ShoppingCart className="h-4 w-4 text-primary" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">+2350</div>
-            <p className="text-xs text-muted-foreground">
-              +180.1% from last month
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">
-              Active Branches
-            </CardTitle>
-            <Store className="h-4 w-4 text-primary" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">40</div>
-            <p className="text-xs text-muted-foreground">+2 new branches</p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">
               Low Stock Items
             </CardTitle>
@@ -200,23 +161,6 @@ const Dashboard = () => {
             <p className="text-xs text-muted-foreground">Requires attention</p>
           </CardContent>
         </Card>
-      </div>
-
-      {/* Quick Access Navigation */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-        <Link to="/branches">
-          <Card className="hover:bg-secondary transition-colors cursor-pointer">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0">
-              <CardTitle className="text-lg">Branches</CardTitle>
-              <Store className="h-5 w-5 text-primary" />
-            </CardHeader>
-            <CardContent>
-              <p className="text-sm text-muted-foreground">
-                Manage your bakery branches and locations
-              </p>
-            </CardContent>
-          </Card>
-        </Link>
 
         <Link to="/inventory">
           <Card className="hover:bg-secondary transition-colors cursor-pointer">
@@ -259,8 +203,27 @@ const Dashboard = () => {
             </CardContent>
           </Card>
         </Link>
+      </div>
 
-        <Link to="/users">
+      {/* Quick Access Navigation */}
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+        {/* <Link to="/branches">
+          <Card className="hover:bg-secondary transition-colors cursor-pointer">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0">
+              <CardTitle className="text-lg">Branches</CardTitle>
+              <Store className="h-5 w-5 text-primary" />
+            </CardHeader>
+            <CardContent>
+              <p className="text-sm text-muted-foreground">
+                Manage your bakery branches and locations
+              </p>
+            </CardContent>
+          </Card>
+        </Link> */}
+
+        
+
+        {/* <Link to="/users">
           <Card className="hover:bg-secondary transition-colors cursor-pointer">
             <CardHeader className="flex flex-row items-center justify-between space-y-0">
               <CardTitle className="text-lg">Users</CardTitle>
@@ -272,11 +235,11 @@ const Dashboard = () => {
               </p>
             </CardContent>
           </Card>
-        </Link>
+        </Link> */}
       </div>
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-12">
-        <Card className="col-span-12 md:col-span-6">
+        {/* <Card className="col-span-12 md:col-span-6">
           <CardHeader>
             <CardTitle>Sales Overview</CardTitle>
           </CardHeader>
@@ -375,7 +338,7 @@ const Dashboard = () => {
               </PieChart>
             </ResponsiveContainer>
           </CardContent>
-        </Card>
+        </Card> */}
 
         {/* Recent Production Activities */}
         <Card className="col-span-12">

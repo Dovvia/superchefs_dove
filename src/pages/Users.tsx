@@ -118,7 +118,7 @@ const Users = () => {
         </CardHeader>
         <CardContent className="space-y-2">
           <details>
-            <summary className="cursor-pointer">
+            <summary className="w-1/2 cursor-pointer hover:text-green-700">
               <strong>Details</strong>
             </summary>
             <div className="mt-2 space-y-2">

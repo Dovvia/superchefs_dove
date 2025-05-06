@@ -361,14 +361,14 @@ const Production = () => {
                     onChange={(e) =>
                       handleYieldChange(recipe.id, Number(e.target.value))
                     }
-                    className="w-12 border rounded px-1 text-center"
+                    className="w-14 border rounded px-1 text-center"
                   />
                 </div>
               </CardDescription>
             </CardHeader>
             <CardContent>
               <details>
-                <summary className="w-1/2 cursor-pointer color-green-500 hover:text-green-700">
+                <summary className="w-full cursor-pointer hover:text-green-700">
                   <span>
                     Materials Required
                   </span>
