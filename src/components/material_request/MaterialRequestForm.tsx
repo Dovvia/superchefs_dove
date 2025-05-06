@@ -115,11 +115,7 @@ const MaterialRequestForm = ({
                         </SelectTrigger>
                         <SelectContent>
                           {materials?.map((mat) => (
-                            <SelectItem
-                              key={mat.id}
-                              value={mat.id}
-                              disabled={requests?.includes(mat.id)}
-                            >
+                            <SelectItem key={mat.id} value={mat.id}>
                               {mat.name} <Unit unit={mat.unit} />
                             </SelectItem>
                           ))}

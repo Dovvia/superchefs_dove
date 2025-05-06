@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
+import capitalize from "lodash/capitalize";
 import { supabase } from "@/integrations/supabase/client";
 import type {
   Imprest,
@@ -271,7 +272,9 @@ const Imprest = () => {
                   </TableCell>
                   <TableCell className="capitalize">
                     {imprest?.user
-                      ? `${imprest?.user?.first_name} ${imprest?.user?.last_name}`
+                      ? `${capitalize(
+                          `${imprest?.user?.first_name} ${imprest?.user?.last_name}`
+                        )}`
                       : "N / A"}
                   </TableCell>
                   <TableCell>{imprest?.branch?.name ?? "N / A"}</TableCell>
