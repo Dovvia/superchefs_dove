@@ -70,7 +70,9 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
               setUser(session?.user);
             }
           });
-        navigate("/");
+        if (location.pathname === "/auth") {
+          navigate("/");
+        }
       } else if (event === "SIGNED_OUT" && isMounted) {
         setUser(null);
         navigate("/auth");

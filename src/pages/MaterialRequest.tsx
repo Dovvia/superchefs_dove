@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
+import capitalize from "lodash/capitalize";
 import { supabase } from "@/integrations/supabase/client";
 import type { MaterialRequest } from "@/types/material_request";
 import {
@@ -11,7 +12,6 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import { Plus } from "lucide-react";
 import { Dialog, DialogTrigger } from "@/components/ui/dialog";
 import { MaterialRequestDialog } from "@/components/material_request/MaterialRequestDialog";
 import { format } from "date-fns";
@@ -182,7 +182,7 @@ const MaterialRequest = () => {
           <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
             <DialogTrigger asChild id="edit-material-request">
               <Button disabled={!!selectedItems.length || isLoading}>
-          Make request
+                Make request
               </Button>
             </DialogTrigger>
             <MaterialRequestDialog
@@ -197,31 +197,31 @@ const MaterialRequest = () => {
           >
             <DialogTrigger asChild id="procurement order">
               <Button disabled={!selectedItems.length || isLoading}>
-          Accept Order
+                Accept Order
               </Button>
             </DialogTrigger>
             <FinalizeOrderDialog
               onOpenChange={setIsAddDialogOpenAccept}
               items={
-          data?.material_requests
-            ?.filter(
-              (req) =>
-                selectedItems.includes(req.id) &&
-                req.status !== "supplied"
-            )
-            ?.map((req) => {
-              return selectedItems.includes(req?.id)
-                ? {
-              id: req?.material_id,
-              order_id: req?.orders?.[0]?.procurement_order_id,
-              name: req?.material?.name,
-              quantity: String(req?.quantity),
-              unit: req?.material.unit,
-            }
-                : null;
-            })
+                data?.material_requests
+                  ?.filter(
+                    (req) =>
+                      selectedItems.includes(req.id) &&
+                      req.status !== "supplied"
+                  )
+                  ?.map((req) => {
+                    return selectedItems.includes(req?.id)
+                      ? {
+                          id: req?.material_id,
+                          order_id: req?.orders?.[0]?.procurement_order_id,
+                          name: req?.material?.name,
+                          quantity: String(req?.quantity),
+                          unit: req?.material.unit,
+                        }
+                      : null;
+                  })
 
-            .filter(Boolean) as unknown as MiniProcurementOrderItem[]
+                  .filter(Boolean) as unknown as MiniProcurementOrderItem[]
               }
               loading={loading}
               onSubmit={handleFinalizeOrder}
@@ -305,7 +305,9 @@ const MaterialRequest = () => {
                   </TableCell>
                   <TableCell className="capitalize">
                     {material_request?.user
-                      ? `${material_request?.user?.first_name} ${material_request?.user?.last_name}`
+                      ? `${capitalize(
+                          `${material_request?.user?.first_name} ${material_request?.user?.last_name}`
+                        )}`
                       : "N / A"}
                   </TableCell>
                   <TableCell>

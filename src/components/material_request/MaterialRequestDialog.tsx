@@ -37,9 +37,7 @@ export const MaterialRequestDialog = ({
 }: MaterialRequestDialogProps) => {
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
-  const {
-    data: { id: userBranchId },
-  } = useUserBranch();
+  const userBranchId = useUserBranch()?.data?.id;
   const { user } = useAuth();
 
   const handleSubmit = async (values: {
