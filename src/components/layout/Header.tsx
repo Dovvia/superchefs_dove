@@ -20,7 +20,7 @@ const Header = ({ onMenuClick }: HeaderProps) => {
         boxShadow: "0 2px 6px #4CAF50",
       }}
     >
-      <div className="container flex h-14 items-center justify-between">
+      <div className="container flex h-14 items-center justify-around px-4 lg:justify-between">
         <Button
           variant="ghost"
           // className="mr-2 px-2 lg:hidden"
@@ -29,9 +29,13 @@ const Header = ({ onMenuClick }: HeaderProps) => {
           <Menu className="h-6 w-6" />
         </Button>
         <div className="flex items-center space-x-4">
+          <span className="text-sm text-green-800 font-semibold">
+            {session?.user?.user_metadata?.first_name + ":" || "Guest:"}
+          </span>
+        
           {userBranch && (
-            <span className="text-sm text-muted-foreground">
-              Branch: {userBranch.name}
+            <span className="text-sm text-green-800">
+              {userBranch.name}
             </span>
           )}
         </div>

@@ -87,15 +87,15 @@ const CreateRecipeDialog: React.FC<CreateRecipeDialogProps> = ({
     setSelectedMaterials([
       ...selectedMaterials,
       {
-        id: "",
-        material_id: "",
-        quantity: 0,
-        material: {
-          name: "",
-          unit: "",
-          unit_price: 0,
-        },
-        yield: 0,
+      id: "",
+      material_id: "",
+      quantity: 0,
+      material: {
+        name: "",
+        unit: "",
+        unit_price: 0,
+      },
+      yield: selectedMaterials[0]?.yield || 0,
       },
     ]);
   };
@@ -314,10 +314,10 @@ const CreateRecipeDialog: React.FC<CreateRecipeDialogProps> = ({
                   }
                   required
                 >
-                  <SelectTrigger>
+                  <SelectTrigger >
                     <SelectValue placeholder="Select a material" />
                   </SelectTrigger>
-                  <SelectContent style={{ zIndex: 1500 }}>
+                  <SelectContent style={{ zIndex: 1500}}>
                     {materials.map((mat) => (
                       <SelectItem key={mat.id} value={mat.id}>
                         {mat.name} <Unit unit={mat.unit} />
@@ -327,6 +327,7 @@ const CreateRecipeDialog: React.FC<CreateRecipeDialogProps> = ({
                 </Select>
 
                 <Input
+                  className=""
                   type="number"
                   placeholder="Quantity"
                   step="0.01"
@@ -356,6 +357,7 @@ const CreateRecipeDialog: React.FC<CreateRecipeDialogProps> = ({
                 />
                 {index > 0 && (
                   <Button
+                    style={{ position: "absolute", right: "10px" }}
                     type="button"
                     variant="text"
                     color="error"

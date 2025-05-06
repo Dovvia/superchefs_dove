@@ -109,12 +109,12 @@ const Inventory = () => {
         <input
           type="text"
           placeholder="Search material"
-          className="border ml-4 p-2 rounded h-8 w-1/2"
+          className="border ml-4 p-2 rounded h-8 w-40"
           onChange={(e) => setFilterName(e.target.value)}
         />
         <input
           type="date"
-          className="border p-2 rounded h-8 w-1/2"
+          className="border p-2 rounded h-8 w-40"
           onChange={(e) => setFilterDate(e.target.value)}
         />
       </div>
@@ -155,7 +155,7 @@ const Inventory = () => {
                   <TableCell>{item.procurement}</TableCell>
                   <TableCell>{item.transfer_in}</TableCell>
                   <TableCell>{item.transfer_out}</TableCell>
-                  <TableCell>{item.usage}</TableCell>
+                  <TableCell>{item.usage.toFixed(2)}</TableCell>
                   <TableCell>{item.damages}</TableCell>
                   <TableCell
                     style={{

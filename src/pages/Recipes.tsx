@@ -192,7 +192,7 @@ const Recipes = () => {
               </CardHeader>
               <CardContent>
                 <details>
-                  <summary className="w-1/4 cursor-pointer color-green-500 hover:text-green-700">
+                  <summary className="w-1/4 cursor-pointer hover:text-green-700">
                     <span className="font-medium">
                       Materials
                     </span>
@@ -214,7 +214,7 @@ const Recipes = () => {
                           </div>
                         ))}
                       </div>
-                        <div className="flex bg-green-700 items-end justify-center h-5 w-1/4 gap-1 border rounded-md p- mt-4 shadow-md">
+                        <div className="flex bg-green-700 items-end justify-center h-5 w-1/2 gap-1 border rounded-md p- mt-4 shadow-md">
                         <span className="text-sm text-white">
                           Yield = <strong>{recipe.yield}</strong>
                         </span>
