@@ -4,6 +4,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import ProcurementOrders from "@/components/procurement/ProcurementOrders";
 import MaterialRequests from "@/components/procurement/MaterialRequests";
+import PoSummary from "@/components/procurement/PoSummary";
+
 import { useToast } from "@/hooks/use-toast";
 
 const Procurement = () => {
@@ -43,6 +45,7 @@ const Procurement = () => {
         <TabsList>
           <TabsTrigger value="requests">Material Requests</TabsTrigger>
           <TabsTrigger value="orders">Procurement Orders</TabsTrigger>
+          <TabsTrigger value="summary">Summary</TabsTrigger>
         </TabsList>
         
         <TabsContent value="requests">
@@ -51,6 +54,10 @@ const Procurement = () => {
         
         <TabsContent value="orders">
           <ProcurementOrders />
+        </TabsContent>
+
+        <TabsContent value="summary">
+          <PoSummary />
         </TabsContent>
       </Tabs>
     </div>
