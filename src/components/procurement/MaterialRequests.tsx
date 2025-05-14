@@ -152,6 +152,8 @@ const MaterialRequests = () => {
             updatedOrders?.map((uo) => ({
               material_request_id: uo?.id,
               status: uo?.status,
+              material_id: uo?.material_id,
+              quantity: uo?.quantity,
             }))
           )
           .select();

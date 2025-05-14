@@ -29,16 +29,23 @@ const Damages = () => {
       const { data, error } = await supabase
         .from("damaged_materials")
         .select(
-          `*,
-          material:material_id(name, unit, unit_price),
-          branch:branch_id(name),
-          user:user_id(first_name, last_name)
-        `
+          `
+        id,
+        quantity,
+        reason,
+        created_at,
+        material:material_id(name, unit, unit_price),
+        branch:branch_id(name),
+        user:user_id(first_name, last_name)
+      `
         )
         .order("created_at", { ascending: false });
 
-      if (error) throw error;
-      return data as Damage[];
+      if (error) {
+        console.error("Error fetching damages:", error);
+        throw error;
+      }
+      return data as unknown as Damage[];
     },
   });
 
@@ -51,9 +58,7 @@ const Damages = () => {
         <h2 className="text-3xl font-bold tracking-tight">Damages</h2>
         <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
           <DialogTrigger asChild id="material damage">
-            <Button>
-              Add Damages
-            </Button>
+            <Button>Add Damages</Button>
           </DialogTrigger>
           <MaterialDamageDialog
             onOpenChange={setIsAddDialogOpen}
@@ -66,10 +71,10 @@ const Damages = () => {
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>Material Name</TableHead>
+              <TableHead>Material</TableHead>
               <TableHead>Unit</TableHead>
               <TableHead>Cost</TableHead>
-              <TableHead>Quantity</TableHead>
+              <TableHead>Damages</TableHead>
               <TableHead>Total cost</TableHead>
               <TableHead>Reason</TableHead>
               <TableHead>Recorded By</TableHead>

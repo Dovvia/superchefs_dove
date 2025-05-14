@@ -88,6 +88,7 @@ export type Database = {
       damaged_materials: {
         Row: {
           branch_id: string;
+          updated_at: string;
           created_at: string;
           id: string;
           material_id: string;
@@ -97,6 +98,7 @@ export type Database = {
         };
         Insert: {
           branch_id: string;
+          updated_at: string;
           created_at?: string;
           id?: string;
           material_id: string;
@@ -106,6 +108,7 @@ export type Database = {
         };
         Update: {
           branch_id?: string;
+          updated_at: string;
           created_at?: string;
           id?: string;
           material_id?: string;
@@ -199,6 +202,7 @@ export type Database = {
       };
       inventory_transactions: {
         Row: {
+          updated_at: string;
           created_at: string;
           id: string;
           inventory_id: string;
@@ -207,6 +211,7 @@ export type Database = {
           transaction_type: string;
         };
         Insert: {
+          updated_at: string;
           created_at?: string;
           id?: string;
           inventory_id: string;
@@ -215,6 +220,7 @@ export type Database = {
           transaction_type: string;
         };
         Update: {
+          updated_at: string;
           created_at?: string;
           id?: string;
           inventory_id?: string;
@@ -292,6 +298,7 @@ export type Database = {
       };
       material_transfers: {
         Row: {
+          updated_at: string;
           created_at: string;
           from_branch_id: string;
           id: string;
@@ -302,6 +309,7 @@ export type Database = {
           to_branch_id: string;
         };
         Insert: {
+          updated_at: string;
           created_at?: string;
           from_branch_id: string;
           id?: string;
@@ -312,6 +320,7 @@ export type Database = {
           to_branch_id: string;
         };
         Update: {
+          updated_at: string;
           created_at?: string;
           from_branch_id?: string;
           id?: string;
@@ -347,6 +356,7 @@ export type Database = {
       };
       materials: {
         Row: {
+          
           created_at: string;
           description: string | null;
           id: string;
@@ -767,6 +777,7 @@ export type Database = {
       };
       product_transfers: {
         Row: {
+          updated_at: string;
           created_at: string;
           from_branch_id: string;
           id: string;
@@ -777,6 +788,7 @@ export type Database = {
           to_branch_id: string;
         };
         Insert: {
+          updated_at: string;
           created_at?: string;
           from_branch_id: string;
           id?: string;
@@ -787,6 +799,7 @@ export type Database = {
           to_branch_id: string;
         };
         Update: {
+          updated_at: string;
           created_at?: string;
           from_branch_id?: string;
           id?: string;
@@ -1139,6 +1152,7 @@ export type Database = {
       };
       sale_items: {
         Row: {
+          updated_at: string;
           created_at: string;
           id: string;
           product_id: string;
@@ -1148,6 +1162,7 @@ export type Database = {
           unit_price: number;
         };
         Insert: {
+          updated_at: string;
           created_at?: string;
           id?: string;
           product_id: string;
@@ -1157,6 +1172,7 @@ export type Database = {
           unit_price?: number;
         };
         Update: {
+          updated_at: string;
           created_at?: string;
           id?: string;
           product_id?: string;

@@ -30,6 +30,15 @@ export const MaterialDamageDialog = ({
     branch: string;
     user: string;
   }) => {
+    if (!values.branch) {
+      toast({
+        title: "Error",
+        description: "Branch is required to record material damage",
+        variant: "destructive",
+      });
+      return;
+    }
+
     try {
       setIsLoading(true);
       const { error } = await supabase.from("damaged_materials").insert([

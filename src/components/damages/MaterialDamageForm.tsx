@@ -23,6 +23,7 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/auth";
 import { Unit } from "../ui/unit";
+import { useEffect } from "react"; // Import useEffect
 
 const formSchema = z.object({
   material: z.string().min(1, "Please select a material"),
@@ -62,12 +63,32 @@ const MaterialDamageForm = ({
   });
 
   const { user } = useAuth();
+
+  // Fetch the branch_id of the current user
+  useEffect(() => {
+    const fetchUserBranch = async () => {
+      if (user?.id) {
+        const { data, error } = await supabase
+          .from("profiles")
+          .select("branch_id")
+          .eq("user_id", user.id)
+          .single();
+
+        if (!error && data?.branch_id) {
+          form.setValue("branch", data.branch_id); // Set the user's branch_id in the form
+        } else {
+          console.error("Failed to fetch branch_id:", error);
+        }
+      }
+    };
+
+    fetchUserBranch();
+  }, [user, form]);
+
   const { data: materials } = useQuery({
     queryKey: ["materials"],
     queryFn: async () => {
-      const { data, error } = await supabase.from("materials").select(`
-          *
-        `);
+      const { data, error } = await supabase.from("materials").select(`*`);
 
       if (error) throw error;
       return data;
@@ -87,23 +108,19 @@ const MaterialDamageForm = ({
                 <Select
                   {...field}
                   onValueChange={(e) => {
-                    const mat = materials?.find((mat) => mat?.id === e);
-                    form.setValue("branch", mat?.branch_id); // Set branch ID dynamically
-                    form.setValue("user", user?.id);
-                    field.onChange(e);
+                    field.onChange(e); // Only update the material field
+                    form.setValue("user", user?.id); // Set the user ID
                   }}
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="Select material name" />
                   </SelectTrigger>
                   <SelectContent>
-                    {materials
-                      // ?.filter((mat) => mat.id !== material?.id)
-                      ?.map((mat) => (
-                        <SelectItem key={mat.id} value={mat.id}>
-                          {mat.name} <Unit unit={mat.unit} />
-                        </SelectItem>
-                      ))}
+                    {materials?.map((mat) => (
+                      <SelectItem key={mat.id} value={mat.id}>
+                        {mat.name} <Unit unit={mat.unit} />
+                      </SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
               </FormControl>

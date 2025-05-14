@@ -49,7 +49,7 @@ interface Branch {
 const BranchAnalytics = () => {
   const [selectedBranchId, setSelectedBranchId] = useState<string>("");
   const [timeframe, setTimeframe] = useState<"weekly" | "monthly" | "yearly">(
-    "monthly"
+    "weekly"
   );
 
   // Fetch all branches
