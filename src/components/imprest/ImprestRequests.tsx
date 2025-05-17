@@ -147,6 +147,7 @@ const ImprestRequests = () => {
             updatedOrders?.map((uo) => ({
               imprest_request_id: uo?.id,
               status: uo?.status,
+              branch_id: uo?.branch_id,
             }))
           )
           .select();

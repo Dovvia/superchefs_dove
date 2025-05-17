@@ -191,13 +191,13 @@ export type Database = {
             referencedRelation: "materials";
             referencedColumns: ["id"];
           },
-           {
-              foreignKeyName: "inventory_branch_id_fkey";
-              columns: ["branch_id"];
-              isOneToOne: false;
-              referencedRelation: "branches";
-              referencedColumns: ["id"];
-            }
+          {
+            foreignKeyName: "inventory_branch_id_fkey";
+            columns: ["branch_id"];
+            isOneToOne: false;
+            referencedRelation: "branches";
+            referencedColumns: ["id"];
+          }
         ];
       };
       inventory_transactions: {
@@ -356,7 +356,6 @@ export type Database = {
       };
       materials: {
         Row: {
-          
           created_at: string;
           description: string | null;
           id: string;
@@ -493,6 +492,7 @@ export type Database = {
           created_at: string;
           id: string;
           imprest_request_id: string;
+          branch_id: string;
           notes: string | null;
           status: "pending" | "approved" | "supplied";
           updated_at: string;
@@ -501,6 +501,7 @@ export type Database = {
           created_at?: string;
           id?: string;
           imprest_request_id?: string;
+          branch_id?: string;
           notes?: string | null;
           status?: "pending" | "approved" | "supplied";
           updated_at?: string;
@@ -509,6 +510,7 @@ export type Database = {
           created_at?: string;
           id?: string;
           imprest_request_id?: string;
+          branch_id?: string;
           notes?: string | null;
           status?: "pending" | "approved" | "supplied";
           updated_at?: string;
@@ -598,6 +600,7 @@ export type Database = {
           created_at: string;
           id: string;
           material_request_id: string;
+          branch_id: string;
           notes: string | null;
           status: "pending" | "approved" | "supplied";
           updated_at: string;
@@ -606,6 +609,7 @@ export type Database = {
           created_at?: string;
           id?: string;
           material_request_id?: string;
+          branch_id?: string;
           notes?: string | null;
           status?: "pending" | "approved" | "supplied";
           updated_at?: string;
@@ -614,6 +618,7 @@ export type Database = {
           created_at?: string;
           id?: string;
           material_request_id?: string;
+          branch_id?: string;
           notes?: string | null;
           status?: "pending" | "approved" | "supplied";
           updated_at?: string;
@@ -1013,7 +1018,7 @@ export type Database = {
           product_name: string;
           branch_name: string;
           yield: number;
-          timestamp: string; 
+          timestamp: string;
           created_at: string;
           updated_at: string;
         };
@@ -1022,7 +1027,7 @@ export type Database = {
           product_name: string;
           branch_name: string;
           yield: number;
-          timestamp: string; 
+          timestamp: string;
           created_at: string;
           updated_at: string;
         };
@@ -1030,7 +1035,7 @@ export type Database = {
           product_name: string;
           branch_name: string;
           yield: number;
-          timestamp: string; 
+          timestamp: string;
           created_at: string;
           updated_at: string;
         };
@@ -1053,7 +1058,6 @@ export type Database = {
           nin: number | null;
           employment_date: string | null;
           role?: Database["public"]["Enums"]["app_role"] | null;
-
         };
         Insert: {
           created_at?: string;
@@ -1285,8 +1289,31 @@ export type Database = {
       };
     };
     Enums: {
-      education: "primary" | "secondary" | "nce" | "nd" | "hnd" | "bachelor" | "master" | "phd" |  "professor";
-      app_role: "staff" | "baker" | "cleaner" | "sales_rep" | "cook" | "manager" | "procurement" | "accountant" |"maintenance" | "quality_control" | "supplier" | "head_office_supplier" | "area_manager" | "admin";
+      education:
+        | "primary"
+        | "secondary"
+        | "nce"
+        | "nd"
+        | "hnd"
+        | "bachelor"
+        | "master"
+        | "phd"
+        | "professor";
+      app_role:
+        | "staff"
+        | "baker"
+        | "cleaner"
+        | "sales_rep"
+        | "cook"
+        | "manager"
+        | "procurement"
+        | "accountant"
+        | "maintenance"
+        | "quality_control"
+        | "supplier"
+        | "head_office_supplier"
+        | "area_manager"
+        | "admin";
     };
     CompositeTypes: {
       [_ in never]: never;
