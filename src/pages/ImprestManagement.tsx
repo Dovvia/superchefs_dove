@@ -4,6 +4,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
 import ImprestRequests from "@/components/imprest/ImprestRequests";
 import ImprestOrders from "@/components/imprest/ImprestOrders";
+import ImprestSummary from "@/components/imprest/ImprestSummary";
 
 const ImprestManagement = () => {
   const { toast } = useToast();
@@ -42,6 +43,7 @@ const ImprestManagement = () => {
         <TabsList>
           <TabsTrigger value="requests">Requests</TabsTrigger>
           <TabsTrigger value="orders">Orders</TabsTrigger>
+          <TabsTrigger value="summary">Summary</TabsTrigger>
         </TabsList>
 
         <TabsContent value="requests">
@@ -50,6 +52,10 @@ const ImprestManagement = () => {
 
         <TabsContent value="orders">
           <ImprestOrders />
+        </TabsContent>
+
+        <TabsContent value="summary">
+          <ImprestSummary />
         </TabsContent>
       </Tabs>
     </div>

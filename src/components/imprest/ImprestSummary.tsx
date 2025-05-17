@@ -12,9 +12,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import PaginationComponent from "@/components/pagination";
-import { PAGE_LIMIT } from "@/constants";
 import {
   Select,
   SelectContent,
@@ -23,41 +21,23 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Badge } from "@/components/ui/badge";
 
-export interface ProcurementOrderItem {
-  id: string;
-  material_request: {
-    quantity: number;
-    material: {
-      id: string;
-      name: string;
-      unit: string;
-      unit_price: number;
-    };
-    branch: {
-      id: string;
-      name: string;
-    };
-  };
-}
+const PAGE_LIMIT = 10;
 
-export interface MiniProcurementOrderItem {
-  id: string;
-  order_id: string;
-  quantity: string;
+interface Imprest {
   name: string;
-  unit: string;
+  unit_price: number;
 }
 
-export interface ProcurementOrder {
-  id: string;
-  status: "pending" | "supplied" | "approved";
-  created_at: string;
-  updated_at: string;
-  items: ProcurementOrderItem[];
+interface CumulativeImprest {
+  imprest_id: string;
+  total_quantity: number;
+  total_requests: number;
+  imprests: Imprest | Imprest[];
 }
 
-const ProcurementOrders = () => {
+export const ImprestSummary = () => {
   const printRef = useRef<HTMLDivElement>(null);
   const [page, setPage] = useState(1);
   const { toast } = useToast();
@@ -79,10 +59,13 @@ const ProcurementOrders = () => {
     },
   });
 
-  // Fetch procurement orders
-  const { data, isLoading, isFetching } = useQuery({
+  // Fetch cumulative material requests
+  const { data, isLoading } = useQuery<{
+    items: CumulativeImprest[];
+    hasNextPage: boolean;
+  }>({
     queryKey: [
-      "procurement-orders",
+      "cumulative_imprest_view",
       page,
       statusFilter,
       timeframe,
@@ -93,24 +76,23 @@ const ProcurementOrders = () => {
       const to = from + PAGE_LIMIT - 1;
 
       let query = supabase
-        .from("procurement_orders")
+        .from("cumulative_imprest_view")
         .select(
           `
-          *,
-          items:procurement_order_items(
-            material_request:material_requests(quantity, 
-              material:materials(id, name, unit, unit_price),
-              branch:branches(id, name, address, manager, phone)
-            )
+          imprest_id,
+          total_quantity,
+          total_requests,
+          imprests (
+            name,
+            unit_price
           )
         `,
           { count: "exact" }
         )
-        .order("created_at", { ascending: false })
-        .range(from, to)
-        .eq("status", statusFilter);
+        .order("total_quantity", { ascending: false })
+        .range(from, to);
+      // .eq("status", statusFilter);
 
-      // Filter by branch if a branch is selected
       if (selectedBranchId) {
         query = query.eq("branch_id", selectedBranchId);
       }
@@ -119,8 +101,8 @@ const ProcurementOrders = () => {
       if (error) throw error;
 
       return {
-        orders: data,
-        hasNextPage: count ? to + 1 < count : false,
+        items: data as CumulativeImprest[],
+        hasNextPage: count ? to < count : false,
       };
     },
     placeholderData: (previousData) => previousData,
@@ -128,7 +110,7 @@ const ProcurementOrders = () => {
 
   const handlePrint = useReactToPrint({
     contentRef: printRef,
-    documentTitle: "Procurement Orders",
+    documentTitle: "Procurement Orders Summary",
     onBeforePrint: () => {
       if (!printRef.current) {
         toast({
@@ -155,15 +137,11 @@ const ProcurementOrders = () => {
     },
   });
 
-  const loading = isLoading || isFetching;
-
   return (
     <div className="space-y-4">
       <div className="flex justify-between items-center">
-        <h2 className="text-2xl font-semibold">Procurement Orders</h2>
-        <div className="flex justify-between items-center space-x-4">
-          <Button onClick={() => handlePrint()}>Print Orders</Button>
-        </div>
+        <h2 className="text-2xl font-semibold">Procurement Orders Summary</h2>
+        <Button onClick={() => handlePrint()}>Print Orders</Button>
       </div>
 
       <div className="flex flex-wrap gap-4 items-center">
@@ -188,8 +166,7 @@ const ProcurementOrders = () => {
             </label>
           </div>
         </RadioGroup>
-
-        {/* Select for Time Period */}
+        {/* Time Period Selector */}
         <Select
           value={timeframe}
           onValueChange={(value) =>
@@ -206,7 +183,7 @@ const ProcurementOrders = () => {
           </SelectContent>
         </Select>
 
-        {/* Select for Branch */}
+        {/* Branch Selector */}
         <Select
           value={selectedBranchId || "all"}
           onValueChange={(value) =>
@@ -228,97 +205,73 @@ const ProcurementOrders = () => {
       </div>
 
       <div ref={printRef}>
-        {data?.orders?.map((order) => (
-          <div
-            key={order.id}
-            className="flex justify-between mb-4 items-center bg-green-100 p-4 rounded-md shadow-sm"
-          >
-            <h2>
-              Total cost:{" "}
-              {`₦${order.items
-                ?.reduce((itemAcc, item) => {
-                  return (
-                    itemAcc +
-                    item.material_request.quantity *
-                      item.material_request.material.unit_price
-                  );
-                }, 0)
-                .toLocaleString("en-US", {
-                  minimumSignificantDigits: 2,
-                  maximumFractionDigits: 2,
-                })}`}
-            </h2>
-            <h1>Date: {new Date().toLocaleDateString()}</h1>
-            <h1>Time: {new Date().toLocaleTimeString()}</h1>
-            <p>Branch: {order.items[0]?.material_request?.branch?.name}</p>
-            <p>Manager: {order.items[0]?.material_request?.branch?.manager}</p>
-            <p>Phone: {order.items[0]?.material_request?.branch?.phone}</p>
-            <p>
-              Branch Address:{" "}
-              {order.items[0]?.material_request?.branch?.address}
-            </p>
-          </div>
-        ))}
+        <h2 className="text-lg font-semibold bg-gray-200 p-4 rounded-md shadow-sm">
+          Total Cost:{" "}
+          {`₦${data?.items
+            ?.reduce((acc, item) => {
+              const quantity = item.total_quantity || 0;
+              const price = Array.isArray(item.imprests)
+                ? item.imprests[0]?.unit_price || 0
+                : item.imprests?.unit_price || 0;
 
-        {/* Table for Procurement Orders */}
+              return acc + quantity * price;
+            }, 0)
+            .toLocaleString("en-US", {
+              minimumFractionDigits: 2,
+              maximumFractionDigits: 2,
+            })}`}
+        </h2>
+
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>Order ID</TableHead>
-              <TableHead>Status</TableHead>
               <TableHead>Name</TableHead>
-              <TableHead>Quantity</TableHead>
-              <TableHead>Cost</TableHead>
-              <TableHead>Branch</TableHead>
-              <TableHead>Date Created</TableHead>
-              <TableHead>Date Updated</TableHead>
+              <TableHead>Status</TableHead>
+              <TableHead>Total Quantity</TableHead>
+              <TableHead>Total Requests</TableHead>
+              <TableHead>Unit Price</TableHead>
             </TableRow>
           </TableHeader>
-          {data?.orders?.length && !loading ? (
-            <TableBody>
-              {data.orders.map((order) => (
-                <TableRow key={order.id}>
-                  <TableCell>{order.id}</TableCell>
-                  <TableCell>
-                    <Badge status={order.status}>{order.status}</Badge>
-                  </TableCell>
-                  <TableCell>
-                    {order.items[0]?.material_request?.material?.name}
-                  </TableCell>
-                  <TableCell>
-                    {order.items[0]?.material_request?.quantity}{" "}
-                    {order.items[0]?.material_request?.material?.unit}
-                  </TableCell>
-                  <TableCell>
-                    ₦
-                    {(
-                      order.items[0]?.material_request?.quantity *
-                      order.items[0]?.material_request?.material?.unit_price
-                    ).toFixed(2)}
-                  </TableCell>
-                  <TableCell>
-                    {order.items[0]?.material_request?.branch?.name}
-                  </TableCell>
-                  <TableCell>
-                    {new Date(order.created_at).toLocaleDateString()}
-                  </TableCell>
-                  <TableCell>
-                    {new Date(order.updated_at).toLocaleDateString()}
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          ) : (
-            <TableBody>
+          <TableBody>
+            {isLoading ? (
               <TableRow>
-                <TableCell colSpan={8} className="text-center">
-                  {loading ? "Loading..." : "No procurement orders found."}
+                <TableCell colSpan={5} className="text-center">
+                  Loading...
                 </TableCell>
               </TableRow>
-            </TableBody>
-          )}
+            ) : data?.items && data.items.length > 0 ? (
+              data.items.map((item) => (
+                <TableRow key={item.imprest_id}>
+                  <TableCell>
+                    {Array.isArray(item.imprests)
+                      ? item.imprests[0]?.name || "N/A"
+                      : item.imprests?.name || "N/A"}
+                  </TableCell>
+                  <TableCell>
+                    <Badge variant="outline">Approved</Badge>
+                  </TableCell>
+                  <TableCell>{item.total_quantity || 0}</TableCell>
+                  <TableCell>{item.total_requests || 0}</TableCell>
+                  <TableCell>
+                    ₦
+                    {(Array.isArray(item.imprests)
+                      ? item.imprests[0]?.unit_price || 0
+                      : item.imprests?.unit_price || 0
+                    ).toFixed(2)}
+                  </TableCell>
+                </TableRow>
+              ))
+            ) : (
+              <TableRow>
+                <TableCell colSpan={5} className="text-center">
+                  No imprests found.
+                </TableCell>
+              </TableRow>
+            )}
+          </TableBody>
         </Table>
       </div>
+
       <PaginationComponent
         className="justify-end"
         page={page}
@@ -329,4 +282,4 @@ const ProcurementOrders = () => {
   );
 };
 
-export default ProcurementOrders;
+export default ImprestSummary;

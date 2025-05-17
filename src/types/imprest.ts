@@ -26,10 +26,14 @@ export interface ImprestOrderItem {
     id: string;
     name: string;
     unit: string;
+    unit_price: number;
     quantity: number;
     branch: {
+      address: string;
       id: string;
       name: string;
+      manager: string;
+      phone: string;
     };
   };
 }

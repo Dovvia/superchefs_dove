@@ -154,6 +154,7 @@ const MaterialRequests = () => {
               status: uo?.status,
               material_id: uo?.material_id,
               quantity: uo?.quantity,
+              branch_id: uo?.branch_id,
             }))
           )
           .select();
