@@ -32,34 +32,10 @@ import { useUserBranch } from "@/hooks/user-branch";
 import { useProductionContext } from "@/context/ProductionContext";
 import { Progress } from "@/components/ui/progress";
 
-const salesData = [
-  { name: "Jan", sales: 4000 },
-  { name: "Feb", sales: 3000 },
-  { name: "Mar", sales: 2000 },
-  { name: "Apr", sales: 2780 },
-  { name: "May", sales: 1890 },
-  { name: "Jun", sales: 2390 },
-];
-
-const productData = [
-  { name: "Cakes", value: 400 },
-  { name: "Pastries", value: 300 },
-  { name: "Bread", value: 300 },
-  { name: "Cookies", value: 200 },
-];
-
-const branchPerformance = [
-  { name: "North", value: 35 },
-  { name: "South", value: 25 },
-  { name: "East", value: 20 },
-  { name: "West", value: 20 },
-];
-
-const COLORS = ["#0088FE", "#00C49F", "#FFBB28", "#FF8042"];
 
 const Dashboard = () => {
   const { data: userBranch, isLoading: isBranchLoading } = useUserBranch() as {
-    data: { name: string } | null;
+    data: { name: string; role: string } | null;
     isLoading: boolean;
   };
   const { productionData } = useProductionContext();
@@ -70,7 +46,7 @@ const Dashboard = () => {
     const fetchRecentProduction = async () => {
       if (userBranch) {
         try {
-          const { data, error } = await supabase
+          let query = supabase
             .from("production")
             .select(
               `
@@ -81,9 +57,15 @@ const Dashboard = () => {
             timestamp
           `
             )
-            .eq("branch_name", userBranch?.name)
             .order("timestamp", { ascending: false }) // by most recent
             .limit(20); // last 20 records
+
+          // If the user is not from HEAD OFFICE, filter by branch
+          if (userBranch.name !== "HEAD OFFICE") {
+            query = query.eq("branch_name", userBranch.name);
+          }
+
+          const { data, error } = await query;
 
           if (error) {
             console.error("Error fetching recent production data:", error);
@@ -205,182 +187,42 @@ const Dashboard = () => {
         </Link>
       </div>
 
-      {/* Quick Access Navigation */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-        {/* <Link to="/branches">
-          <Card className="hover:bg-secondary transition-colors cursor-pointer">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0">
-              <CardTitle className="text-lg">Branches</CardTitle>
-              <Store className="h-5 w-5 text-primary" />
-            </CardHeader>
-            <CardContent>
-              <p className="text-sm text-muted-foreground">
-                Manage your bakery branches and locations
-              </p>
-            </CardContent>
-          </Card>
-        </Link> */}
+      {/* Recent Production Activities */}
+      <Card className="col-span-12">
+        <CardHeader>
+          <CardTitle>Recent Production Activities</CardTitle>
+        </CardHeader>
+        <CardContent>
+          {recentProduction.length === 0 ? (
+            <p>No recent production activities.</p>
+          ) : (
+            <div className="space-y-4">
+              {recentProduction.map((record, index) => (
+                <div key={index} className="flex border-b-2">
+                  <div className="flex w-full items-center justify-between space-y-4">
+                    <div className="flex text-sm items-end gap-3 font-medium">
+                      <CakeIcon className="h-9 w-9 text-primary" />
+                      {record.branch}
+                    </div>
 
-        
-
-        {/* <Link to="/users">
-          <Card className="hover:bg-secondary transition-colors cursor-pointer">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0">
-              <CardTitle className="text-lg">Users</CardTitle>
-              <Users className="h-5 w-5 text-primary" />
-            </CardHeader>
-            <CardContent>
-              <p className="text-sm text-muted-foreground">
-                Manage staff and user accounts
-              </p>
-            </CardContent>
-          </Card>
-        </Link> */}
-      </div>
-
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-12">
-        {/* <Card className="col-span-12 md:col-span-6">
-          <CardHeader>
-            <CardTitle>Sales Overview</CardTitle>
-          </CardHeader>
-          <CardContent className="pl-2">
-            <ResponsiveContainer width="100%" height={350}>
-              <LineChart data={salesData}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="name" />
-                <YAxis />
-                <Tooltip />
-                <Line
-                  type="monotone"
-                  dataKey="sales"
-                  stroke="#4CAF50"
-                  strokeWidth={2}
-                />
-              </LineChart>
-            </ResponsiveContainer>
-          </CardContent>
-        </Card>
-
-        <Card className="col-span-12 md:col-span-6">
-          <CardHeader>
-            <CardTitle>Product Categories</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <ResponsiveContainer width="100%" height={350}>
-              <BarChart data={productData}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="name" />
-                <YAxis />
-                <Tooltip />
-                <Bar dataKey="value" fill="#4CAF50" />
-              </BarChart>
-            </ResponsiveContainer>
-          </CardContent>
-        </Card>
-
-        <Card className="col-span-12 md:col-span-6">
-          <CardHeader>
-            <CardTitle>Product Distribution</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <ResponsiveContainer width="100%" height={350}>
-              <PieChart>
-                <Pie
-                  data={productData}
-                  cx="50%"
-                  cy="50%"
-                  labelLine={false}
-                  label={({ name, percent }) =>
-                    `${name} ${(percent * 100).toFixed(0)}%`
-                  }
-                  outerRadius={80}
-                  fill="#8884d8"
-                  dataKey="value"
-                >
-                  {productData.map((entry, index) => (
-                    <Cell
-                      key={`cell-${index}`}
-                      fill={COLORS[index % COLORS.length]}
-                    />
-                  ))}
-                </Pie>
-                <Tooltip />
-              </PieChart>
-            </ResponsiveContainer>
-          </CardContent>
-        </Card>
-
-        <Card className="col-span-12 md:col-span-6">
-          <CardHeader>
-            <CardTitle>Branch Performance</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <ResponsiveContainer width="100%" height={350}>
-              <PieChart>
-                <Pie
-                  data={branchPerformance}
-                  cx="50%"
-                  cy="50%"
-                  innerRadius={60}
-                  outerRadius={80}
-                  fill="#8884d8"
-                  paddingAngle={5}
-                  dataKey="value"
-                >
-                  {branchPerformance.map((entry, index) => (
-                    <Cell
-                      key={`cell-${index}`}
-                      fill={COLORS[index % COLORS.length]}
-                    />
-                  ))}
-                </Pie>
-                <Tooltip />
-              </PieChart>
-            </ResponsiveContainer>
-          </CardContent>
-        </Card> */}
-
-        {/* Recent Production Activities */}
-        <Card className="col-span-12">
-          <CardHeader>
-            <CardTitle>Recent Production Activities</CardTitle>
-          </CardHeader>
-          <CardContent>
-            {productionData.length === 0 ? (
-              <p>No recent production activities.</p>
-            ) : (
-              <div className="space-y-4">
-                {productionData.map((record, index) => (
-                  <div key={index} className="flex border-b-2">
-                    <div className="flex w-full items-center justify-between space-y-4">
-                      <div className="flex text-sm items-end gap-3 font-medium">
-                        <CakeIcon className="h-9 w-9 text-primary" />
-                        {record.branch}
-                        {/* <p className="text-xs text-muted-foreground">
-                          was producing
-                        </p> */}
-                      </div>
-
-                      <p className="text-sm ">
-                        <span className="text-sm font-bold">
-                          {record.yield} {""}
-                        </span>
-                        {record.productName}
+                    <p className="text-sm ">
+                      <span className="text-sm font-bold">
+                        {record.yield} {""}
+                      </span>
+                      {record.productName}
+                    </p>
+                    <div className="flex items-center">
+                      <p className="text-sm font-bold">
+                        {timeAgo(record.timestamp)}
                       </p>
-                      <div className="flex items-center">
-                        {/* <Clock /> */}
-                        <p className="text-sm font-bold">
-                          {timeAgo(record.timestamp)}
-                        </p>
-                      </div>
                     </div>
                   </div>
-                ))}
-              </div>
-            )}
-          </CardContent>
-        </Card>
-      </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </CardContent>
+      </Card>
     </div>
   );
 };

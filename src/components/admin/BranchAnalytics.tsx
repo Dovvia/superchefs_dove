@@ -65,7 +65,7 @@ const BranchAnalytics = () => {
 
       return data as Branch[];
     },
-  });
+  }); 
 
   // Fetch sales data for selected branch or all branches if none selected
   const { data: salesData, isLoading: isLoadingSales } = useQuery({

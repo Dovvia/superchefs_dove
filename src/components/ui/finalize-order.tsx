@@ -36,7 +36,7 @@ export const FinalizeOrderDialog = ({
   onSubmit,
 }: DialogProps) => {
   return (
-    <DialogContent aria-describedby="procurement order" className="max-w-[50%]">
+    <DialogContent aria-describedby="procurement order" className="max-w-2xl">
       <DialogHeader>
         <DialogTitle>Accept Order as Supplied</DialogTitle>
       </DialogHeader>
@@ -111,11 +111,15 @@ const FinalizeOrderForm = ({
             );
           })}
         </ul>
-
+        <p className="text-sm text-muted-foreground">
+          <strong>Note:</strong> This action will add the materials to your
+          inventory as supplied. Please ensure that the details are correct.
+          <br />
+        </p>
         <p>
-          <em>{`Are you sure you want to accept ${
+          <em>{`Accept ${
             items?.length > 1 ? "these" : "this"
-          } order as supplied? Everything here will be added to your inventory exactly the way it is.`}</em>
+          } order as supplied`}</em>
         </p>
 
         <div className="flex justify-end space-x-2">

@@ -597,6 +597,7 @@ const UserManagement = () => {
                 <Label htmlFor="phone">Phone</Label>
                 <Input
                   id="phone"
+                  type="number"
                   value={newUser.phone}
                   onChange={(e) =>
                     setNewUser({ ...newUser, phone: Number(e.target.value) })
@@ -643,6 +644,7 @@ const UserManagement = () => {
                 <Label htmlFor="nin">NIN</Label>
                 <Input
                   id="nin"
+                  type="number"
                   value={newUser.nin}
                   onChange={(e) =>
                     setNewUser({ ...newUser, nin: Number(e.target.value) })

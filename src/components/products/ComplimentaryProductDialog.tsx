@@ -9,6 +9,7 @@ import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { Product } from "@/types/products";
+import { useUserBranch } from "@/hooks/user-branch";
 
 interface ComplimentaryProductDialogProps {
   open: boolean;
@@ -26,103 +27,45 @@ export const ComplimentaryProductDialog = ({
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
 
+  // Get the logged-in user's branch information
+  const { data: userBranch } = useUserBranch() as {
+    data: { id: string; name: string; role: string } | null;
+  };
+
   const handleSubmit = async (values: {
     product: string;
-    branch_id: string;
+    branch_id: string; // This will no longer be used for branch users
     quantity: string;
     reason: string;
     recipient: string;
   }) => {
-    const { product: product_id, ...rest } = values;
     try {
       setIsLoading(true);
 
-      // Fetch product inventory
-      const { data: productInventory, error: inventoryFetchError } = await supabase
-        .from("product_inventory")
-        .select("id, quantity")
-        .eq("product_id", product_id)
-        .eq("branch_id", rest.branch_id)
-        .maybeSingle();
+      // Use the branch_id from the logged-in user for branch users
+      const branchId = userBranch?.id;
 
-      if (inventoryFetchError) {
-        console.error("Error fetching product inventory:", inventoryFetchError);
-        throw inventoryFetchError;
+      if (!branchId) {
+        throw new Error("Branch ID is missing. Please log in again.");
       }
 
-      if (!productInventory) {
-        throw new Error("Product inventory not found");
-      }
-
-      const currentQuantity = productInventory.quantity || 0;
-      const newQuantity = currentQuantity - Number(values?.quantity);
-
-      if (newQuantity < 0) {
-        toast({
-          title: "Error",
-          description: "Insufficient product quantity in inventory",
-          variant: "destructive",
-        });
-        return;
-      }
-
-      // Update product inventory
-      const { error: updateInventoryError } = await supabase
-        .from("product_inventory")
-        .update({ quantity: newQuantity })
-        .eq("id", productInventory.id);
-
-      if (updateInventoryError) {
-        console.error("Error updating product inventory:", updateInventoryError);
-        throw updateInventoryError;
-      }
-
-      // Fetch all complimentary product records for the product and branch
-      const { data: complimentaryProducts, error: fetchComplimentaryError } = await supabase
+      // Insert a new record into the complimentary_products table
+      const { error: insertError } = await supabase
         .from("complimentary_products")
-        .select("id, quantity")
-        .eq("product_id", product_id)
-        .eq("branch_id", rest.branch_id);
-
-      if (fetchComplimentaryError) {
-        console.error("Error fetching complimentary products:", fetchComplimentaryError);
-        throw fetchComplimentaryError;
-      }
-
-      if (complimentaryProducts && complimentaryProducts.length > 0) {
-        // Aggregate the quantities
-        const totalQuantity = complimentaryProducts.reduce((sum, item) => sum + item.quantity, 0);
-
-        // Update the first record
-        const firstProduct = complimentaryProducts[0];
-        const { error: updateComplimentaryError } = await supabase
-          .from("complimentary_products")
-          .update({
-            quantity: totalQuantity + Number(values?.quantity),
-            reason: rest.reason,
-            recipient: rest.recipient,
-            updated_at: new Date().toISOString(),
-          })
-          .eq("id", firstProduct.id);
-
-        if (updateComplimentaryError) {
-          console.error("Error updating complimentary product quantity:", updateComplimentaryError);
-          throw updateComplimentaryError;
-        }
-      } else {
-        // Insert a new record if no complimentary products exist
-        const { error: insertError } = await supabase.from("complimentary_products").insert([
+        .insert([
           {
-            product_id,
-            ...rest,
-            quantity: Number(values?.quantity),
+            product_id: values.product,
+            branch_id: branchId, // Use the branch_id from the logged-in user
+            quantity: Number(values.quantity),
+            reason: values.reason,
+            recipient: values.recipient,
+            created_at: new Date().toISOString(),
           },
         ]);
 
-        if (insertError) {
-          console.error("Error inserting complimentary product:", insertError);
-          throw insertError;
-        }
+      if (insertError) {
+        console.error("Error inserting complimentary product:", insertError);
+        throw insertError;
       }
 
       toast({
@@ -132,7 +75,10 @@ export const ComplimentaryProductDialog = ({
       onSuccess?.();
       onOpenChange(false);
     } catch (error: any) {
-      console.error("Error recording complimentary product:", JSON.stringify(error, null, 2));
+      console.error(
+        "Error recording complimentary product:",
+        JSON.stringify(error, null, 2)
+      );
       toast({
         title: "Error",
         description: error.message || "Failed to record complimentary product",

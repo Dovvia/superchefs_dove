@@ -21,7 +21,7 @@ import {
   SelectTrigger,
   SelectContent,
 } from "@/components/ui/select";
-import { Plus } from "lucide-react";
+import { Plus, Settings } from "lucide-react";
 import { AddMaterialDialog } from "@/components/inventory/AddMaterialDialog";
 import { StockMovementDialog } from "@/components/inventory/StockMovementDialog";
 import { toast, useToast } from "@/components/ui/use-toast";
@@ -144,7 +144,8 @@ const Inventory = () => {
 
       <div className="flex items-center space-x-4">
         {userBranch.name === "HEAD OFFICE" && (
-          <div className="flex items-center space-x-4">
+          <div className="items-center space-y-2">
+            <div className="flex items-center space-x-2">
             <Button onClick={() => setIsAddDialogOpen(true)}>
               <Plus className="h-4 w-4" />
               Add Material
@@ -152,6 +153,7 @@ const Inventory = () => {
             <Button onClick={() => setIsUpdateDialogOpen(true)}>
               Post Qty
             </Button>
+            </div>
             <Select
               value={selectedBranch}
               onValueChange={(value) => setSelectedBranch(value)}
@@ -176,12 +178,12 @@ const Inventory = () => {
         <input
           type="text"
           placeholder="Search material"
-          className="border ml-4 p-2 rounded h-8 w-40"
+          className="border p-2 rounded h-8 w-40"
           onChange={(e) => setFilterName(e.target.value)}
         />
         <input
           type="date"
-          className="border p-2 rounded h-8 w-40"
+          className="border ml-0 p-2 rounded h-8 w-40"
           onChange={(e) => setFilterDate(e.target.value)}
         />
       </div>
@@ -192,19 +194,19 @@ const Inventory = () => {
             <TableRow className="bg-gray-200">
               <TableHead>Material</TableHead>
               <TableHead>Unit</TableHead>
-              <TableHead>Opening Stock</TableHead>
+              <TableHead>Open Stock</TableHead>
               <TableHead>PROC.</TableHead>
               <TableHead>TRF IN</TableHead>
               <TableHead>TRF OUT</TableHead>
               <TableHead>Usage</TableHead>
-              <TableHead>Damages</TableHead>
-              <TableHead>Closing Stock</TableHead>
+              <TableHead>DMG</TableHead>
+              <TableHead>Close Stock</TableHead>
               <TableHead>Reorder</TableHead>
               {/* <TableHead>Request</TableHead> */}
               <TableHead>Unit Cost</TableHead>
               <TableHead>Non-close Cost</TableHead>
               <TableHead>Close cost</TableHead>
-              <TableHead>Actions</TableHead>
+              <TableHead><Settings className="h-4 w-4 text-gray-800 ml-2" /></TableHead>
             </TableRow>
           </TableHeader>
           {filteredInventory?.length && !isLoadingInventory ? (
@@ -218,7 +220,7 @@ const Inventory = () => {
                     <strong>{item.material?.name}</strong>
                   </TableCell>
                   <TableCell>{item.material?.unit}</TableCell>
-                  <TableCell>{item.opening_stock}</TableCell>
+                  <TableCell>{item.opening_stock || 0}</TableCell>
                   <TableCell>{item.procurement}</TableCell>
                   <TableCell>{item.transfer_in}</TableCell>
                   <TableCell>{item.transfer_out}</TableCell>
@@ -282,7 +284,7 @@ const Inventory = () => {
                           }
                           disabled={userBranch.name !== "HEAD OFFICE"}
                         >
-                          Edit Cost
+                          Update Cost
                         </button>
                       </div>
                     </div>

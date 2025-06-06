@@ -40,8 +40,7 @@ const Procurement = () => {
   return (
     <div className="space-y-6 p-3 bg-white rounded-lg shadow-md w-full mx-auto margin-100">
       <h1 className="text-3xl font-bold">Procurement Management</h1>
-      
-      <Tabs defaultValue="requests" className="w-full">
+      <Tabs defaultValue="requests" className="w-full" >
         <TabsList>
           <TabsTrigger value="requests">Material Requests</TabsTrigger>
           <TabsTrigger value="orders">Procurement Orders</TabsTrigger>

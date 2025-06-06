@@ -258,7 +258,7 @@ const MaterialRequest = () => {
                   )}
                 />
               </TableHead>
-              <TableHead>Material Name</TableHead>
+              <TableHead>Material</TableHead>
               <TableHead>Unit</TableHead>
               <TableHead>Cost</TableHead>
               <TableHead>Quantity</TableHead>
@@ -325,7 +325,7 @@ const MaterialRequest = () => {
                     )}
                   </TableCell>
                   <TableCell>
-                    {material_request?.material?.inventory[0]?.usage}
+                    {material_request?.material?.inventory[0]?.usage.toFixed(2)}
                   </TableCell>
                   <TableCell
                     style={{

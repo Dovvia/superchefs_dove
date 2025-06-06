@@ -19,7 +19,7 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
-  DialogDescription
+  DialogDescription,
 } from "@/components/ui/dialog";
 import { FormValues, SaleForm } from "@/components/sales/SaleForm";
 import { useToast } from "@/components/ui/use-toast";
@@ -86,7 +86,7 @@ const Sales = () => {
           {
             payment_method: values.payment_method,
             total_amount,
-            branch_id: values?.branch_id,
+            branch_id: id, // Use the branch_id of the logged-in user
           },
         ])
         .select()
@@ -102,6 +102,7 @@ const Sales = () => {
           quantity: item.quantity,
           unit_price: item.unit_price,
           subtotal: item.quantity * item.unit_price,
+          branch_id: id, // Include the branch_id of the logged-in user
         }))
       );
 
@@ -141,13 +142,13 @@ const Sales = () => {
               <DialogTitle>Record New Sale</DialogTitle>
               <DialogDescription>
                 Fill in the details to record sales.
-                </DialogDescription>
+              </DialogDescription>
             </DialogHeader>
             {products && (
               <SaleForm
                 products={products}
                 onSubmit={handleCreateSale}
-                // branchId={user?.user?.user_metadata?.branch_id}
+                branchId={id}
               />
             )}
           </DialogContent>
@@ -181,7 +182,7 @@ const Sales = () => {
                   {sale.payment_method}
                 </TableCell>
                 <TableCell className="text-right">
-                  ${sale.total_amount.toFixed(2)}
+                  ₦{sale.total_amount.toFixed(2)}
                 </TableCell>
               </TableRow>
             ))}

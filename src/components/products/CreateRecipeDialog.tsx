@@ -35,7 +35,7 @@ interface CreateRecipeDialogProps {
   onError: (error: Error) => void;
 }
 
-const CreateRecipeDialog: React.FC<CreateRecipeDialogProps> = ({
+const CreateRecipeDialog: React.FC<CreateRecipeDialogProps> = ({ 
   open,
   onOpenChange,
   onError,
