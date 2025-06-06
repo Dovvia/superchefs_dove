@@ -87,4 +87,9 @@ export interface ProductInventory {
   scrr: number;
   created_at: string;
   updated_at: string;
+  product: {
+    id: string;
+    name: string;
+    category: string;
+  };
 }

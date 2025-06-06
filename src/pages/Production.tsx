@@ -99,7 +99,8 @@ const Production = () => {
         typeof userBranch === "object" &&
         "name" in userBranch
       ) {
-        const branchName = (userBranch as { name: string}).name || "Unknown Branch";
+        const branchName =
+          (userBranch as { name: string }).name || "Unknown Branch";
         const productionDataWithBranch = await productionData(
           fetchedRecipes,
           branchName
@@ -124,102 +125,159 @@ const Production = () => {
 
       try {
         // Get current product inventory record
-        const { data: productInvData, error: productInvQueryError } =
-          await supabase
-            .from("product_inventory")
-            .select("*")
-            .eq("product_id", recipe.product.id)
-            .maybeSingle();
+        // const { data: productInvData, error: productInvQueryError } =
+        //   await supabase
+        //     .from("product_inventory")
+        //     .select("*")
+        //     .eq("product_id", recipe.product.id)
+        //     .maybeSingle();
 
-        if (productInvQueryError) {
-          console.error(
-            "Error fetching product inventory:",
-            productInvQueryError
-          );
-          throw productInvQueryError;
-        }
+        // if (productInvQueryError) {
+        //   console.error(
+        //     "Error fetching product inventory:",
+        //     productInvQueryError
+        //   );
+        //   throw productInvQueryError;
+        // }
 
         let newProduction = recipe.yield;
         const timestamp = new Date().toISOString();
 
-        // Update or create product inventory record
-        if (productInvData) {
-          newProduction = (productInvData.production || 0) + recipe.yield;
-         const newQuantity = (productInvData.quantity || 0) + recipe.yield;
+        // // Update or create product inventory record
+        // if (productInvData) {
+        //   newProduction = (productInvData.production || 0) + recipe.yield;
+        //  const newQuantity = (productInvData.quantity || 0) + recipe.yield;
 
-          const { error: productUpdateError } = await supabase
-            .from("product_inventory")
-            .update({ production: newProduction, quantity: newQuantity })
-            .eq("id", productInvData.id);
+        //   const { error: productUpdateError } = await supabase
+        //     .from("product_inventory")
+        //     .update({ production: newProduction, quantity: newQuantity })
+        //     .eq("id", productInvData.id);
 
-          if (productUpdateError) {
-            console.error(
-              "Error updating product inventory:",
-              productUpdateError
-            );
-            throw productUpdateError;
-          }
-        } else {
-            const { error: productCreateError } = await supabase
-            .from("product_inventory")
-            .insert({
-              product_id: recipe.product.id,
-              production: recipe.yield,
-              quantity: recipe.yield,
-              opening_stock: 0,
-              name: recipe.product.name,
-              // recipe_id: recipe.id, // primary id from the "product_recipes"
-              branch_id: userBranch && typeof userBranch === "object" && "id" in userBranch ?
-              (userBranch as { id: string }).id : "Unknown Branch",
-            });
+        //   if (productUpdateError) {
+        //     console.error(
+        //       "Error updating product inventory:",
+        //       productUpdateError
+        //     );
+        //     throw productUpdateError;
+        //   }
+        // } else {
+        //     const { error: productCreateError } = await supabase
+        //     .from("product_inventory")
+        //     .insert({
+        //       product_id: recipe.product.id,
+        //       production: recipe.yield,
+        //       quantity: recipe.yield,
+        //       opening_stock: 0,
+        //       name: recipe.product.name,
+        //       // recipe_id: recipe.id, // primary id from the "product_recipes"
+        //       branch_id: userBranch && typeof userBranch === "object" && "id" in userBranch ?
+        //       (userBranch as { id: string }).id : "Unknown Branch",
+        //     });
 
-          if (productCreateError) {
-            console.error(
-              "Error creating product inventory:",
-              productCreateError
-            );
-            throw productCreateError;
-          }
-        }
+        //   if (productCreateError) {
+        //     console.error(
+        //       "Error creating product inventory:",
+        //       productCreateError
+        //     );
+        //     throw productCreateError;
+        //   }
+        // }
 
         // Update material inventory for each material used
         for (const material of recipe.recipe_materials) {
           // Get current material inventory record
-          const {data: invData, error: invQueryError} = await supabase
-          .from("inventory")
-          .select("id, quantity, usage")
-          .eq("material_id", material.material_id)
-          .maybeSingle();
+          const { data: invData, error: invQueryError } = await supabase
+            .from("inventory")
+            .select("id, quantity, usage")
+            .eq("material_id", material.material_id)
+            .eq(
+              "branch_id",
+              userBranch && typeof userBranch === "object" && "id" in userBranch
+                ? (userBranch as { id: string }).id
+                : "Unknown Branch"
+            )
+            .limit(1)
+            .maybeSingle();
 
           if (invQueryError) {
             console.error("Error fetching material inventory:", invQueryError);
             throw invQueryError;
           }
-          if(!invData){
-            console.error("Material inventory record not found");
-            throw new Error("Material inventory record not found");
-          }
-          const currentQuantity = invData.quantity || 0;
-          const currentUsage = invData.usage || 0;
 
-          if(currentQuantity < material.quantity) {
-            alert(`INSUFFICIENT INVENTORY! No enough ${material.material.name} in stock`);
-            throw new Error(`INSUFFICIENT INVENTORY! No enough ${material.material.name} in stock`);
+          let currentQuantity = 0;
+          let currentUsage = 0;
+
+          if (!invData) {
+            console.warn(
+              `Material inventory record not found for material_id: ${
+                material.material_id
+              } and branch_id: ${
+                userBranch &&
+                typeof userBranch === "object" &&
+                "id" in userBranch
+                  ? (userBranch as { id: string }).id
+                  : "Unknown Branch"
+              }. Creating a default record.`
+            );
+
+            const { data: newRecord, error: insertError } = await supabase
+              .from("inventory")
+              .insert({
+                material_id: material.material_id,
+                branch_id:
+                  userBranch &&
+                  typeof userBranch === "object" &&
+                  "id" in userBranch
+                    ? (userBranch as { id: string }).id
+                    : "Unknown Branch",
+                quantity: 0, // Default quantity
+                usage: 0, // Default usage
+              })
+              .select()
+              .single();
+
+            if (insertError) {
+              console.error(
+                "Error creating default inventory record:",
+                insertError
+              );
+              throw insertError;
+            }
+
+            currentQuantity = newRecord.quantity;
+            currentUsage = newRecord.usage;
+          } else {
+            currentQuantity = invData.quantity || 0;
+            currentUsage = invData.usage || 0;
           }
+
+          if (currentQuantity < material.quantity) {
+            alert(
+              `INSUFFICIENT INVENTORY! \nYou do not have enough ${material.material.name} in stock`
+            );
+            throw new Error(
+              `INSUFFICIENT INVENTORY! \nYou do not have enough ${material.material.name} in stock`
+            );
+          }
+
           // New usage and quantity
           const newUsage = currentUsage + material.quantity;
           const newQuantity = currentQuantity - material.quantity;
 
-          //Update Inventory
+          // Update Inventory
           const { error: updateError } = await supabase
-          .from("inventory")
-          .update({
-            usage: newUsage,
-            quantity: newQuantity,
-          })  
-          .eq("id", invData.id);
+            .from("inventory")
+            .update({
+              usage: newUsage,
+              quantity: newQuantity,
+            })
+            .eq("id", invData?.id);
+
           if (updateError) {
-            console.error(`Error updating inventory for ${material.material.name}:`, updateError);
+            console.error(
+              `Error updating inventory for ${material.material.name}:`,
+              updateError
+            );
             throw updateError;
           }
         }
@@ -228,8 +286,17 @@ const Production = () => {
         const { error: productionInsertError } = await supabase
           .from("production")
           .insert({
-            branch_name: userBranch && typeof userBranch === "object" && "name" in  userBranch ?
-            (userBranch as { name: string }).name : "Unknown Branch",
+            branch_name:
+              userBranch &&
+              typeof userBranch === "object" &&
+              "name" in userBranch
+                ? (userBranch as { name: string }).name
+                : "Unknown Branch",
+                branch_id:
+              userBranch && typeof userBranch === "object" && "id" in userBranch
+                ? (userBranch as { id: string }).id
+                : "Unknown Branch",
+            product_id: recipe.product.id,
             product_name: recipe.product.name,
             yield: recipe.yield,
             timestamp,
@@ -253,7 +320,9 @@ const Production = () => {
     onSuccess: (recipe) => {
       toast({
         title: "Production Successful",
-        description: `Producing ${recipe.yield || 0} units of ${recipe.product.name}`,
+        description: `Producing ${recipe.yield || 0} units of ${
+          recipe.product.name
+        }`,
       });
       queryClient.invalidateQueries({ queryKey: ["inventory"] });
       queryClient.invalidateQueries({ queryKey: ["product_inventory"] });
@@ -264,12 +333,10 @@ const Production = () => {
       toast({
         title: "Production Error",
         description: `Failed to produce ${error?.message || "unknown error"}`,
-        variant: "destructive"  
-    });
+        variant: "destructive",
+      });
     },
   });
-
-
 
   const handleProduce = (recipe: Recipe) => {
     console.log("Production requested for:", recipe.name);
@@ -369,52 +436,47 @@ const Production = () => {
             <CardContent>
               <details>
                 <summary className="w-full cursor-pointer hover:text-green-700">
-                  <span>
-                    Materials Required
-                  </span>
-                </summary>            
-                    <div className="space-y-2">
-                      {recipe.recipe_materials.map((material) => (
-                        <div
-                          key={material.id}
-                          className="flex justify-between items-center py-1 border-b"
-                        >
-                          <span>{material.material.name}</span>
-                          <span className="text-sm text-muted-foreground">
-                            {material.quantity.toFixed(2)}{" "}
-                            {material.material.unit}
-                          </span>
-                        </div>
-                      ))}
+                  <span>Materials Required</span>
+                </summary>
+                <div className="space-y-2">
+                  {recipe.recipe_materials.map((material) => (
+                    <div
+                      key={material.id}
+                      className="flex justify-between items-center py-1 border-b"
+                    >
+                      <span>{material.material.name}</span>
+                      <span className="text-sm text-muted-foreground">
+                        {material.quantity.toFixed(2)} {material.material.unit}
+                      </span>
                     </div>
-                    <div className="flex justify-end mt-2">
-                      {/* <span className="text-sm text-muted-foreground">
-                        Click to produce 👉🏽
-                      </span> */}
-                      <Button
-                        onClick={() => createDialog(recipe)}
-                        style={{
-                          position: "relative",
-                          bottom: "-1rem",
-                          right: "1rem",
-                        }}
-                        variant="outline"
-                      >
-                        produce
-                      </Button>
-                    </div>
-                  </details>
+                  ))}
+                </div>
+                <div className="flex justify-end mt-2">
+                  <Button
+                    onClick={() => createDialog(recipe)}
+                    style={{
+                      position: "relative",
+                      bottom: "-1rem",
+                      right: "1rem",
+                    }}
+                    variant="outline"
+                  >
+                    produce
+                  </Button>
+                </div>
+              </details>
             </CardContent>
           </Card>
         ))}
       </div>
       <Dialog open={openDialog} onClose={handleClose}>
         <DialogTitle className="text-red-700">
-          Producing {selectedProduct?.name} cannot be reversed!{" "}
+          This action cannot be undone!
         </DialogTitle>
         <DialogContent>
           <DialogContentText>
-            Are you sure you want to produce {selectedProduct?.name}?
+            Produce <span className="font-bold">{selectedProduct?.yield}</span>{" "}
+            {selectedProduct?.product.name}?
           </DialogContentText>
         </DialogContent>
         <DialogActions>

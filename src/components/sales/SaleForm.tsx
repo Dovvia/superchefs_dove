@@ -44,7 +44,7 @@ interface SaleFormProps {
   products: Product[];
   onSubmit: (values: FormValues) => Promise<void>;
   isLoading?: boolean;
-  // branchId: string
+  branchId: string;
 }
 
 export const SaleForm = ({ products, onSubmit, isLoading }: SaleFormProps) => {

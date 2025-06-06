@@ -103,78 +103,55 @@ const ProductTransferDialog = ({
   const onSubmit = async (data: FormValues) => {
     setIsLoading(true);
     try {
-      // Create transfer record
-      const { error: transferError } = await supabase
-        .from("product_transfers")
+      // Find the selected branches and product
+      const toBranch = branches.find((b) => b.id === data.toBranch);
+      const product = products?.find((p) => p.id === data.product);
+
+      if (!toBranch || !userBranch || !product) {
+        throw new Error("Invalid branch, product selection, or user branch.");
+      }
+
+      // Insert into product_transfers_out for the sending branch
+      const { error: transferOutError } = await supabase
+        .from("product_transfers_out")
         .insert([
           {
             product_id: data.product,
-            from_branch_id: data.fromBranch,
-            to_branch_id: data.toBranch,
+            branch_id: userBranch.id, // Use the current user's branch ID
             quantity: Number(data.quantity),
             notes: data.notes,
             status: "pending",
           },
         ]);
 
-      if (transferError) throw transferError;
+      if (transferOutError) throw transferOutError;
 
-     // Increment product inventory for recipient branch
-const { data: incrementedQuantity, error: rpcError } = await supabase.rpc('increment_quantity', {
-  branch_id: data.toBranch,
-  product_id: data.product,
-  increment_by: Number(data.quantity),
-});
+      // Insert into product_transfers_in for the receiving branch
+      const { error: transferInError } = await supabase
+        .from("product_transfers_in")
+        .insert([
+          {
+            product_id: data.product,
+            branch_id: data.toBranch, // Receiving branch ID
+            quantity: Number(data.quantity),
+            notes: data.notes,
+            status: "pending",
+          },
+        ]);
 
-if (rpcError) throw new Error(`Failed to increment quantity: ${rpcError.message}`);
-
-const { error: addInventoryError } = await supabase
-  .from("product_inventory")
-  .upsert(
-    {
-      branch_id: data.toBranch,
-      product_id: data.product,
-      quantity: incrementedQuantity, // Ensure this value is correct
-    },
-    { onConflict: "branch_id,product_id" }
-  );
-
-if (addInventoryError) throw new Error(`Failed to upsert inventory: ${addInventoryError.message}`);
-
-// Decrement product inventory for sending branch
-const { data: decrementedQuantity, error: decrementRpcError } = await supabase.rpc('decrement_quantity', {
-  branch_id: data.fromBranch,
-  product_id: data.product,
-  decrement_by: Number(data.quantity),
-});
-
-if (decrementRpcError) throw new Error(`Failed to decrement quantity: ${decrementRpcError.message}`);
-
-const { error: subtractInventoryError } = await supabase
-  .from("product_inventory")
-  .update({
-    quantity: decrementedQuantity, 
-  })
-  .eq("branch_id", data.fromBranch)
-  .eq("product_id", data.product);
-
-if (subtractInventoryError) throw new Error(`Failed to update inventory: ${subtractInventoryError.message}`);
+      if (transferInError) throw transferInError;
 
       // Create notifications for both branches
-      const toBranch = branches.find((b) => b.id === data.toBranch);
-      const fromBranch = branches.find((b) => b.id === data.fromBranch);
-      const product = products?.find((p) => p.id === data.product);
-
       const notifications = [
         {
           branch_id: data.toBranch,
           title: "Incoming Product Transfer",
-          message: `${product.name} (${data.quantity}) is being transferred to your branch from ${fromBranch?.name}`,
+          message: `${product.name} (${data.quantity}) is being transferred to your branch from ${userBranch.name}`,
         },
         {
-          branch_id: data.fromBranch,
+          branch_id: userBranch.id,
           title: "Outgoing Product Transfer",
-          message: `${product.name} (${data.quantity}) is being transferred to ${toBranch?.name}`,
+          message: `${product.name} (${data.quantity}) is being transferred to ${toBranch.name}`,
         },
       ];
 

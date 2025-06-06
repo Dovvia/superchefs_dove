@@ -248,7 +248,7 @@ const MaterialRequests = () => {
             onClick={handleCreateProcurementOrder}
             disabled={selectedItems.length === 0 || loading}
           >
-            Create Proc. Order
+            Approve Order
           </Button>
         </div>
       </div>

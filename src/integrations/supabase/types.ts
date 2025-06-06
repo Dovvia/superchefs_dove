@@ -855,6 +855,7 @@ export type Database = {
           is_active: boolean | null;
           name: string;
           price: number;
+          quantity: number;
           updated_at: string;
           openingStock: number;
           producedStock: number;
@@ -875,6 +876,8 @@ export type Database = {
           is_active?: boolean | null;
           name: string;
           price?: number;
+          quantity?: number;
+          branch_id: string;
           updated_at?: string;
           openingStock: number;
           producedStock: number;
@@ -894,6 +897,8 @@ export type Database = {
           is_active?: boolean | null;
           name?: string;
           price?: number;
+          quantity: number;
+          branch_id: string;
           updated_at?: string;
           openingStock?: number;
           producedStock?: number;
@@ -932,6 +937,13 @@ export type Database = {
             isOneToOne: false;
             referencedRelation: "complimentary_products";
             referencedColumns: ["product_id"];
+          },
+          {
+            foreignKeyName: "products_branch_id_fkey";
+            columns: ["id"];
+            isOneToOne: false;
+            referencedRelation: "branches";
+            referencedColumns: ["branch_id"];
           }
         ];
       };
