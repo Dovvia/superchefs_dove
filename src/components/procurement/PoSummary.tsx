@@ -41,6 +41,9 @@ export const PoSummary = () => {
   const printRef = useRef<HTMLDivElement>(null);
   const [page, setPage] = useState(1);
   const { toast } = useToast();
+  const [statusFilter, setStatusFilter] = useState<"supplied" | "approved">(
+    "supplied"
+  );
   const [timeframe, setTimeframe] = useState<"weekly" | "monthly" | "yearly">(
     "weekly"
   );
@@ -64,6 +67,7 @@ export const PoSummary = () => {
     queryKey: [
       "cumulative_material_requests_view",
       page,
+      statusFilter,
       timeframe,
       selectedBranchId,
     ],
@@ -87,6 +91,7 @@ export const PoSummary = () => {
         )
         .order("total_quantity", { ascending: false })
         .range(from, to);
+      // .eq("status", statusFilter);
 
       if (selectedBranchId) {
         query = query.eq("branch_id", selectedBranchId);
@@ -140,6 +145,27 @@ export const PoSummary = () => {
       </div>
 
       <div className="flex flex-wrap gap-4 items-center">
+        {/* Radio Buttons for Status */}
+        <RadioGroup
+          value={statusFilter}
+          onValueChange={(value) =>
+            setStatusFilter(value as "supplied" | "approved")
+          }
+          className="flex gap-4"
+        >
+          <div className="flex items-center space-x-2">
+            <RadioGroupItem value="supplied" id="supplied" />
+            <label htmlFor="supplied" className="text-sm font-medium">
+              Supplied
+            </label>
+          </div>
+          <div className="flex items-center space-x-2">
+            <RadioGroupItem value="approved" id="approved" />
+            <label htmlFor="approved" className="text-sm font-medium">
+              Approved
+            </label>
+          </div>
+        </RadioGroup>
         {/* Time Period Selector */}
         <Select
           value={timeframe}

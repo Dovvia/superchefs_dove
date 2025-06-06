@@ -16,19 +16,50 @@ import { Badge } from "@/components/ui/badge";
 import type { ImprestOrder } from "@/types/imprest";
 import PaginationComponent from "@/components/pagination";
 import { PAGE_LIMIT } from "@/constants";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 
 const ImprestOrders = () => {
   const printRef = useRef<HTMLDivElement>(null);
   const [page, setPage] = useState(1);
   const { toast } = useToast();
+  const [statusFilter, setStatusFilter] = useState<"supplied" | "approved">(
+    "supplied"
+  );
+  const [timeframe, setTimeframe] = useState<"weekly" | "monthly" | "yearly">(
+    "weekly"
+  );
+  const [selectedBranchId, setSelectedBranchId] = useState<string>("");
 
-  const { data, isLoading } = useQuery({
-    queryKey: ["imprest-orders", page],
+  // Fetch branches
+  const { data: branches } = useQuery({
+    queryKey: ["branches"],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("branches").select("*");
+      if (error) throw error;
+      return data;
+    },
+  });
+
+  const { data, isLoading, isFetching } = useQuery({
+    queryKey: [
+      "imprest-orders",
+      page,
+      statusFilter,
+      timeframe,
+      selectedBranchId,
+    ],
     queryFn: async () => {
       const from = (page - 1) * PAGE_LIMIT;
       const to = from + PAGE_LIMIT - 1;
 
-      const { data, error, count } = await supabase
+      let query = supabase
         .from("imprest_orders")
         .select(
           `
@@ -37,16 +68,24 @@ const ImprestOrders = () => {
             *,
             imprest:imprest_requests (
               id, name, quantity, unit, unit_price,
-              branch:branches(name, manager)
+              branch:branches(id, name, address, manager, phone)
             )
           )
         `,
           { count: "exact" }
         )
         .order("created_at", { ascending: false })
-        .range(from, to);
+        .range(from, to)
+        .eq("status", statusFilter);
 
+      // Filter by branch if a branch is selected
+      if (selectedBranchId) {
+        query = query.eq("branch_id", selectedBranchId);
+      }
+
+      const { data, error, count } = await query;
       if (error) throw error;
+
       return {
         orders: data as unknown as ImprestOrder[],
         hasNextPage: count ? to + 1 < count : false,
@@ -84,6 +123,8 @@ const ImprestOrders = () => {
     },
   });
 
+  const loading = isLoading || isFetching;
+
   return (
     <div className="space-y-4">
       <div className="flex justify-between items-center">
@@ -93,7 +134,97 @@ const ImprestOrders = () => {
         </div>
       </div>
 
+      <div className="flex flex-wrap gap-4 items-center">
+        {/* Radio Buttons for Status */}
+        <RadioGroup
+          value={statusFilter}
+          onValueChange={(value) =>
+            setStatusFilter(value as "supplied" | "approved")
+          }
+          className="flex gap-4"
+        >
+          <div className="flex items-center space-x-2">
+            <RadioGroupItem value="supplied" id="supplied" disabled={loading} />
+            <label htmlFor="supplied" className="text-sm font-medium">
+              Supplied
+            </label>
+          </div>
+          <div className="flex items-center space-x-2">
+            <RadioGroupItem value="approved" id="approved" disabled={loading} />
+            <label htmlFor="approved" className="text-sm font-medium">
+              Approved
+            </label>
+          </div>
+        </RadioGroup>
+
+        {/* Select for Time Period */}
+        <Select
+          value={timeframe}
+          onValueChange={(value) =>
+            setTimeframe(value as "weekly" | "monthly" | "yearly")
+          }
+          disabled={loading}
+        >
+          <SelectTrigger className="w-[160px]">
+            <SelectValue placeholder="Time Period" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="weekly">Weekly</SelectItem>
+            <SelectItem value="monthly">Monthly</SelectItem>
+            <SelectItem value="yearly">Yearly</SelectItem>
+          </SelectContent>
+        </Select>
+
+        {/* Select for Branch */}
+        <Select
+          value={selectedBranchId || "all"}
+          onValueChange={(value) =>
+            setSelectedBranchId(value === "all" ? "" : value)
+          }
+          disabled={loading}
+        >
+          <SelectTrigger className="w-[240px]">
+            <SelectValue placeholder="All Branches" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All Branches</SelectItem>
+            {branches?.map((branch) => (
+              <SelectItem key={branch.id} value={branch.id}>
+                {branch.name}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+
       <div ref={printRef}>
+        {data?.orders?.map((order) => (
+          <div
+            key={order.id}
+            className="flex justify-between mb-4 items-center bg-green-100 p-4 rounded-md shadow-sm"
+          >
+            <h2>
+              Total cost:{" "}
+              {`₦${order.items
+                ?.reduce((itemAcc, item) => {
+                  return (
+                    itemAcc + item.imprest.quantity * item.imprest.unit_price
+                  );
+                }, 0)
+                .toLocaleString("en-US", {
+                  minimumSignificantDigits: 2,
+                  maximumFractionDigits: 2,
+                })}`}
+            </h2>
+            <h1>Date: {new Date().toLocaleDateString()}</h1>
+            <h1>Time: {new Date().toLocaleTimeString()}</h1>
+            <p>Branch: {order.items[0]?.imprest?.branch?.name}</p>
+            <p>Manager: {order.items[0]?.imprest?.branch?.manager}</p>
+            <p>Phone: {order.items[0]?.imprest?.branch?.phone}</p>
+            <p>Branch Address: {order.items[0]?.imprest?.branch?.address}</p>
+          </div>
+        ))}
+
         <Table>
           <TableHeader>
             <TableRow>
@@ -114,7 +245,7 @@ const ImprestOrders = () => {
               <TableHead>Date Updated</TableHead>
             </TableRow>
           </TableHeader>
-          {data?.orders?.length && !isLoading ? (
+          {data?.orders?.length && !loading ? (
             <TableBody>
               {data?.orders?.map((order) => (
                 <TableRow key={order?.id}>
@@ -159,7 +290,7 @@ const ImprestOrders = () => {
                 </TableRow>
               ))}
             </TableBody>
-          ) : !data?.orders?.length && !isLoading ? (
+          ) : !data?.orders?.length && !loading ? (
             <TableBody>
               <TableRow>
                 <TableCell colSpan={5} className="text-center">
