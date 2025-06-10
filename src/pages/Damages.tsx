@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Damage } from "@/types/damages";
@@ -6,27 +6,88 @@ import {
   Table,
   TableBody,
   TableCell,
-  TableHead, 
+  TableHead,
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import { Plus } from "lucide-react";
 import { Dialog, DialogTrigger } from "@/components/ui/dialog";
 import { MaterialDamageDialog } from "@/components/damages/MaterialDamageDialog";
-import { format } from "date-fns";
+import {
+  format,
+  startOfDay,
+  startOfWeek,
+  startOfMonth,
+  startOfYear,
+} from "date-fns";
+import { useUserBranch } from "@/hooks/user-branch";
+
+const TIME_PERIODS = [
+  { label: "Today", value: "today" },
+  { label: "This Week", value: "this_week" },
+  { label: "This Month", value: "this_month" },
+  { label: "This Year", value: "this_year" },
+];
+
+const getPeriodStart = (period: string) => {
+  const now = new Date();
+  switch (period) {
+    case "today":
+      return startOfDay(now);
+    case "this_week":
+      return startOfWeek(now, { weekStartsOn: 1 });
+    case "this_month":
+      return startOfMonth(now);
+    case "this_year":
+      return startOfYear(now);
+    default:
+      return undefined;
+  }
+};
+
+const useBranches = () => {
+  return useQuery({
+    queryKey: ["branches"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("branches")
+        .select("id, name");
+      if (error) throw error;
+      return data;
+    },
+  });
+};
 
 const Damages = () => {
+  const userBranch = useUserBranch();
+  const branch = userBranch.data;
+  const isHeadOffice = branch?.name === "HEAD OFFICE";
+  const { data: branches = [] } = useBranches();
+
+  const [selectedBranch, setSelectedBranch] = useState<string | null>(
+    isHeadOffice ? null : branch?.id
+  );
+  const [selectedPeriod, setSelectedPeriod] = useState("today");
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
+
+  const periodStart = useMemo(
+    () => getPeriodStart(selectedPeriod),
+    [selectedPeriod]
+  );
 
   const {
     data: damages,
     refetch: refetchDamages,
     isLoading,
   } = useQuery({
-    queryKey: ["damaged_materials"],
+    queryKey: [
+      "damaged_materials",
+      selectedBranch,
+      selectedPeriod,
+      periodStart?.toISOString(),
+    ],
     queryFn: async () => {
-      const { data, error } = await supabase
+      let query = supabase
         .from("damaged_materials")
         .select(
           `
@@ -35,12 +96,25 @@ const Damages = () => {
         reason,
         created_at,
         material:material_id(name, unit, unit_price),
-        branch:branch_id(name),
+        branch:branch_id(id, name),
         user:user_id(first_name, last_name)
       `
         )
         .order("created_at", { ascending: false });
 
+      // Branch filter
+      if (!isHeadOffice && branch?.id) {
+        query = query.eq("branch_id", branch.id);
+      } else if (isHeadOffice && selectedBranch) {
+        query = query.eq("branch_id", selectedBranch);
+      }
+
+      // Time period filter
+      if (periodStart) {
+        query = query.gte("created_at", periodStart.toISOString());
+      }
+
+      const { data, error } = await query;
       if (error) {
         console.error("Error fetching damages:", error);
         throw error;
@@ -54,17 +128,46 @@ const Damages = () => {
 
   return (
     <div className="space-y-6 p-3 bg-white rounded-lg shadow-md w-full mx-auto margin-100">
-      <div className="flex justify-between items-center">
+      <div className="flex flex-col md:flex-row md:justify-between md:items-center gap-4">
         <h2 className="text-3xl font-bold tracking-tight">Damages</h2>
         <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
-          <DialogTrigger asChild id="material damage">
-            <Button>Add Damages</Button>
-          </DialogTrigger>
-          <MaterialDamageDialog
-            onOpenChange={setIsAddDialogOpen}
-            refetch={refetchDamages}
-          />
-        </Dialog>
+            <DialogTrigger asChild id="material damage">
+              <Button>Add Damages</Button>
+            </DialogTrigger>
+            <MaterialDamageDialog
+              onOpenChange={setIsAddDialogOpen}
+              refetch={refetchDamages}
+            />
+          </Dialog>
+
+        <div className="flex gap-3 items-center ">
+          {isHeadOffice && (
+            <select
+              className="border rounded px-2 py-1 w-1/2"
+              value={selectedBranch ?? ""}
+              onChange={(e) => setSelectedBranch(e.target.value || null)}
+            >
+              <option value="">All Branches</option>
+              {branches.map((b: any) => (
+                <option key={b.id} value={b.id}>
+                  {b.name}
+                </option>
+              ))}
+            </select>
+          )}
+          <select
+            className="border rounded px-2 py-1"
+            value={selectedPeriod}
+            onChange={(e) => setSelectedPeriod(e.target.value)}
+          >
+            {TIME_PERIODS.map((period) => (
+              <option key={period.value} value={period.value}>
+                {period.label}
+              </option>
+            ))}
+          </select>
+          
+        </div>
       </div>
 
       <div className="border rounded-lg">
@@ -92,8 +195,8 @@ const Damages = () => {
                   <TableCell>{damage?.quantity}</TableCell>
                   <TableCell>
                     {calculateTotalCost(
-                      damage?.material?.unit_price,
-                      damage?.quantity
+                      damage?.quantity,
+                      damage?.material?.unit_price
                     )}
                   </TableCell>
                   <TableCell>{damage?.reason}</TableCell>
@@ -112,7 +215,7 @@ const Damages = () => {
           ) : !damages?.length && !isLoading ? (
             <TableBody>
               <TableRow>
-                <TableCell colSpan={5} className="text-center">
+                <TableCell colSpan={9} className="text-center">
                   No damages recorded yet
                 </TableCell>
               </TableRow>
@@ -120,7 +223,7 @@ const Damages = () => {
           ) : (
             <TableBody>
               <TableRow>
-                <TableCell colSpan={5} className="text-center">
+                <TableCell colSpan={9} className="text-center">
                   Loading, please wait...
                 </TableCell>
               </TableRow>

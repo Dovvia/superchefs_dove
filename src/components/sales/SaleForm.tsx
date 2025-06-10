@@ -25,11 +25,14 @@ import { ProductDamageDialog } from "../products/ProductDamageDialog";
 import { ComplimentaryProductDialog } from "../products/ComplimentaryProductDialog";
 import { naira } from "@/lib/utils";
 import { Value } from "@radix-ui/react-select";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
 
 const saleItemSchema = z.object({
   product_id: z.string().min(1, "Product is required"),
   quantity: z.coerce.number().min(1, "Quantity must be at least 1"),
   unit_price: z.coerce.number().min(0, "Price must be positive"),
+  unit_cost: z.coerce.number().min(0, "Cost must be positive").optional(),
 });
 
 const formSchema = z.object({
@@ -49,12 +52,13 @@ interface SaleFormProps {
 
 export const SaleForm = ({ products, onSubmit, isLoading }: SaleFormProps) => {
   const [items, setItems] = useState([
-    { product_id: "", quantity: 1, unit_price: 0 },
+    { product_id: "", quantity: 1, unit_price: 0, unit_cost: 0 },
   ]);
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [isDamageDialogOpen, setIsDamageDialogOpen] = useState(false);
   const [isComplimentaryDialogOpen, setIsComplimentaryDialogOpen] =
     useState(false);
+  const [searchTerm, setSearchTerm] = useState(""); // Add this line
 
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
@@ -64,11 +68,25 @@ export const SaleForm = ({ products, onSubmit, isLoading }: SaleFormProps) => {
     },
   });
 
+  const { data: productRecipes } = useQuery({
+    queryKey: ["product_recipes"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("product_recipes")
+        .select("*");
+      if (error) throw error;
+      return data;
+    },
+  });
+
   const addItem = () => {
-    setItems([...items, { product_id: "", quantity: 1, unit_price: 0 }]);
+    setItems([
+      ...items,
+      { product_id: "", quantity: 1, unit_price: 0, unit_cost: 0 },
+    ]);
     form.setValue("items", [
       ...items,
-      { product_id: "", quantity: 1, unit_price: 0 },
+      { product_id: "", quantity: 1, unit_price: 0, unit_cost: 0 },
     ]);
   };
 
@@ -78,21 +96,31 @@ export const SaleForm = ({ products, onSubmit, isLoading }: SaleFormProps) => {
     form.setValue("items", newItems);
   };
 
+  // Update handleProductChange to use unit_cost from product_recipes
   const handleProductChange = (index: number, productId: string) => {
     const product = products.find((p) => p.id === productId);
+    // Find the unit_cost from product_recipes
+    const recipe = productRecipes?.find((r) => r.product_id === productId);
+    const unitCost = recipe?.unit_cost || 0;
+
     if (product) {
       const newItems = [...items];
       newItems[index] = {
         ...newItems[index],
         product_id: productId,
         unit_price: product.price,
+        unit_cost: unitCost,
       };
       setItems(newItems);
       form.setValue("items", newItems);
-      form.setValue("branch_id", product?.branch_id);
       setSelectedProduct(product);
     }
   };
+
+  // Filter products by search term
+  const filteredProducts = products.filter((product) =>
+    product.name.toLowerCase().includes(searchTerm.toLowerCase())
+  );
 
   return (
     <Form {...form}>
@@ -156,7 +184,7 @@ export const SaleForm = ({ products, onSubmit, isLoading }: SaleFormProps) => {
                 control={form.control}
                 name={`items.${index}.product_id`}
                 render={({ field }) => (
-                  <FormItem className="flex-1">
+                  <FormItem className="flex-1 ">
                     <Select
                       onValueChange={(value) =>
                         handleProductChange(index, value)
@@ -168,12 +196,28 @@ export const SaleForm = ({ products, onSubmit, isLoading }: SaleFormProps) => {
                           <SelectValue placeholder="Select product" />
                         </SelectTrigger>
                       </FormControl>
-                      <SelectContent>
-                        {products.map((product) => (
-                          <SelectItem key={product.id} value={product.id}>
-                            {product.name} - {naira(product.price)}
-                          </SelectItem>
-                        ))}
+                      <SelectContent className="h-screen max-h-60 overflow-y-auto">
+                        {/* Search input sticky at the top */}
+                        <div className="sticky top-0 bg-white z-10 p-2 border-b">
+                          <Input
+                            placeholder="Search product..."
+                            value={searchTerm}
+                            onChange={(e) => setSearchTerm(e.target.value)}
+                            className="w-full"
+                          />
+                        </div>
+                        {/* Filtered product list */}
+                        {filteredProducts.length > 0 ? (
+                          filteredProducts.map((product) => (
+                            <SelectItem key={product.id} value={product.id}>
+                              {product.name} - {naira(product.price)}
+                            </SelectItem>
+                          ))
+                        ) : (
+                          <div className="p-2 text-sm text-gray-500">
+                            No products found.
+                          </div>
+                        )}
                       </SelectContent>
                     </Select>
                     <FormMessage />

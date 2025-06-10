@@ -10,6 +10,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { Product } from "@/types/products";
 import { useUserBranch } from "@/hooks/user-branch"; // Import the hook to get user branch info
+import { useQuery } from "@tanstack/react-query";
 
 interface ExtendedProduct extends Product {
   product_damage?: { quantity: number }[];
@@ -35,6 +36,18 @@ export const ProductDamageDialog = ({
     data: { id: string; name: string; role: string } | null;
   };
 
+  // Fetch product_recipes for unit_cost
+  const { data: productRecipes } = useQuery({
+    queryKey: ["product_recipes"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("product_recipes")
+        .select("*");
+      if (error) throw error;
+      return data;
+    },
+  });
+
   const handleSubmit = async (values: {
     product: string;
     quantity: string;
@@ -51,6 +64,14 @@ export const ProductDamageDialog = ({
         throw new Error("Branch ID is missing. Please log in again.");
       }
 
+      // Get unit_price from products and unit_cost from product_recipes
+      const selectedProduct = products.find((p) => p.id === values.product);
+      const recipe = productRecipes?.find(
+        (r) => r.product_id === values.product
+      );
+      const unit_price = selectedProduct?.price ?? 0;
+      const unit_cost = recipe?.unit_cost ?? 0;
+
       // Insert a new record into the product_damages table
       const { error } = await supabase.from("product_damages").insert([
         {
@@ -58,6 +79,8 @@ export const ProductDamageDialog = ({
           product_id: values?.product,
           quantity: Number(values?.quantity),
           reason: values?.reason,
+          unit_price,
+          unit_cost,
         },
       ]);
 

@@ -19,7 +19,7 @@ export const AccountsMetricsCards = forwardRef<
 >(({ metrics }, ref) => {
   return (
     <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4" ref={ref}>
-      <Card>
+      <Card className="hover:bg-green-50 transition-colors cursor-pointer hover:scale-110 hover:shadow-lg transition-transform duration-500">
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
           <CardTitle className="text-sm font-medium">Total Revenue</CardTitle>
           <div className="h-4 w-4 text-primary">₦</div>
@@ -34,7 +34,7 @@ export const AccountsMetricsCards = forwardRef<
         </CardContent>
       </Card>
 
-      <Card>
+      <Card className="hover:bg-red-50 transition-colors cursor-pointer hover:scale-110 hover:shadow-lg transition-transform duration-500">
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
           <CardTitle className="text-sm font-medium">Total Cost</CardTitle>
           <TrendingDown className="h-4 w-4 text-destructive" />
@@ -47,7 +47,7 @@ export const AccountsMetricsCards = forwardRef<
         </CardContent>
       </Card>
 
-      <Card>
+      <Card className="hover:bg-green-50 transition-colors cursor-pointer hover:scale-110 hover:shadow-lg transition-transform duration-500">
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
           <CardTitle className="text-sm font-medium">Net Profit</CardTitle>
           <TrendingUp className="h-4 w-4 text-primary" />
@@ -64,7 +64,7 @@ export const AccountsMetricsCards = forwardRef<
         </CardContent>
       </Card>
 
-      <Card>
+      <Card className="hover:bg-yellow-50 transition-colors cursor-pointer hover:scale-110 hover:shadow-lg transition-transform duration-500">
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
           <CardTitle className="text-sm font-medium">
             Cost/Revenue Ratio

@@ -12,13 +12,13 @@ const Layout = () => {
 
   return (
     <div 
-    className="min-h-screen bg-gray-50"
+    className="min-h-screen bg-transparent text-gray-800 dark:text-gray-200"
     >
       <Header onMenuClick={toggleSidebar} />
       <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
       
       <main 
-      // className="pt-16 lg:pl-64"
+      // className="pt-16 lg:pl-64""
       >
         <div 
         className="container mx-auto px-0.5 sm:px-6 lg:px-8 flex flex-col min-h-screen py-4"

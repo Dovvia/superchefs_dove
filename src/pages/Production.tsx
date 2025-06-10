@@ -17,13 +17,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import {
-  Accordion,
-  AccordionContent,
-  AccordionItem,
-  AccordionTrigger,
-} from "@/components/ui/accordion";
-import { Package, Layers, Utensils, User } from "lucide-react";
+import { Package, Utensils } from "lucide-react";
 import { useUserBranch } from "@/hooks/user-branch";
 import { useProductionContext } from "@/context/ProductionContext";
 
@@ -49,6 +43,7 @@ interface Recipe {
   };
   recipe_materials: RecipeMaterial[];
 }
+
 export const productionData = async (
   recipes: Recipe[],
   branchName: string | null
@@ -63,22 +58,22 @@ export const productionData = async (
 
 const Production = () => {
   const queryClient = useQueryClient();
-  const { data: userBranch, isLoading: isBranchLoading } = useUserBranch();
+  const { data: userBranch } = useUserBranch();
   const { addProductionRecord } = useProductionContext();
 
-  const { data: fetchedRecipes, isLoading } = useQuery<Recipe[], Error>({
+  const { data: fetchedRecipes } = useQuery<Recipe[], Error>({
     queryKey: ["recipes"],
     queryFn: async () => {
       const { data, error } = await supabase.from("product_recipes").select(`
-          *,
-          product:products(name, id),
-          recipe_materials(
-            id,
-            material_id,
-            quantity,
-            material:materials(name, unit)
-          )
-        `);
+        *,
+        product:products(name, id),
+        recipe_materials(
+          id,
+          material_id,
+          quantity,
+          material:materials(name, unit)
+        )
+      `);
 
       if (error) {
         console.error("Error fetching recipes:", error);
@@ -86,10 +81,12 @@ const Production = () => {
       }
       return (data as Partial<Recipe>[]).map((recipe) => ({
         ...recipe,
-        yield: recipe.yield || 1, // Ensure yield is properly mapped
+        yield: recipe.yield || 1,
       })) as Recipe[];
     },
   });
+
+  const [recipes, setRecipes] = useState<Recipe[]>([]);
 
   useEffect(() => {
     const fetchProductionData = async () => {
@@ -111,8 +108,6 @@ const Production = () => {
             branch: productionDataWithBranch[index].branch,
           }))
         );
-      } else {
-        console.error("Invalid userBranch or fetchedRecipes");
       }
     };
 
@@ -121,164 +116,32 @@ const Production = () => {
 
   const produceMutation = useMutation({
     mutationFn: async (recipe: Recipe) => {
-      console.log("Starting production process for", recipe.name);
-
       try {
-        // Get current product inventory record
-        // const { data: productInvData, error: productInvQueryError } =
-        //   await supabase
-        //     .from("product_inventory")
-        //     .select("*")
-        //     .eq("product_id", recipe.product.id)
-        //     .maybeSingle();
-
-        // if (productInvQueryError) {
-        //   console.error(
-        //     "Error fetching product inventory:",
-        //     productInvQueryError
-        //   );
-        //   throw productInvQueryError;
-        // }
-
-        let newProduction = recipe.yield;
         const timestamp = new Date().toISOString();
 
-        // // Update or create product inventory record
-        // if (productInvData) {
-        //   newProduction = (productInvData.production || 0) + recipe.yield;
-        //  const newQuantity = (productInvData.quantity || 0) + recipe.yield;
-
-        //   const { error: productUpdateError } = await supabase
-        //     .from("product_inventory")
-        //     .update({ production: newProduction, quantity: newQuantity })
-        //     .eq("id", productInvData.id);
-
-        //   if (productUpdateError) {
-        //     console.error(
-        //       "Error updating product inventory:",
-        //       productUpdateError
-        //     );
-        //     throw productUpdateError;
-        //   }
-        // } else {
-        //     const { error: productCreateError } = await supabase
-        //     .from("product_inventory")
-        //     .insert({
-        //       product_id: recipe.product.id,
-        //       production: recipe.yield,
-        //       quantity: recipe.yield,
-        //       opening_stock: 0,
-        //       name: recipe.product.name,
-        //       // recipe_id: recipe.id, // primary id from the "product_recipes"
-        //       branch_id: userBranch && typeof userBranch === "object" && "id" in userBranch ?
-        //       (userBranch as { id: string }).id : "Unknown Branch",
-        //     });
-
-        //   if (productCreateError) {
-        //     console.error(
-        //       "Error creating product inventory:",
-        //       productCreateError
-        //     );
-        //     throw productCreateError;
-        //   }
-        // }
-
-        // Update material inventory for each material used
+        // Insert material usage for each material used
         for (const material of recipe.recipe_materials) {
-          // Get current material inventory record
-          const { data: invData, error: invQueryError } = await supabase
-            .from("inventory")
-            .select("id, quantity, usage")
-            .eq("material_id", material.material_id)
-            .eq(
-              "branch_id",
-              userBranch && typeof userBranch === "object" && "id" in userBranch
-                ? (userBranch as { id: string }).id
-                : "Unknown Branch"
-            )
-            .limit(1)
-            .maybeSingle();
-
-          if (invQueryError) {
-            console.error("Error fetching material inventory:", invQueryError);
-            throw invQueryError;
-          }
-
-          let currentQuantity = 0;
-          let currentUsage = 0;
-
-          if (!invData) {
-            console.warn(
-              `Material inventory record not found for material_id: ${
-                material.material_id
-              } and branch_id: ${
+          const { error: usageInsertError } = await supabase
+            .from("material_usage")
+            .insert({
+              material_id: material.material_id,
+              branch_id:
                 userBranch &&
                 typeof userBranch === "object" &&
                 "id" in userBranch
                   ? (userBranch as { id: string }).id
-                  : "Unknown Branch"
-              }. Creating a default record.`
-            );
+                  : "Unknown Branch",
+              quantity: material.quantity,
+              // timestamp,
+              // production_id: null,
+            });
 
-            const { data: newRecord, error: insertError } = await supabase
-              .from("inventory")
-              .insert({
-                material_id: material.material_id,
-                branch_id:
-                  userBranch &&
-                  typeof userBranch === "object" &&
-                  "id" in userBranch
-                    ? (userBranch as { id: string }).id
-                    : "Unknown Branch",
-                quantity: 0, // Default quantity
-                usage: 0, // Default usage
-              })
-              .select()
-              .single();
-
-            if (insertError) {
-              console.error(
-                "Error creating default inventory record:",
-                insertError
-              );
-              throw insertError;
-            }
-
-            currentQuantity = newRecord.quantity;
-            currentUsage = newRecord.usage;
-          } else {
-            currentQuantity = invData.quantity || 0;
-            currentUsage = invData.usage || 0;
-          }
-
-          if (currentQuantity < material.quantity) {
-            alert(
-              `INSUFFICIENT INVENTORY! \nYou do not have enough ${material.material.name} in stock`
-            );
-            throw new Error(
-              `INSUFFICIENT INVENTORY! \nYou do not have enough ${material.material.name} in stock`
-            );
-          }
-
-          // New usage and quantity
-          const newUsage = currentUsage + material.quantity;
-          const newQuantity = currentQuantity - material.quantity;
-
-          // Update Inventory
-          const { error: updateError } = await supabase
-            .from("inventory")
-            .update({
-              usage: newUsage,
-              quantity: newQuantity,
-            })
-            .eq("id", invData?.id);
-
-          if (updateError) {
+          if (usageInsertError) {
             console.error(
-              `Error updating inventory for ${material.material.name}:`,
-              updateError
+              `Error inserting material usage for ${material.material.name}:`,
+              usageInsertError
             );
-            throw updateError;
+            throw usageInsertError;
           }
         }
 
@@ -292,7 +155,7 @@ const Production = () => {
               "name" in userBranch
                 ? (userBranch as { name: string }).name
                 : "Unknown Branch",
-                branch_id:
+            branch_id:
               userBranch && typeof userBranch === "object" && "id" in userBranch
                 ? (userBranch as { id: string }).id
                 : "Unknown Branch",
@@ -324,9 +187,8 @@ const Production = () => {
           recipe.product.name
         }`,
       });
-      queryClient.invalidateQueries({ queryKey: ["inventory"] });
-      queryClient.invalidateQueries({ queryKey: ["product_inventory"] });
-      queryClient.invalidateQueries({ queryKey: ["production"] }); // Invalidate production table query
+      queryClient.invalidateQueries({ queryKey: ["material_usage"] });
+      queryClient.invalidateQueries({ queryKey: ["production"] });
     },
     onError: (error: any) => {
       console.error("Production error", error);
@@ -339,7 +201,6 @@ const Production = () => {
   });
 
   const handleProduce = (recipe: Recipe) => {
-    console.log("Production requested for:", recipe.name);
     produceMutation.mutate(recipe);
     handleClose();
   };
@@ -378,28 +239,6 @@ const Production = () => {
       })
     );
   };
-
-  const [recipes, setRecipes] = useState<Recipe[]>([]);
-
-  useQuery({
-    queryKey: ["recipes"],
-    queryFn: async () => {
-      const { data, error } = await supabase.from("product_recipes").select(`
-          *,
-          product:products(name, id),
-          recipe_materials(
-            id,
-            material_id,
-            quantity,
-            material:materials(name, unit)
-          )
-        `);
-
-      if (error) throw error;
-      setRecipes(data as unknown as Recipe[]);
-      return data as unknown as Recipe[];
-    },
-  });
 
   return (
     <div className="space-y-6 p-3 bg-white rounded-lg shadow-md w-full mx-auto margin-100">

@@ -133,12 +133,17 @@ const Sidebar = ({ isOpen, onClose }: SidebarProps) => {
 
   return (
     <div
-      className={`fixed inset-y-0 left-0 z-50 w-64 transform transition-transform duration-300 ease-in-out lg: ${
+      className={`fixed inset-y-0 left-0 z-50 w-64 transform transition-transform duration-300 ease-in-out ${
         isOpen ? "translate-x-0" : "-translate-x-full"
-      } lg:`}
+      }`}
+      style={{
+        backgroundImage: 'url("/bg-green2.jpg")',
+        backgroundSize: "cover",
+        backgroundPosition: "center",
+      }}
     >
-      <div className="space-y-4 py-4 bg-white h-full shadow-lg overflow-y-auto">
-        <div className="flex items-center justify-between px-3 lg:">
+      <div className="space-y-4 py-4 h-full shadow-lg overflow-y-auto">
+        <div className="flex items-center justify-between px-3">
           <img
             src="/superchefs-logo.png"
             style={{ width: "40px", height: "50px" }}
@@ -154,16 +159,6 @@ const Sidebar = ({ isOpen, onClose }: SidebarProps) => {
               if (item.adminOnly && !isAdmin) {
                 return null;
               }
-              // if (item.managerOnly && !isManager) {
-              //   return null;
-              // }
-              // if (item.areaManagerOnly && !isAreaManager) {
-              //   return null;
-              // }
-              // if (item.superAdminOnly && !isSuperAdmin) {
-              //   return null;
-              // }
-
               return (
                 <NavLink
                   key={item.name}

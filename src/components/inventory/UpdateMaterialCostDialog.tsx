@@ -29,7 +29,16 @@ const UpdateMaterialCostDialog = ({
   );
 
   const handleUpdateCost = async () => {
-    if (!material || !newCost) return;
+    if (!material || newCost === "" || isNaN(Number(newCost))) {
+      toast({
+        title: "Error",
+        description: "Please enter a valid cost.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    console.log("Updating material:", material, "New cost:", newCost);
 
     const { error } = await supabase
       .from("materials")

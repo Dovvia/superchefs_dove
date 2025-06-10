@@ -70,23 +70,32 @@ const Sales = () => {
     },
   });
 
+  const { data: productRecipes } = useQuery({
+    queryKey: ["product_recipes"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("product_recipes")
+        .select("*");
+      if (error) throw error;
+      return data;
+    },
+  });
+
   const handleCreateSale = async (values: FormValues) => {
     try {
       setLoading(true);
-      // Calculate total amount
       const total_amount = values.items.reduce(
         (sum: number, item) => sum + item.quantity * item.unit_price,
         0
       );
 
-      // Insert sale
       const { data: saleData, error: saleError } = await supabase
         .from("sales")
         .insert([
           {
             payment_method: values.payment_method,
             total_amount,
-            branch_id: id, // Use the branch_id of the logged-in user
+            branch_id: id,
           },
         ])
         .select()
@@ -94,16 +103,24 @@ const Sales = () => {
 
       if (saleError) throw saleError;
 
-      // Insert sale items
+      // Always get the correct unit_cost from product_recipes here
       const { error: itemsError } = await supabase.from("sale_items").insert(
-        values.items.map((item) => ({
-          sale_id: saleData.id,
-          product_id: item.product_id,
-          quantity: item.quantity,
-          unit_price: item.unit_price,
-          subtotal: item.quantity * item.unit_price,
-          branch_id: id, // Include the branch_id of the logged-in user
-        }))
+        values.items.map((item) => {
+          const recipe = productRecipes?.find(
+            (r) => r.product_id === item.product_id
+          );
+          const unit_cost = recipe?.unit_cost ?? 0;
+          return {
+            sale_id: saleData.id,
+            product_id: item.product_id,
+            quantity: item.quantity,
+            unit_price: item.unit_price,
+            subtotal: item.quantity * item.unit_price,
+            unit_cost,
+            total_cost: item.quantity * unit_cost,
+            branch_id: id,
+          };
+        })
       );
 
       if (itemsError) throw itemsError;
@@ -127,7 +144,7 @@ const Sales = () => {
   };
 
   return (
-    <div className="space-y-6 p-3 bg-white rounded-lg shadow-md w-full mx-auto margin-100">
+    <div className="space-y-6 p-3 backdrop-blur supports-[backdrop-filter]:bg-background/50 rounded-lg shadow-md w-full mx-auto margin-100">
       <div className="flex justify-between items-center">
         <h2 className="text-3xl font-bold tracking-tight">Sales</h2>
         <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>

@@ -179,7 +179,7 @@ const UpdateQuantityDialog = ({
 
     const { error } = await supabase
       .from("inventory")
-      .upsert(updates, { onConflict: "branch_id,material_id" });
+      .insert(updates);
 
     if (error) {
       toast({

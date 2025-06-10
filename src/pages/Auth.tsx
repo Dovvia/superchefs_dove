@@ -86,7 +86,7 @@ const Auth = () => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
+    <div className="min-h-screen flex items-center justify-center bg-transparent py-12 px-4 sm:px-6 lg:px-8">
       <PWAInstallButton />
       <div className="max-w-md w-full space-y-8">
         <img
@@ -180,7 +180,7 @@ const Auth = () => {
         </form>
       </div>
       <div className="w-full fixed bottom-0 bg-[#f0fff0] text-center py-2">
-        © fadarse 2025, All Rights Reserved
+        © dovvia 2025, All Rights Reserved
       </div>
     </div>
   );

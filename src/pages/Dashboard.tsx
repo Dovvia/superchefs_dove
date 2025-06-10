@@ -128,10 +128,10 @@ const Dashboard = () => {
   }, []);
 
   return (
-    <div className="space-y-6 p-3 bg-white rounded-lg shadow-md w-full mx-auto margin-100">
+    <div className="space-y-6 p-3 bg-transparent rounded-lg shadow-md w-full mx-auto margin-100">
       <h2 className="text-3xl font-bold tracking-tight">Dashboard</h2>
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        <Card>
+        <Card className="hover:bg-green-50 transition-colors cursor-pointer hover:scale-110 hover:shadow-lg transition-transform duration-500">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">
               Low Stock Items
@@ -145,7 +145,7 @@ const Dashboard = () => {
         </Card>
 
         <Link to="/inventory">
-          <Card className="hover:bg-secondary transition-colors cursor-pointer">
+          <Card className="hover:bg-green-50 transition-colors cursor-pointer hover:scale-110 hover:shadow-lg transition-transform duration-500">
             <CardHeader className="flex flex-row items-center justify-between space-y-0">
               <CardTitle className="text-lg">Inventory</CardTitle>
               <Package className="h-5 w-5 text-primary" />
@@ -159,21 +159,21 @@ const Dashboard = () => {
         </Link>
 
         <Link to="/products">
-          <Card className="hover:bg-secondary transition-colors cursor-pointer">
+          <Card className="hover:bg-green-50 transition-colors cursor-pointer hover:scale-110 hover:shadow-lg transition-transform duration-500">
             <CardHeader className="flex flex-row items-center justify-between space-y-0">
               <CardTitle className="text-lg">Products</CardTitle>
               <CakeIcon className="h-5 w-5 text-primary" />
             </CardHeader>
             <CardContent>
               <p className="text-sm text-muted-foreground">
-                Manage your product catalog
+                Track and manage your product catalog
               </p>
             </CardContent>
           </Card>
         </Link>
 
         <Link to="/sales">
-          <Card className="hover:bg-secondary transition-colors cursor-pointer">
+          <Card className="hover:bg-green-50 transition-colors cursor-pointer hover:scale-110 hover:shadow-lg transition-transform duration-500">
             <CardHeader className="flex flex-row items-center justify-between space-y-0">
               <CardTitle className="text-lg">Sales</CardTitle>
               <ShoppingCart className="h-5 w-5 text-primary" />

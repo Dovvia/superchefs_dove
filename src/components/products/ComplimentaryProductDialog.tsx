@@ -10,6 +10,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { Product } from "@/types/products";
 import { useUserBranch } from "@/hooks/user-branch";
+import { useQuery } from "@tanstack/react-query";
 
 interface ComplimentaryProductDialogProps {
   open: boolean;
@@ -32,9 +33,21 @@ export const ComplimentaryProductDialog = ({
     data: { id: string; name: string; role: string } | null;
   };
 
+  // Fetch product_recipes for unit_cost
+  const { data: productRecipes } = useQuery({
+    queryKey: ["product_recipes"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("product_recipes")
+        .select("*");
+      if (error) throw error;
+      return data;
+    },
+  });
+
   const handleSubmit = async (values: {
     product: string;
-    branch_id: string; // This will no longer be used for branch users
+    branch_id: string;
     quantity: string;
     reason: string;
     recipient: string;
@@ -42,12 +55,18 @@ export const ComplimentaryProductDialog = ({
     try {
       setIsLoading(true);
 
-      // Use the branch_id from the logged-in user for branch users
       const branchId = userBranch?.id;
-
       if (!branchId) {
         throw new Error("Branch ID is missing. Please log in again.");
       }
+
+      // Get unit_price from products and unit_cost from product_recipes
+      const selectedProduct = products.find((p) => p.id === values.product);
+      const recipe = productRecipes?.find(
+        (r) => r.product_id === values.product
+      );
+      const unit_price = selectedProduct?.price ?? 0;
+      const unit_cost = recipe?.unit_cost ?? 0;
 
       // Insert a new record into the complimentary_products table
       const { error: insertError } = await supabase
@@ -55,11 +74,13 @@ export const ComplimentaryProductDialog = ({
         .insert([
           {
             product_id: values.product,
-            branch_id: branchId, // Use the branch_id from the logged-in user
+            branch_id: branchId,
             quantity: Number(values.quantity),
             reason: values.reason,
             recipient: values.recipient,
             created_at: new Date().toISOString(),
+            unit_price,
+            unit_cost,
           },
         ]);
 
