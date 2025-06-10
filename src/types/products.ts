@@ -15,20 +15,12 @@ export interface Product {
   name: string;
   description: string | null;
   price: number;
-  unit_cost: number;
+  product_recipes?: ProductRecipe[];
   category: string | null;
   image_url: string | null;
   is_active: boolean;
   created_at: string;
   updated_at: string;
-  openingStock: number;
-  producedStock: number;
-  transferIn: number;
-  transferOut: number;
-  complimentary: number;
-  damages: number;
-  sales: number;
-  closingStock: number;
   branch_id: string;
 }
 
@@ -51,4 +43,8 @@ export interface SaleItem {
   subtotal: number;
   created_at: string;
   product?: Product;
+}
+
+export interface ProductRecipe {
+  unit_cost: number;
 }

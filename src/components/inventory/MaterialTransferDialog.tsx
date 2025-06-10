@@ -65,19 +65,35 @@ const MaterialTransferDialog = ({
 
     setIsLoading(true);
     try {
-      // Create transfer record
-      const { error: transferError } = await supabase.from("material_transfers").insert([
-        {
-          material_id: material.id,
-          from_branch_id: userBranch.id, // Use branch ID from hook
-          to_branch_id: toBranchId,
-          quantity: Number(quantity),
-          notes,
-          status: "pending",
-        },
-      ]);
+      // Insert into material_transfers_out for the sending branch
+      const { error: transferOutError } = await supabase
+        .from("material_transfers_out")
+        .insert([
+          {
+            material_id: material.id,
+            branch_id: userBranch.id, // Sending branch
+            quantity: Number(quantity),
+            notes,
+            status: "pending",
+          },
+        ]);
 
-      if (transferError) throw transferError;
+      if (transferOutError) throw transferOutError;
+
+      // Insert into material_transfers_in for the receiving branch
+      const { error: transferInError } = await supabase
+        .from("material_transfers_in")
+        .insert([
+          {
+            material_id: material.id,
+            branch_id: toBranchId, // Receiving branch
+            quantity: Number(quantity),
+            notes,
+            status: "pending",
+          },
+        ]);
+
+      if (transferInError) throw transferInError;
 
       // Create notifications for both branches
       const toBranch = branches.find((b) => b.id === toBranchId);
@@ -133,10 +149,7 @@ const MaterialTransferDialog = ({
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-2">
             <Label htmlFor="toBranch">To Branch</Label>
-            <Select
-              value={toBranchId}
-              onValueChange={setToBranchId}
-            >
+            <Select value={toBranchId} onValueChange={setToBranchId}>
               <SelectTrigger>
                 <SelectValue placeholder="Select destination branch" />
               </SelectTrigger>

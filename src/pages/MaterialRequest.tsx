@@ -106,7 +106,7 @@ const MaterialRequest = () => {
       const { error: updateError } = await supabase
         .from("procurement_orders")
         .update({ status: "supplied" }) // Set new status
-        .in("id", orderIds); // Filter all relevant order IDs
+        .in("id", orderIds); // Filter all relevant order IDs 
 
       if (updateError) throw updateError;
 

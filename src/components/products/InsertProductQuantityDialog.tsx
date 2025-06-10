@@ -157,7 +157,7 @@ const InsertProductQuantityDialog = ({
                 <SelectTrigger className="w-full">
                   <SelectValue placeholder="Select Product" />
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent className="max-h-60 overflow-y-auto">
                   {products.map((product) => (
                     <SelectItem key={product.id} value={product.id}>
                       {product.name}

@@ -1,5 +1,5 @@
 import { useState, useMemo } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import UpdateQuantityDialog from "@/components/inventory/UpdateQuantityDialog";
 import MaterialTransferDialog from "@/components/inventory/MaterialTransferDialog";
@@ -28,6 +28,47 @@ import { toast, useToast } from "@/components/ui/use-toast";
 import currency from "currency.js";
 import { useUserBranch } from "@/hooks/user-branch";
 
+const TIME_PERIODS = [
+  { value: "today", label: "Today" },
+  { value: "this_week", label: "This Week" },
+  { value: "this_month", label: "This Month" },
+  { value: "this_year", label: "This Year" },
+];
+
+const getViewName = (
+  userBranch: any,
+  selectedBranch: string,
+  timePeriod: string
+) => {
+  if (userBranch?.name === "HEAD OFFICE" && selectedBranch === "Cumulative") {
+    switch (timePeriod) {
+      case "today":
+        return "admin_material_today_summary_view";
+      case "this_week":
+        return "admin_material_this_week_summary_view";
+      case "this_month":
+        return "admin_material_monthly_summary_view";
+      case "this_year":
+        return "admin_material_this_year_summary_view";
+      default:
+        return "admin_material_today_summary_view";
+    }
+  } else {
+    switch (timePeriod) {
+      case "today":
+        return "branch_today_material_summary_view";
+      case "this_week":
+        return "branch_this_week_material_summary_view";
+      case "this_month":
+        return "branch_monthly_material_summary_view";
+      case "this_year":
+        return "branch_this_year_summary_view";
+      default:
+        return "branch_today_material_summary_view";
+    }
+  }
+};
+
 const Inventory = () => {
   const naira = (value: number) =>
     currency(value, { symbol: "₦", precision: 2, separator: "," }).format();
@@ -35,14 +76,14 @@ const Inventory = () => {
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [selectedInventory, setSelectedInventory] =
     useState<InventoryType | null>(null);
+  const [selectedBranch, setSelectedBranch] = useState<string | "Cumulative">(
+    "Cumulative"
+  );
+  const [timePeriod, setTimePeriod] = useState<string>("today");
   const [filterName, setFilterName] = useState("");
-  const [filterDate, setFilterDate] = useState("");
   const [isTransferDialogOpen, setIsTransferDialogOpen] = useState(false);
   const [selectedMaterial, setSelectedMaterial] = useState<Material | null>(
     null
-  );
-  const [selectedBranch, setSelectedBranch] = useState<string | "Cumulative">(
-    "Cumulative"
   );
   const [isCostDialogOpen, setIsCostDialogOpen] = useState(false);
   const [materialToEdit, setMaterialToEdit] = useState<Material | null>(null);
@@ -59,58 +100,87 @@ const Inventory = () => {
     },
   });
 
+  // Fetch all materials for name/unit rendering
+  const { data: allMaterials } = useQuery({
+    queryKey: ["all_materials"],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("materials").select("*");
+      if (error) throw error;
+      return data as Material[];
+    },
+  });
+
+  // Fetch summary data for selected branch/time period
   const {
-    data: inventory,
+    data: summaryData,
     refetch,
     isLoading: isLoadingInventory,
   } = useQuery({
-    queryKey: ["inventory", selectedBranch, userBranch?.id],
+    queryKey: ["inventory_summary", selectedBranch, userBranch?.id, timePeriod],
     queryFn: async () => {
+      const viewName = getViewName(userBranch, selectedBranch, timePeriod);
+
+      // HEAD OFFICE, Cumulative: show all
       if (
         userBranch?.name === "HEAD OFFICE" &&
         selectedBranch === "Cumulative"
       ) {
-        const { data, error } = await supabase.from("cumulative_inventory_view")
-          .select(`
-            *,
-            material:materials(*)
-          `);
+        const { data, error } = await supabase.from(viewName).select("*");
         if (error) throw error;
-        return data as unknown as InventoryType[];
+        return data;
       }
 
-      const branchId =
-        userBranch?.name === "HEAD OFFICE" ? selectedBranch : userBranch?.id;
+      // HEAD OFFICE, specific branch
+      if (userBranch?.name === "HEAD OFFICE") {
+        const { data, error } = await supabase
+          .from(viewName)
+          .select("*")
+          .eq("branch_id", selectedBranch);
+        if (error) throw error;
+        return data;
+      }
 
+      // Branch user: filter by their branch
       const { data, error } = await supabase
-        .from("inventory")
-        .select(
-          `
-          *,
-          material:materials(*)
-        `
-        )
-        .eq("branch_id", branchId)
-        .order("created_at", { ascending: false });
-
+        .from(viewName)
+        .select("*")
+        .eq("branch_id", userBranch?.id);
       if (error) throw error;
-      return data as unknown as InventoryType[];
+      return data;
     },
+    enabled: !!userBranch?.id,
   });
 
-  const filteredInventory = useMemo(
+  // Map summary data by material_id for fast lookup
+  const summaryByMaterialId = useMemo(() => {
+    const map: Record<string, any> = {};
+    summaryData?.forEach((row: any) => {
+      map[row.material_id] = row;
+    });
+    return map;
+  }, [summaryData]);
+
+  // Filter materials by name search
+  const filteredMaterials = useMemo(
     () =>
-      inventory?.filter(
-        (item) =>
-          (!filterName ||
-            item.material?.name
-              .toLowerCase()
-              .includes(filterName.toLowerCase())) &&
-          (!filterDate ||
-            new Date(item.created_at).toDateString() ===
-              new Date(filterDate).toDateString())
+      allMaterials?.filter(
+        (mat) =>
+          !filterName ||
+          mat.name.toLowerCase().includes(filterName.toLowerCase())
       ),
-    [inventory, filterName, filterDate]
+    [allMaterials, filterName]
+  );
+
+  // Filter indirect materials
+  const indirectMaterials = useMemo(
+    () =>
+      allMaterials?.filter(
+        (mat) =>
+          mat.description?.toLowerCase() === "indirect" &&
+          (!filterName ||
+            mat.name.toLowerCase().includes(filterName.toLowerCase()))
+      ),
+    [allMaterials, filterName]
   );
 
   const handleOpenCostDialog = (material: Material) => {
@@ -137,27 +207,25 @@ const Inventory = () => {
   }
 
   return (
-    <div className="space-y-4 p-3 bg-white rounded-lg shadow-md w-full mx-auto margin-100">
+    <div className="space-y-4 p-3 bg-transparent rounded-lg shadow-md w-full mx-auto margin-100">
       <div className="flex justify-between items-center">
         <h2 className="text-3xl font-bold tracking-tight">Inventory</h2>
       </div>
 
-      <div className="flex items-center space-x-4">
+      <div className="flex flex-col sm:flex-row justify-between items-start space-y-4 sm:space-y-0 sm:space-x-4">
+        <div className="flex flex-1 items-start space-x-4">
         {userBranch.name === "HEAD OFFICE" && (
           <div className="items-center space-y-2">
             <div className="flex items-center space-x-2">
-            <Button onClick={() => setIsAddDialogOpen(true)}>
-              <Plus className="h-4 w-4" />
-              Add Material
-            </Button>
-            <Button onClick={() => setIsUpdateDialogOpen(true)}>
-              Post Qty
-            </Button>
+              <Button onClick={() => setIsAddDialogOpen(true)}>
+                <Plus className="h-4 w-4" />
+                Add Material
+              </Button>
+              <Button onClick={() => setIsUpdateDialogOpen(true)}>
+                Post Qty
+              </Button>
             </div>
-            <Select
-              value={selectedBranch}
-              onValueChange={(value) => setSelectedBranch(value)}
-            >
+            <Select value={selectedBranch} onValueChange={setSelectedBranch}>
               <SelectTrigger className="w-40 h-8 border rounded p-2">
                 <SelectValue placeholder="Select Branch" />
               </SelectTrigger>
@@ -172,130 +240,136 @@ const Inventory = () => {
             </Select>
           </div>
         )}
+        
       </div>
 
-      <div className="flex flex-wrap space-x-4 sm:grid sm:gap-4 sm:grid-cols-1 gap-1 items-start">
+      <div className="flex flex-row space-x-2 sm:flex-col sm:space-x-0 sm:space-y-2 justify-self-end">
         <input
           type="text"
           placeholder="Search material"
-          className="border p-2 rounded h-8 w-40"
+          className="w-32 h-8 border rounded p-2"
           onChange={(e) => setFilterName(e.target.value)}
         />
-        <input
-          type="date"
-          className="border ml-0 p-2 rounded h-8 w-40"
-          onChange={(e) => setFilterDate(e.target.value)}
-        />
+        <Select value={timePeriod} onValueChange={setTimePeriod}>
+          <SelectTrigger className="w-32 h-8 border rounded p-2 ">
+        <SelectValue placeholder="Select Time Period" />
+          </SelectTrigger>
+          <SelectContent>
+        {TIME_PERIODS.map((tp) => (
+          <SelectItem key={tp.value} value={tp.value}>
+            {tp.label}
+          </SelectItem>
+        ))}
+          </SelectContent>
+        </Select>
+      </div>
       </div>
 
       <div className="border rounded-lg mt-4">
+        <h3 className="text-xl font-bold px-4 py-2 bg-gray-100">
+          Materials
+        </h3>
         <Table>
           <TableHeader>
             <TableRow className="bg-gray-200">
               <TableHead>Material</TableHead>
               <TableHead>Unit</TableHead>
-              <TableHead>Open Stock</TableHead>
+              <TableHead>QTY</TableHead>
+              <TableHead>QC</TableHead>
               <TableHead>PROC.</TableHead>
               <TableHead>TRF IN</TableHead>
               <TableHead>TRF OUT</TableHead>
               <TableHead>Usage</TableHead>
               <TableHead>DMG</TableHead>
-              <TableHead>Close Stock</TableHead>
               <TableHead>Reorder</TableHead>
-              {/* <TableHead>Request</TableHead> */}
               <TableHead>Unit Cost</TableHead>
-              <TableHead>Non-close Cost</TableHead>
-              <TableHead>Close cost</TableHead>
-              <TableHead><Settings className="h-4 w-4 text-gray-800 ml-2" /></TableHead>
+              <TableHead>Value</TableHead>
+              <TableHead>
+                <Settings className="h-4 w-4 text-gray-800 ml-2" />
+              </TableHead>
             </TableRow>
           </TableHeader>
-          {filteredInventory?.length && !isLoadingInventory ? (
+          {filteredMaterials?.length && !isLoadingInventory ? (
             <TableBody>
-              {filteredInventory?.map((item, index) => (
-                <TableRow
-                  key={item.id}
-                  className={index % 2 === 0 ? "bg-white" : "bg-gray-100"}
-                >
-                  <TableCell>
-                    <strong>{item.material?.name}</strong>
-                  </TableCell>
-                  <TableCell>{item.material?.unit}</TableCell>
-                  <TableCell>{item.opening_stock || 0}</TableCell>
-                  <TableCell>{item.procurement}</TableCell>
-                  <TableCell>{item.transfer_in}</TableCell>
-                  <TableCell>{item.transfer_out}</TableCell>
-                  <TableCell>{(item.usage || 0).toFixed(2)}</TableCell>
-                  <TableCell>{item.damages}</TableCell>
-                  <TableCell
-                    style={{
-                      color:
-                        item.quantity < item.material?.minimum_stock
-                          ? "red"
-                          : "green",
-                    }}
+              {filteredMaterials.map((material, index) => {
+                const item = summaryByMaterialId[material.id] || {};
+                return (
+                  <TableRow
+                    key={material.id}
+                    className={
+                      index % 2 === 0
+                        ? "bg-white hover:bg-gray-50"
+                        : "bg-gray-100 hover:bg-gray-50"
+                    }
                   >
-                    {item.quantity}
-                  </TableCell>
-                  <TableCell>{item.material?.minimum_stock}</TableCell>
-                  {/* <TableCell>{item.request_order}</TableCell> */}
-                  <TableCell>{naira(item.material?.unit_price)}</TableCell>
-                  <TableCell>
-                    {naira(
-                      (item.usage + item.damages) * item.material?.unit_price
-                    )}
-                  </TableCell>
-                  <TableCell>
-                    {naira(item.material?.unit_price * item.quantity)}
-                  </TableCell>
-                  <TableCell>
-                    <div className="relative">
-                      <Button
-                        variant="link"
-                        className="h-8 w-8 border-0 bg-transparent p-0 font-bold text-xl"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          const menu = e.currentTarget.nextElementSibling;
-                          if (menu) {
-                            menu.classList.toggle("hidden");
+                    <TableCell>
+                      <strong>{material.name}</strong>
+                    </TableCell>
+                    <TableCell>{material.unit}</TableCell>
+                    <TableCell
+                      style={{
+                        color:
+                          (item.quantity ?? 0) < (material.minimum_stock ?? 0)
+                            ? "red"
+                            : "green",
+                      }}
+                    >
+                      {item.quantity ?? 0}
+                    </TableCell>
+                    <TableCell>{item.quantity ?? 0}</TableCell>
+                    <TableCell>{item.procurement ?? 0}</TableCell>
+                    <TableCell>{item.transfer_in ?? 0}</TableCell>
+                    <TableCell>{item.transfer_out ?? 0}</TableCell>
+                    <TableCell>{(item.usage ?? 0).toFixed(2)}</TableCell>
+                    <TableCell>{item.damages ?? 0}</TableCell>
+                    <TableCell>{material.minimum_stock}</TableCell>
+                    <TableCell>{naira(material.unit_price)}</TableCell>
+                    <TableCell>
+                      {naira((material.unit_price ?? 0) * (item.quantity ?? 0))}
+                    </TableCell>
+                    <TableCell>
+                      <Select
+                        onValueChange={(value) => {
+                          if (value === "transfer") {
+                            setSelectedMaterial(material);
+                            setIsTransferDialogOpen(true);
+                          } else if (
+                            value === "update_cost" &&
+                            userBranch.name === "HEAD OFFICE"
+                          ) {
+                            handleOpenCostDialog(material);
                           }
                         }}
                       >
-                        ⋮
-                      </Button>
-                      <div className=" z-50 absolute right-0 top-0 mt-0 w-32 bg-white border rounded shadow-lg hidden">
-                        <button
-                          className="block w-full text-left px-4 py-2 text-sm hover:bg-green-500"
-                          onClick={() => {
-                            setSelectedMaterial(item.material);
-                            setIsTransferDialogOpen(true);
-                          }}
-                        >
-                          Transfer
-                        </button>
-                        <button
-                          className={`block w-full text-left px-4 py-2 text-sm ${
-                            userBranch.name !== "HEAD OFFICE"
-                              ? "text-gray-400 cursor-not-allowed"
-                              : "hover:bg-green-500"
-                          }`}
-                          onClick={() =>
-                            userBranch.name === "HEAD OFFICE" &&
-                            handleOpenCostDialog(item.material)
-                          }
-                          disabled={userBranch.name !== "HEAD OFFICE"}
-                        >
-                          Update Cost
-                        </button>
-                      </div>
-                    </div>
-                  </TableCell>
-                </TableRow>
-              ))}
+                        <SelectTrigger className="w-3 justify-end appearance-none [&>svg]:hidden p-0 bg-transparent border-0 text-green-500 hover:text-green-900 text-xl font-bold">
+                          <SelectValue placeholder="⋮" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="transfer">
+                            <span className="pl-1">⋮</span> Transfer
+                          </SelectItem>
+                          <SelectItem
+                            value="update_cost"
+                            disabled={userBranch.name !== "HEAD OFFICE"}
+                            className={`${
+                              userBranch.name !== "HEAD OFFICE"
+                                ? "text-gray-400 cursor-not-allowed"
+                                : ""
+                            }`}
+                          >
+                            <span className="pl-1">⋮</span> Update Cost
+                          </SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </TableCell>
+                  </TableRow>
+                );
+              })}
             </TableBody>
-          ) : !filteredInventory?.length && !isLoadingInventory ? (
+          ) : !filteredMaterials?.length && !isLoadingInventory ? (
             <TableBody>
               <TableRow>
-                <TableCell colSpan={5} className="text-center">
+                <TableCell colSpan={13} className="text-center">
                   No recent inventory record found
                 </TableCell>
               </TableRow>
@@ -303,8 +377,124 @@ const Inventory = () => {
           ) : (
             <TableBody>
               <TableRow>
-                <TableCell colSpan={5} className="text-center">
+                <TableCell colSpan={13} className="text-center">
                   Loading, please wait...
+                </TableCell>
+              </TableRow>
+            </TableBody>
+          )}
+        </Table>
+      </div>
+
+      {/* Indirect Materials Table */}
+      <div className="border rounded-lg mt-8">
+        <h3 className="text-xl font-bold px-4 py-2 bg-gray-100">
+          Indirect Materials
+        </h3>
+        <Table>
+          <TableHeader>
+            <TableRow className="bg-gray-200">
+              <TableHead>Material</TableHead>
+              <TableHead>Unit</TableHead>
+              <TableHead>QTY</TableHead>
+              <TableHead>QC</TableHead>
+              <TableHead>PROC.</TableHead>
+              <TableHead>TRF IN</TableHead>
+              <TableHead>TRF OUT</TableHead>
+              <TableHead>Usage</TableHead>
+              <TableHead>DMG</TableHead>
+              <TableHead>Reorder</TableHead>
+              <TableHead>Unit Cost</TableHead>
+              <TableHead>Value</TableHead>
+              <TableHead>
+                <Settings className="h-4 w-4 text-gray-800 ml-2" />
+              </TableHead>
+            </TableRow>
+          </TableHeader>
+          {indirectMaterials?.length && !isLoadingInventory ? (
+            <TableBody>
+              {indirectMaterials.map((material, index) => {
+                const item = summaryByMaterialId[material.id] || {};
+                return (
+                  <TableRow
+                    key={material.id}
+                    className={
+                      index % 2 === 0
+                        ? "bg-white hover:bg-gray-50"
+                        : "bg-gray-100 hover:bg-gray-50"
+                    }
+                  >
+                    <TableCell>
+                      <strong>{material.name}</strong>
+                    </TableCell>
+                    <TableCell>{material.unit}</TableCell>
+                    <TableCell
+                      style={{
+                        color:
+                          (item.quantity ?? 0) < (material.minimum_stock ?? 0)
+                            ? "red"
+                            : "green",
+                      }}
+                    >
+                      {item.quantity ?? 0}
+                    </TableCell>
+                    <TableCell>{item.quantity ?? 0}</TableCell>
+                    <TableCell>{item.procurement ?? 0}</TableCell>
+                    <TableCell>{item.transfer_in ?? 0}</TableCell>
+                    <TableCell>{item.transfer_out ?? 0}</TableCell>
+                    <TableCell>{(item.usage ?? 0).toFixed(2)}</TableCell>
+                    <TableCell>{item.damages ?? 0}</TableCell>
+                    <TableCell>{material.minimum_stock}</TableCell>
+                    <TableCell>{naira(material.unit_price)}</TableCell>
+                    <TableCell>
+                      {naira((material.unit_price ?? 0) * (item.quantity ?? 0))}
+                    </TableCell>
+                    <TableCell>
+                      <Select
+                        onValueChange={(value) => {
+                          if (value === "transfer") {
+                            setSelectedMaterial(material);
+                            setIsTransferDialogOpen(true);
+                          } else if (
+                            value === "update_cost" &&
+                            userBranch.name === "HEAD OFFICE"
+                          ) {
+                            handleOpenCostDialog(material);
+                          }
+                        }}
+                      >
+                        <SelectTrigger className="w-3 justify-end appearance-none [&>svg]:hidden p-0 bg-transparent border-0 text-green-500 hover:text-green-900 text-xl font-bold">
+                          <SelectValue placeholder="⋮" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="transfer">
+                            <span className="pl-1">⋮</span> Transfer
+                          </SelectItem>
+                          <SelectItem
+                            value="update_cost"
+                            disabled={userBranch.name !== "HEAD OFFICE"}
+                            className={`${
+                              userBranch.name !== "HEAD OFFICE"
+                                ? "text-gray-400 cursor-not-allowed"
+                                : ""
+                            }`}
+                          >
+                            <span className="pl-1">⋮</span> Update Cost
+                          </SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </TableCell>
+                  </TableRow>
+                );
+              })}
+            </TableBody>
+          ) : (
+            <TableBody>
+              <TableRow>
+                <TableCell colSpan={13} className="text-center">
+                  {isLoadingInventory
+                    ? "Loading, please wait..."
+                    : "No indirect materials found."}
                 </TableCell>
               </TableRow>
             </TableBody>

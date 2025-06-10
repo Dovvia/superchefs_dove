@@ -46,6 +46,7 @@ interface Recipe {
   name: string;
   description: string | null;
   product: {
+    price: any;
     name: string;
     id: string;
   };
@@ -68,7 +69,7 @@ const Recipes = () => {
     queryFn: async () => {
       const { data, error } = await supabase.from("product_recipes").select(`
           *,
-          product:products(name),
+          product:products(name, price, id),
           recipe_materials(
             id,
             material_id,
@@ -86,12 +87,24 @@ const Recipes = () => {
   const updateRecipeMutation = useMutation<Recipe, Error, Recipe>({
     mutationFn: async (updatedRecipe: Recipe): Promise<Recipe> => {
       // Update the product_recipes table
+
+      const cost = updatedRecipe.recipe_materials.reduce(
+            (total, material) => total + material.material.unit_price * material.quantity,
+            0
+          );
+          
       const { data: recipeData, error: recipeError } = await supabase
         .from("product_recipes")
         .update({
           name: updatedRecipe.name,
           description: updatedRecipe.description,
           yield: updatedRecipe.yield,
+          selling_price: updatedRecipe.product.price,
+          unit_cost: cost / updatedRecipe.yield,
+          material_cost: updatedRecipe.recipe_materials.reduce(
+            (total, material) => total + material.material.unit_price * material.quantity,
+            0
+          )
         })
         .eq("id", updatedRecipe.id)
         .select()
@@ -114,6 +127,8 @@ const Recipes = () => {
           material_id: material.material_id,
           quantity: material.quantity,
           yield: material.yield,
+          material_cost: material.material.unit_price,
+          name: material.material.name,
         })
       );
 

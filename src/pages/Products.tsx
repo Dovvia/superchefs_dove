@@ -81,7 +81,7 @@ const Products = () => {
     name: string;
   } | null>(null);
   const [selectedBranch, setSelectedBranch] = useState<string>("all");
-  const [timePeriod, setTimePeriod] = useState<string>("this_month");
+  const [timePeriod, setTimePeriod] = useState<string>("today");
 
   const { toast } = useToast();
   const { data: userBranch } = useUserBranch() as {
@@ -204,18 +204,9 @@ const Products = () => {
       const { error } = await supabase.from("products").insert({
         name: values.name,
         branch_id: userBranch?.id,
-        unit_cost: values?.unit_cost,
         description: values?.description,
         price: values.price || 0,
         category: values?.category,
-        openingStock: values?.openingStock,
-        producedStock: values?.producedStock,
-        transferIn: values?.transferIn,
-        transferOut: values?.transferOut,
-        complimentary: values?.complimentary,
-        damages: values?.damages,
-        sales: values?.sales,
-        closingStock: values?.closingStock,
         image_url: values?.image_url,
         is_active: values?.is_active ?? true,
       });
@@ -249,97 +240,113 @@ const Products = () => {
   };
 
   return (
-    <div className="space-y-6 p-2 bg-white rounded-lg shadow-md w-full mx-auto margin-100">
+    <div className="space-y-6 p-2 bg-transparent rounded-lg shadow-md w-full mx-auto margin-100">
       <div className="flex justify-between items-center">
         <h2 className="text-3xl font-bold tracking-tight">Products</h2>
 
-        <div className="absolute z-40 w-full grid grid-cols-4 bg-transparent">
+        <div className="absolute z-40 w-1/2 grid grid-cols-4 bg-transparent">
           <details className="group absolute">
             <summary className="cursor-pointer hover:text-green-600 p-2">
               <span className="text-lg font-semibold">Actions</span>
             </summary>
-            <div className="absolute  bg-white shadow-lg rounded-lg p-4">
-              <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
-                <DialogTrigger asChild>
-                  <Button className="m-0.5 bg-green-800">
+            <div className="absolute ">
+              {/* Only HEAD OFFICE can add products and quantities */}
+              {userBranch?.name === "HEAD OFFICE" && (
+                <>
+                  <Dialog
+                    open={isAddDialogOpen}
+                    onOpenChange={setIsAddDialogOpen}
+                  >
+                    <DialogTrigger asChild>
+                      <Button className="m-0.5 bg-green-800">
+                        <Plus className="h-4 w-4" />
+                        Product
+                      </Button>
+                    </DialogTrigger>
+                    <DialogContent>
+                      <DialogHeader>
+                        <DialogTitle>Add New Product</DialogTitle>
+                      </DialogHeader>
+                      <ProductForm onSubmit={handleAddProduct} />
+                    </DialogContent>
+                  </Dialog>
+
+                  <Button
+                    className="m-0.5 bg-green-800"
+                    onClick={() => setIsInsertQuantityDialogOpen(true)}
+                  >
                     <Plus className="h-4 w-4" />
-                    Product
+                    Add Qty
                   </Button>
-                </DialogTrigger>
-                <DialogContent>
-                  <DialogHeader>
-                    <DialogTitle>Add New Product</DialogTitle>
-                  </DialogHeader>
-                  <ProductForm onSubmit={handleAddProduct} />
-                </DialogContent>
-              </Dialog>
-
-              <Button
-                className="m-0.5 bg-green-800"
-                onClick={() => setIsInsertQuantityDialogOpen(true)}
-              >
-                <Plus className="h-4 w-4" />
-                Add Qty
-              </Button>
-              {isInsertQuantityDialogOpen && (
-                <InsertProductQuantityDialog
-                  open={isInsertQuantityDialogOpen}
-                  onOpenChange={setIsInsertQuantityDialogOpen}
-                  products={productsData || []}
-                  branches={branches || []}
-                  onSuccess={handleOnSuccess}
-                />
+                  {isInsertQuantityDialogOpen && (
+                    <InsertProductQuantityDialog
+                      open={isInsertQuantityDialogOpen}
+                      onOpenChange={setIsInsertQuantityDialogOpen}
+                      products={productsData || []}
+                      branches={branches || []}
+                      onSuccess={handleOnSuccess}
+                    />
+                  )}
+                </>
               )}
 
-              <Button
-                className="m-0.5"
-                onClick={() => setAddComplimentaryOpen(true)}
-              >
-                <Plus className="h-4 w-4" />
-                Add CMP
-              </Button>
-              {addComplimentaryOpen && (
-                <ComplimentaryProductDialog
-                  open={addComplimentaryOpen}
-                  onOpenChange={setAddComplimentaryOpen}
-                  products={productsData || []}
-                  onSuccess={handleOnSuccess}
-                />
-              )}
+              {/* Only branch users (not HEAD OFFICE) can add CMP, Damages, Transfer */}
+              {userBranch?.name !== "HEAD OFFICE" && (
+                <>
+                  <Button
+                    className="m-0.5"
+                    onClick={() => setAddComplimentaryOpen(true)}
+                  >
+                    <Plus className="h-4 w-4" />
+                    Add CMP
+                  </Button>
+                  {addComplimentaryOpen && (
+                    <ComplimentaryProductDialog
+                      open={addComplimentaryOpen}
+                      onOpenChange={setAddComplimentaryOpen}
+                      products={productsData || []}
+                      onSuccess={handleOnSuccess}
+                    />
+                  )}
 
-              <Button className="m-0.5" onClick={() => setAddDamageOpen(true)}>
-                <Plus className="h-4 w-4" />
-                Add Damages
-              </Button>
-              {addDamageOpen && (
-                <ProductDamageDialog
-                  products={productsData || []}
-                  open={addDamageOpen}
-                  onOpenChange={setAddDamageOpen}
-                  onSuccess={handleOnSuccess}
-                />
-              )}
+                  <Button
+                    className="m-0.5"
+                    onClick={() => setAddDamageOpen(true)}
+                  >
+                    <Plus className="h-4 w-4" />
+                    Add Damages
+                  </Button>
+                  {addDamageOpen && (
+                    <ProductDamageDialog
+                      products={productsData || []}
+                      open={addDamageOpen}
+                      onOpenChange={setAddDamageOpen}
+                      onSuccess={handleOnSuccess}
+                    />
+                  )}
 
-              <Button
-                className="m-0.5"
-                onClick={() => setAddTransferOpen(true)}
-              >
-                <Plus className="h-4 w-4" />
-                Transfer
-              </Button>
-              {addTransferOpen && (
-                <ProductTransferDialog
-                  products={productsData || []}
-                  open={addTransferOpen}
-                  onOpenChange={setAddTransferOpen}
-                  onSuccess={handleOnSuccess}
-                />
+                  <Button
+                    className="m-0.5"
+                    onClick={() => setAddTransferOpen(true)}
+                  >
+                    <Plus className="h-4 w-4" />
+                    Transfer
+                  </Button>
+                  {addTransferOpen && (
+                    <ProductTransferDialog
+                      products={productsData || []}
+                      open={addTransferOpen}
+                      onOpenChange={setAddTransferOpen}
+                      onSuccess={handleOnSuccess}
+                    />
+                  )}
+                </>
               )}
             </div>
           </details>
         </div>
 
-        <div className="flex space-x-4">
+        <div className="grid space-y-2">
           {userBranch?.name === "HEAD OFFICE" && (
             <Select value={selectedBranch} onValueChange={setSelectedBranch}>
               <SelectTrigger className="w-40">
@@ -369,12 +376,13 @@ const Products = () => {
         </div>
       </div>
 
-      <div className="border rounded-lg">
+      <div className="border rounded-lg bg-gray-200">
         <div className="overflow-x-auto">
           <Table className="w-full table-auto">
             <TableHeader className="sticky bg-gray-200 top-0 bg-white z-10">
               <TableRow>
                 <TableHead>Name</TableHead>
+                <TableHead>QTY</TableHead>
                 <TableHead>QC</TableHead>
                 <TableHead>Prod. Stock</TableHead>
                 <TableHead>TRF (In)</TableHead>
@@ -383,12 +391,12 @@ const Products = () => {
                 <TableHead>DMG</TableHead>
                 <TableHead>Sales</TableHead>
                 <TableHead>Unit Cost</TableHead>
+                <TableHead>Unit Price</TableHead>
                 <TableHead>Sales Cost</TableHead>
                 <TableHead>N-S Cost</TableHead>
-                <TableHead>Unit Price</TableHead>
                 <TableHead>Sales Amt</TableHead>
                 <TableHead>UCRR</TableHead>
-                <TableHead>SCRR</TableHead>
+                <TableHead>ACRR</TableHead>
                 <TableHead>
                   <Settings className="h-4 w-4 text-gray-800 ml-2" />
                 </TableHead>
@@ -396,27 +404,39 @@ const Products = () => {
             </TableHeader>
             {products && products.length > 0 && !isLoading ? (
               <TableBody>
-                {products.map((product) => {
+                {products.map((product, index) => {
                   const recipe = productRecipes?.find(
                     (r) => r.product_id === product.product_id
                   );
-                  const scrr = {
-                    salesAmt:
-                      (product.selling_price || 0) *
-                      (product.total_sale_quantity || 0),
-                    nSalesCost:
-                      (product.total_complimentary_quantity ||
-                        0 + product.total_damage_quantity ||
-                        0) * (recipe?.unit_cost || 0),
-                    scrr:
+                  const ucrr = {
+                    // salesAmt:
+                    //   (product.selling_price || 0) *
+                    //   (product.total_sale_quantity || 0),
+                    // nSalesCost:
+                    //   (product.total_complimentary_quantity ||
+                    //     0 + product.total_damage_quantity ||
+                    //     0) * (recipe?.unit_cost || 0),
+                    ucrr:
                       ((recipe?.unit_cost || 0) /
                         (recipe?.selling_price || 1)) *
                       100,
                   };
+                  const acrrCalc = {
+                  salesCost: product.total_cost || 0, 
+                  nSalesCost: (product.total_complimentary_cost || 0) + (product.total_damage_cost || 0),
+                  sales: product.total_sale || 0,
+                  };
+                  const acrr = {
+                    acrr: ((acrrCalc.salesCost + acrrCalc.nSalesCost) / (acrrCalc.sales || 1)) * 100,
+                  };
 
                   return (
-                    <TableRow key={product.product_id}>
+                    <TableRow
+                      key={product.product_id}
+                      className={index % 2 === 0 ? "bg-white" : "bg-gray-100"}
+                    >
                       <TableCell>{product.product_name}</TableCell>
+                      <TableCell><span className="text-lg font-bold">{(((product.total_quantity || 0) + (product.total_yield || 0) + (product.total_transfer_in_quantity || 0)) - ((product.total_transfer_out_quantity || 0) + (product.total_complimentary_quantity || 0) + (product.total_damage_quantity || 0) + (product.total_sale_quantity || 0))) || 0}</span></TableCell>
                       <TableCell>{product.total_quantity || 0}</TableCell>
                       <TableCell>{product.total_yield || 0}</TableCell>
                       <TableCell>
@@ -432,24 +452,37 @@ const Products = () => {
                         {product.total_damage_quantity || 0}
                       </TableCell>
                       <TableCell>{product.total_sale_quantity || 0}</TableCell>
-                      <TableCell>₦{recipe?.unit_cost || 0}</TableCell>
-
-                      <TableCell>₦{}</TableCell>
-                      <TableCell>₦{}</TableCell>
-                      <TableCell>₦{recipe?.selling_price || 0}</TableCell>
-                      <TableCell>₦{scrr.salesAmt.toFixed(2) || 0}</TableCell>
                       <TableCell>
-                        {scrr.scrr > 75 ? (
+                        ₦{recipe?.unit_cost.toFixed(2) || 0}
+                      </TableCell>
+                      <TableCell>
+                        ₦{recipe?.selling_price.toFixed(2) || 0}
+                      </TableCell>
+
+                      <TableCell>₦{product.total_cost.toFixed(2) || 0}</TableCell>
+                      <TableCell><span className="text-yellow-600">₦{(product.total_complimentary_cost + product.total_damage_cost).toFixed(2) || 0}</span></TableCell>
+                      
+                      <TableCell>₦{product.total_sale.toFixed(2) || 0}</TableCell>
+                      <TableCell>
+                        {ucrr.ucrr > 75 ? (
                           <span className="text-red-600">
-                            {scrr.scrr.toFixed(2)}%
+                            {ucrr.ucrr.toFixed(2)}%
                           </span>
                         ) : (
                           <span className="text-green-600">
-                            {scrr.scrr.toFixed(2)}%
+                            {ucrr.ucrr.toFixed(2)}%
                           </span>
                         )}
                       </TableCell>
-                      <TableCell>{}</TableCell>
+                      <TableCell>{acrr.acrr > 75 ? (
+                          <span className="text-red-600">
+                            {acrr.acrr.toFixed(2)}%
+                          </span>
+                        ) : (
+                          <span className="text-green-600">
+                            {acrr.acrr.toFixed(2)}%
+                          </span>
+                        )}</TableCell>
                       <TableCell>
                         <Select
                           onValueChange={(value) => {
