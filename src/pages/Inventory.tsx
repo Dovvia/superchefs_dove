@@ -88,7 +88,9 @@ const Inventory = () => {
   const [isCostDialogOpen, setIsCostDialogOpen] = useState(false);
   const [materialToEdit, setMaterialToEdit] = useState<Material | null>(null);
   const [usageInputs, setUsageInputs] = useState<Record<string, string>>({}); // material.id -> input value
-  const [isSubmittingUsage, setIsSubmittingUsage] = useState<Record<string, boolean>>({}); // material.id -> loading
+  const [isSubmittingUsage, setIsSubmittingUsage] = useState<
+    Record<string, boolean>
+  >({}); // material.id -> loading
 
   const { toast } = useToast();
   const { data: userBranch, isLoading: isLoadingBranch } = useUserBranch();
@@ -169,7 +171,7 @@ const Inventory = () => {
         (mat) =>
           mat.description?.toLowerCase() !== "indirect" &&
           (!filterName ||
-          mat.name.toLowerCase().includes(filterName.toLowerCase()))
+            mat.name.toLowerCase().includes(filterName.toLowerCase()))
       ),
     [allMaterials, filterName]
   );
@@ -198,7 +200,11 @@ const Inventory = () => {
   const handleAddUsage = async (materialId: string) => {
     const quantity = parseFloat(usageInputs[materialId]);
     if (isNaN(quantity) || quantity <= 0) {
-      toast({ title: "Invalid quantity", description: "Enter a valid number", variant: "destructive" });
+      toast({
+        title: "Invalid quantity",
+        description: "Enter a valid number",
+        variant: "destructive",
+      });
       return;
     }
     setIsSubmittingUsage((prev) => ({ ...prev, [materialId]: true }));
@@ -212,7 +218,11 @@ const Inventory = () => {
     ]);
     setIsSubmittingUsage((prev) => ({ ...prev, [materialId]: false }));
     if (error) {
-      toast({ title: "Error", description: error.message, variant: "destructive" });
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      });
     } else {
       toast({ title: "Usage added", description: "Usage record inserted" });
       setUsageInputs((prev) => ({ ...prev, [materialId]: "" }));
@@ -246,59 +256,60 @@ const Inventory = () => {
 
       <div className="flex flex-col sm:flex-row justify-between items-start space-y-4 sm:space-y-0 sm:space-x-4">
         <div className="flex flex-1 items-start space-x-4">
-        {userBranch.name === "HEAD OFFICE" && (
-          <div className="items-center space-y-2">
-            <div className="flex items-center space-x-2">
-              <Button onClick={() => setIsAddDialogOpen(true)}>
-                <Plus className="h-4 w-4" />
-                Add Material
-              </Button>
-              <Button onClick={() => setIsUpdateDialogOpen(true)}>
-                Post Qty
-              </Button>
+          {userBranch.name === "HEAD OFFICE" && (
+            <div className="items-center space-y-2">
+              <div className="flex items-center space-x-2">
+                <Button onClick={() => setIsAddDialogOpen(true)}>
+                  <Plus className="h-4 w-4" />
+                  Add Material
+                </Button>
+                <Button onClick={() => setIsUpdateDialogOpen(true)}>
+                  Post Qty
+                </Button>
+              </div>
+              <Select value={selectedBranch} onValueChange={setSelectedBranch}>
+                <SelectTrigger className="w-40 h-8 border rounded p-2">
+                  <SelectValue placeholder="Select Branch" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Cumulative">Cumulative</SelectItem>
+                  {branches?.map((branch) => (
+                    <SelectItem key={branch.id} value={branch.id}>
+                      {branch.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
-            <Select value={selectedBranch} onValueChange={setSelectedBranch}>
-              <SelectTrigger className="w-40 h-8 border rounded p-2">
-                <SelectValue placeholder="Select Branch" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="Cumulative">Cumulative</SelectItem>
-                {branches?.map((branch) => (
-                  <SelectItem key={branch.id} value={branch.id}>
-                    {branch.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-        )}
-        
-      </div>
+          )}
+        </div>
 
-      <div className="flex flex-row space-x-2 sm:flex-col sm:space-x-0 sm:space-y-2 justify-self-end">
-        <input
-          type="text"
-          placeholder="Search material"
-          className="w-32 h-8 border rounded p-2"
-          onChange={(e) => setFilterName(e.target.value)}
-        />
-        <Select value={timePeriod} onValueChange={setTimePeriod}>
-          <SelectTrigger className="w-32 h-8 border rounded p-2 ">
-        <SelectValue placeholder="Select Time Period" />
-          </SelectTrigger>
-          <SelectContent>
-        {TIME_PERIODS.map((tp) => (
-          <SelectItem key={tp.value} value={tp.value}>
-            {tp.label}
-          </SelectItem>
-        ))}
-          </SelectContent>
-        </Select>
-      </div>
+        <div className="flex flex-row space-x-2 sm:flex-col sm:space-x-0 sm:space-y-2 justify-self-end">
+          <input
+            type="text"
+            placeholder="Search material"
+            className="w-32 h-8 border rounded p-2"
+            onChange={(e) => setFilterName(e.target.value)}
+          />
+          <Select value={timePeriod} onValueChange={setTimePeriod}>
+            <SelectTrigger className="w-32 h-8 border rounded p-2 ">
+              <SelectValue placeholder="Select Time Period" />
+            </SelectTrigger>
+            <SelectContent>
+              {TIME_PERIODS.map((tp) => (
+                <SelectItem key={tp.value} value={tp.value}>
+                  {tp.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
       </div>
 
       <div className="border rounded-lg mt-4">
-        <h3 className="text-xl font-bold px-4 py-2 bg-gray-100"> Materials
+        <h3 className="text-xl font-bold px-4 py-2 bg-gray-100">
+          {" "}
+          Materials
           <span className="float-right text-base font-semibold">
             <Sigma className="inline-block" />:{" "}
             {naira(
@@ -311,7 +322,9 @@ const Inventory = () => {
                   (item.total_transfer_out_quantity ?? 0) -
                   (item.total_usage ?? 0) -
                   (item.total_damage_quantity ?? 0);
-                return sum + (material.unit_price ?? 0) * (currentQuantity ?? 0);
+                return (
+                  sum + (material.unit_price ?? 0) * (currentQuantity ?? 0)
+                );
               }, 0) ?? 0
             )}
           </span>
@@ -356,7 +369,6 @@ const Inventory = () => {
                         : "bg-gray-100 hover:bg-gray-50"
                     }
                   >
-                    
                     <TableCell>
                       <strong>{material.name}</strong>
                     </TableCell>
@@ -369,18 +381,28 @@ const Inventory = () => {
                             : "green",
                       }}
                     >
-                        <span className="font-bold text-lg">{currentQuantity}</span>
+                      <span className="font-bold text-lg">
+                        {currentQuantity}
+                      </span>
                     </TableCell>
                     <TableCell>{item.total_quantity ?? 0}</TableCell>
-                    <TableCell>{item.total_procurement_quantity ?? 0}</TableCell>
-                    <TableCell>{item.total_transfer_in_quantity ?? 0}</TableCell>
-                    <TableCell>{item.total_transfer_out_quantity ?? 0}</TableCell>
+                    <TableCell>
+                      {item.total_procurement_quantity ?? 0}
+                    </TableCell>
+                    <TableCell>
+                      {item.total_transfer_in_quantity ?? 0}
+                    </TableCell>
+                    <TableCell>
+                      {item.total_transfer_out_quantity ?? 0}
+                    </TableCell>
                     <TableCell>{(item.total_usage ?? 0).toFixed(2)}</TableCell>
                     <TableCell>{item.total_damage_quantity ?? 0}</TableCell>
                     <TableCell>{material.minimum_stock}</TableCell>
                     <TableCell>{naira(material.unit_price)}</TableCell>
                     <TableCell>
-                      {naira((material.unit_price ?? 0) * (currentQuantity ?? 0))}
+                      {naira(
+                        (material.unit_price ?? 0) * (currentQuantity ?? 0)
+                      )}
                     </TableCell>
                     <TableCell>
                       <Select
@@ -457,7 +479,9 @@ const Inventory = () => {
                   (item.total_transfer_out_quantity ?? 0) -
                   (item.total_usage ?? 0) -
                   (item.total_damage_quantity ?? 0);
-                return sum + (material.unit_price ?? 0) * (currentQuantity ?? 0);
+                return (
+                  sum + (material.unit_price ?? 0) * (currentQuantity ?? 0)
+                );
               }, 0) ?? 0
             )}
           </span>
@@ -515,12 +539,20 @@ const Inventory = () => {
                             : "green",
                       }}
                     >
-                      <span className="font-bold text-lg">{currentQuantity}</span>
+                      <span className="font-bold text-lg">
+                        {currentQuantity}
+                      </span>
                     </TableCell>
                     <TableCell>{item.total_quantity ?? 0}</TableCell>
-                    <TableCell>{item.total_procurement_quantity ?? 0}</TableCell>
-                    <TableCell>{item.total_transfer_in_quantity ?? 0}</TableCell>
-                    <TableCell>{item.total_transfer_out_quantity ?? 0}</TableCell>
+                    <TableCell>
+                      {item.total_procurement_quantity ?? 0}
+                    </TableCell>
+                    <TableCell>
+                      {item.total_transfer_in_quantity ?? 0}
+                    </TableCell>
+                    <TableCell>
+                      {item.total_transfer_out_quantity ?? 0}
+                    </TableCell>
                     <TableCell>{(item.total_usage ?? 0).toFixed(2)}</TableCell>
 
                     <TableCell>
@@ -530,7 +562,9 @@ const Inventory = () => {
                           min="0"
                           step="any"
                           value={usageInputs[material.id] || ""}
-                          onChange={(e) => handleUsageInputChange(material.id, e.target.value)}
+                          onChange={(e) =>
+                            handleUsageInputChange(material.id, e.target.value)
+                          }
                           className="w-8 border rounded px-1 py-0.5 text-sm"
                           placeholder="1"
                           disabled={isSubmittingUsage[material.id]}
@@ -539,7 +573,10 @@ const Inventory = () => {
                           size="default"
                           // variant="outline"
                           onClick={() => handleAddUsage(material.id)}
-                          disabled={isSubmittingUsage[material.id] || !usageInputs[material.id]}
+                          disabled={
+                            isSubmittingUsage[material.id] ||
+                            !usageInputs[material.id]
+                          }
                           className=" px-0 text-xl font-bold h-6 bg-transparent text-green-700 hover:bg-green-600 hover:text-white"
                         >
                           {isSubmittingUsage[material.id] ? "..." : "+"}
@@ -547,12 +584,13 @@ const Inventory = () => {
                       </div>
                     </TableCell>
 
-
                     <TableCell>{item.total_damage_quantity ?? 0}</TableCell>
                     <TableCell>{material.minimum_stock}</TableCell>
                     <TableCell>{naira(material.unit_price)}</TableCell>
                     <TableCell>
-                      {naira((material.unit_price ?? 0) * (currentQuantity ?? 0))}
+                      {naira(
+                        (material.unit_price ?? 0) * (currentQuantity ?? 0)
+                      )}
                     </TableCell>
                     <TableCell>
                       <Select
@@ -589,7 +627,6 @@ const Inventory = () => {
                         </SelectContent>
                       </Select>
                     </TableCell>
-                    
                   </TableRow>
                 );
               })}
