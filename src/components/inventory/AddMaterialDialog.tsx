@@ -21,9 +21,9 @@ export const AddMaterialDialog = ({ open, onOpenChange, onSuccess }: AddMaterial
       const { data, error } = await supabase.from("materials").insert([{ ...values }]).select("id").single();
       if (error) throw error;
 
-      const materialId = data.id;
-      const { error: inventoryError } = await supabase.from("inventory").insert([{ material_id: materialId }]);
-      if (inventoryError) throw inventoryError;
+      // const materialId = data.id;
+      // const { error: inventoryError } = await supabase.from("inventory").insert([{ material_id: materialId }]);
+      // if (inventoryError) throw inventoryError;
 
       toast({
         title: "Success",

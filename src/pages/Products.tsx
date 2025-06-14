@@ -429,6 +429,14 @@ const Products = () => {
                   const acrr = {
                     acrr: ((acrrCalc.salesCost + acrrCalc.nSalesCost) / (acrrCalc.sales || 1)) * 100,
                   };
+                  const currentQuantity =
+                    (product.total_quantity || 0) +
+                    (product.total_yield || 0) +
+                    (product.total_transfer_in_quantity || 0) -
+                    (product.total_transfer_out_quantity || 0) -
+                    (product.total_complimentary_quantity || 0) -
+                    (product.total_damage_quantity || 0) -
+                    (product.total_sale_quantity || 0);
 
                   return (
                     <TableRow
@@ -436,7 +444,7 @@ const Products = () => {
                       className={index % 2 === 0 ? "bg-white" : "bg-gray-100"}
                     >
                       <TableCell>{product.product_name}</TableCell>
-                      <TableCell><span className="text-lg font-bold">{(((product.total_quantity || 0) + (product.total_yield || 0) + (product.total_transfer_in_quantity || 0)) - ((product.total_transfer_out_quantity || 0) + (product.total_complimentary_quantity || 0) + (product.total_damage_quantity || 0) + (product.total_sale_quantity || 0))) || 0}</span></TableCell>
+                      <TableCell><span className="text-lg font-bold">{currentQuantity}</span></TableCell>
                       <TableCell>{product.total_quantity || 0}</TableCell>
                       <TableCell>{product.total_yield || 0}</TableCell>
                       <TableCell>

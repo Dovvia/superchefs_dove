@@ -4,8 +4,8 @@
 
 // Setup type definitions for built-in Supabase Runtime APIs
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
-import { serve } from "https://deno.land/std@0.181.0/http/server.ts";
-import { createClient } from "@supabase/supabase-js";
+import { serve } from "jsr:@supabase/functions-js";
+import { createClient } from "jsr:@supabase/supabase-js";
 
 serve(async (_req: Request) => {
   const supabase = createClient(
@@ -68,7 +68,8 @@ serve(async (_req: Request) => {
         .select("id")
         .eq("branch_id", branch.id)
         .eq("material_id", material.id)
-        .eq("date", dateString)
+        .gte("created_at", `${dateString}T00:00:00.000Z`)
+        .lt("created_at", `${dateString}T23:59:59.999Z`)
         .maybeSingle();
 
       if (!existing && !existError) {
