@@ -16,6 +16,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/components/ui/use-toast";
+import { Trash2 } from "lucide-react";
 
 interface InsertProductQuantityDialogProps {
   open: boolean;
@@ -182,9 +183,11 @@ const InsertProductQuantityDialog = ({
                   style={{
                     color: "red",
                     backgroundColor: "transparent",
+                    position: "absolute",
+                    right: "20px",
                   }}
                 >
-                  Remove
+                  <Trash2 className="h-4 w-4" />
                 </Button>
               )}
             </div>
@@ -204,8 +207,8 @@ const InsertProductQuantityDialog = ({
           </Button>
         </div>
 
-        <DialogFooter>
-          <Button variant="destructive" onClick={() => onOpenChange(false)}>
+        <DialogFooter className="gap-4 mt-4">
+          <Button variant="destructive"  onClick={() => onOpenChange(false)}>
             Cancel
           </Button>
           <Button onClick={handleSubmit}>Insert</Button>
