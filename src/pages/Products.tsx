@@ -93,28 +93,28 @@ const Products = () => {
     if (userBranch?.name === "HEAD OFFICE" && selectedBranch === "all") {
       switch (timePeriod) {
         case "today":
-          return "admin_today_product_summary_view";
+          return "admin_product_today_view";
         case "this_week":
-          return "admin_this_week_product_summary_view";
+          return "admin_product_this_week_view";
         case "this_month":
-          return "admin_this_month_product_summary_view";
+          return "admin_product_this_month_view";
         case "this_year":
-          return "admin_this_year_product_summary_view";
+          return "admin_product_this_year_view";
         default:
-          return "admin_today_product_summary_view";
+          return "admin_product_today_view";
       }
     } else {
       switch (timePeriod) {
         case "today":
-          return "branch_today_product_summary_view";
+          return "branch_product_today_view";
         case "this_week":
-          return "branch_this_week_product_summary_view";
+          return "branch_product_this_week_view";
         case "this_month":
-          return "branch_this_month_product_summary_view";
+          return "branch_product_this_month_view";
         case "this_year":
-          return "branch_this_year_product_summary_view";
+          return "branch_product_this_year_view";
         default:
-          return "branch_today_product_summary_view";
+          return "branch_product_today_view";
       }
     }
   };

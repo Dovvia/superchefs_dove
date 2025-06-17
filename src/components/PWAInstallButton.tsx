@@ -97,24 +97,70 @@ const PWAInstallButton = () => {
   if (!isVisible) return null;
 
   return (
-    <button
-      onClick={handleInstall}
-      style={{
+    <>
+      {isVisible && (
+      <div
+        style={{
         position: 'fixed',
-        bottom: '20px',
-        right: '20px',
-        padding: '10px 16px',
-        backgroundColor: '#007bff',
-        color: '#fff',
-        border: 'none',
-        borderRadius: '8px',
-        boxShadow: '0 2px 6px rgba(0,0,0,0.2)',
-        cursor: 'pointer',
-        zIndex: 1000
-      }}
-    >
-      Install App
-    </button>
+        bottom: 0,
+        left: 0,
+        width: '100vw',
+        height: '100vh',
+        background: 'rgba(0,0,0,0.3)',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        zIndex: 2000,
+        }}
+      >
+        <div
+        style={{
+          background: '#fff',
+          padding: '32px 24px',
+          borderRadius: '12px',
+          boxShadow: '0 4px 24px rgba(0,0,0,0.15)',
+          minWidth: '320px',
+          textAlign: 'center',
+        }}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="pwa-install-title"
+        >
+        <h2 id="pwa-install-title" style={{ marginBottom: 16 }}>Install App</h2>
+        <p style={{ marginBottom: 24 }}>Add this app to your home screen for a better experience.</p>
+        <button
+          onClick={handleInstall}
+          style={{
+          padding: '10px 24px',
+          backgroundColor: '#007bff',
+          color: '#fff',
+          border: 'none',
+          borderRadius: '6px',
+          cursor: 'pointer',
+          fontSize: '16px',
+          marginRight: '12px',
+          }}
+        >
+          Install
+        </button>
+        <button
+          onClick={() => setIsVisible(false)}
+          style={{
+          padding: '10px 24px',
+          backgroundColor: '#eee',
+          color: '#333',
+          border: 'none',
+          borderRadius: '6px',
+          cursor: 'pointer',
+          fontSize: '16px',
+          }}
+        >
+          Cancel
+        </button>
+        </div>
+      </div>
+      )}
+    </>
   );
 };
 

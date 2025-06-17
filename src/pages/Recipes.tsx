@@ -267,7 +267,7 @@ const Recipes = () => {
               </Button>
             </DialogClose>
           </DialogHeader>
-          <DialogContent>
+          <DialogContent style={{ height: "80vh", overflowY: "auto" }}>
             <Input
               className="w-2/3"
               value={editingRecipe.name}
