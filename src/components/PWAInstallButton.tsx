@@ -126,7 +126,7 @@ const PWAInstallButton = () => {
         aria-modal="true"
         aria-labelledby="pwa-install-title"
         >
-        <h2 id="pwa-install-title" style={{ marginBottom: 16 }}>Install App</h2>
+        <h2 id="pwa-install-title" style={{ marginBottom: 16, fontWeight: 600 }}>Install App</h2>
         <p style={{ marginBottom: 24 }}>Add this app to your home screen for a better experience.</p>
         <button
           onClick={handleInstall}

@@ -32,6 +32,8 @@ import Settings from "./pages/Settings";
 import Admin from "./pages/Admin";
 import NotFound from "./pages/NotFound";
 import ImprestManagement from "./pages/ImprestManagement";
+import React from "react";
+import IosInstallPrompt from "./components/IosInstallPrompt";
 
 const queryClient = new QueryClient();
 
@@ -41,7 +43,8 @@ function App() {
       <AuthProvider>
         <TooltipProvider>
           <ProductionProvider>
-          <PWAInstallButton />
+            <PWAInstallButton />
+            <IosInstallPrompt />
             <Routes>
               <Route path="/auth" element={<Auth />} />
               <Route
