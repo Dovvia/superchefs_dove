@@ -11,6 +11,7 @@ import { AuthProvider } from "./contexts/AuthContext";
 import { ProductionProvider } from "@/context/ProductionContext";
 
 import PWAInstallButton from "@/components/PWAInstallButton";
+import IosInstallPrompt from "./components/IosInstallPrompt";
 import Layout from "./components/layout/Layout";
 import ProtectedRoute from "./components/ProtectedRoute";
 import RoleProtectedRoute from "./components/RoleProtectedRoute";
@@ -42,6 +43,7 @@ function App() {
         <TooltipProvider>
           <ProductionProvider>
           <PWAInstallButton />
+          <IosInstallPrompt />
             <Routes>
               <Route path="/auth" element={<Auth />} />
               <Route
