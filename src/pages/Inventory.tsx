@@ -566,7 +566,7 @@ const Inventory = () => {
                           onChange={(e) =>
                             handleUsageInputChange(material.id, e.target.value)
                           }
-                          className="w-8 border rounded px-1 py-0.5 text-sm"
+                          className="w-12 border rounded px-1 py-0.5 text-sm"
                           placeholder="1"
                           disabled={isSubmittingUsage[material.id]}
                         />

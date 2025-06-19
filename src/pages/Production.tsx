@@ -258,10 +258,10 @@ const Production = () => {
         <div>
           <Input
             type="text"
-            placeholder="Search by product name"
+            placeholder="Search"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="w-64"
+            className="w-32 md:w-64 lg:w-96"
           />
         </div>
       </div>

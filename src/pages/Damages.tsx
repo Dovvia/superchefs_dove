@@ -129,16 +129,20 @@ const Damages = () => {
   return (
     <div className="space-y-6 p-3 bg-white rounded-lg shadow-md w-full mx-auto margin-100">
       <div className="flex flex-col md:flex-row md:justify-between md:items-center gap-4">
-        <h2 className="text-3xl font-bold tracking-tight">Damages</h2>
-        <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
-            <DialogTrigger asChild id="material damage">
-              <Button>Add Damages</Button>
-            </DialogTrigger>
-            <MaterialDamageDialog
-              onOpenChange={setIsAddDialogOpen}
-              refetch={refetchDamages}
-            />
-          </Dialog>
+        <div className="flex gap-6 justify-between items-end">
+        <h2 className="text-3xl  font-bold tracking-tight">Damages</h2>
+        <h2 className="text-2xl font-semibold">
+          ₦
+          {damages
+            ?.reduce(
+              (acc, damage) =>
+          acc + calculateTotalCost(damage.quantity, damage.material.unit_price),
+              0
+            )
+            .toLocaleString("en-NG", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+        </h2>
+        </div>
+        
 
         <div className="flex gap-3 items-center ">
           {isHeadOffice && (
@@ -168,7 +172,18 @@ const Damages = () => {
           </select>
           
         </div>
+        <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
+            <DialogTrigger asChild id="material damage">
+              <Button>Add Damages</Button>
+            </DialogTrigger>
+            <MaterialDamageDialog
+              onOpenChange={setIsAddDialogOpen}
+              refetch={refetchDamages}
+            />
+          </Dialog>
       </div>
+
+      
 
       <div className="border rounded-lg">
         <Table>
