@@ -93,28 +93,28 @@ const Products = () => {
     if (userBranch?.name === "HEAD OFFICE" && selectedBranch === "all") {
       switch (timePeriod) {
         case "today":
-          return "admin_today_product_summary_view";
+          return "admin_product_today_view";
         case "this_week":
-          return "admin_this_week_product_summary_view";
+          return "admin_product_this_week_view";
         case "this_month":
-          return "admin_this_month_product_summary_view";
+          return "admin_product_this_month_view";
         case "this_year":
-          return "admin_this_year_product_summary_view";
+          return "admin_product_this_year_view";
         default:
-          return "admin_today_product_summary_view";
+          return "admin_product_today_view";
       }
     } else {
       switch (timePeriod) {
         case "today":
-          return "branch_today_product_summary_view";
+          return "branch_product_today_view";
         case "this_week":
-          return "branch_this_week_product_summary_view";
+          return "branch_product_this_week_view";
         case "this_month":
-          return "branch_this_month_product_summary_view";
+          return "branch_product_this_month_view";
         case "this_year":
-          return "branch_this_year_product_summary_view";
+          return "branch_product_this_year_view";
         default:
-          return "branch_today_product_summary_view";
+          return "branch_product_today_view";
       }
     }
   };
@@ -422,12 +422,17 @@ const Products = () => {
                       100,
                   };
                   const acrrCalc = {
-                  salesCost: product.total_cost || 0, 
-                  nSalesCost: (product.total_complimentary_cost || 0) + (product.total_damage_cost || 0),
-                  sales: product.total_sale || 0,
+                    salesCost: product.total_cost || 0,
+                    nSalesCost:
+                      (product.total_complimentary_cost || 0) +
+                      (product.total_damage_cost || 0),
+                    sales: product.total_sale || 0,
                   };
                   const acrr = {
-                    acrr: ((acrrCalc.salesCost + acrrCalc.nSalesCost) / (acrrCalc.sales || 1)) * 100,
+                    acrr:
+                      ((acrrCalc.salesCost + acrrCalc.nSalesCost) /
+                        (acrrCalc.sales || 1)) *
+                      100,
                   };
                   const currentQuantity =
                     (product.total_quantity || 0) +
@@ -444,9 +449,13 @@ const Products = () => {
                       className={index % 2 === 0 ? "bg-white" : "bg-gray-100"}
                     >
                       <TableCell>{product.product_name}</TableCell>
-                      <TableCell><span className="text-lg font-bold">{currentQuantity}</span></TableCell>
+                      <TableCell>
+                        <span className="text-lg font-bold">
+                          {currentQuantity}
+                        </span>
+                      </TableCell>
                       <TableCell>{product.total_quantity || 0}</TableCell>
-                      <TableCell>{product.total_yield || 0}</TableCell>
+                      <TableCell>{product.total_production_quantity || 0}</TableCell>
                       <TableCell>
                         {product.total_transfer_in_quantity || 0}
                       </TableCell>
@@ -459,38 +468,74 @@ const Products = () => {
                       <TableCell>
                         {product.total_damage_quantity || 0}
                       </TableCell>
-                      <TableCell>{product.total_sale_quantity || 0}</TableCell>
+                      <TableCell>{product.total_sales_quantity || 0}</TableCell>
                       <TableCell>
-                        ₦{recipe?.unit_cost.toFixed(2) || 0}
+                        ₦
+                        {typeof recipe?.unit_cost === "number"
+                          ? recipe.unit_cost.toFixed(2)
+                          : "0.00"}
                       </TableCell>
                       <TableCell>
-                        ₦{recipe?.selling_price.toFixed(2) || 0}
+                        ₦
+                        {typeof recipe?.selling_price === "number"
+                          ? recipe.selling_price.toFixed(2)
+                          : "0.00"}
                       </TableCell>
-
-                      <TableCell>₦{product.total_cost.toFixed(2) || 0}</TableCell>
-                      <TableCell><span className="text-yellow-600">₦{(product.total_complimentary_cost + product.total_damage_cost).toFixed(2) || 0}</span></TableCell>
-                      
-                      <TableCell>₦{product.total_sale.toFixed(2) || 0}</TableCell>
                       <TableCell>
-                        {ucrr.ucrr > 75 ? (
-                          <span className="text-red-600">
-                            {ucrr.ucrr.toFixed(2)}%
-                          </span>
+                        ₦
+                        {typeof product.total_cost === "number"
+                          ? product.total_cost.toFixed(2)
+                          : "0.00"}
+                      </TableCell>
+                      <TableCell>
+                        <span className="text-yellow-600">
+                          ₦
+                          {typeof product.total_complimentary_cost ===
+                            "number" &&
+                          typeof product.total_damage_cost === "number"
+                            ? (
+                                product.total_complimentary_cost +
+                                product.total_damage_cost
+                              ).toFixed(2)
+                            : "0.00"}
+                        </span>
+                      </TableCell>
+                      <TableCell>
+                        ₦
+                        {typeof product.total_sale === "number"
+                          ? product.total_sale.toFixed(2)
+                          : "0.00"}
+                      </TableCell>
+                      <TableCell>
+                        {typeof ucrr.ucrr === "number" ? (
+                          ucrr.ucrr > 75 ? (
+                            <span className="text-red-600">
+                              {ucrr.ucrr.toFixed(2)}%
+                            </span>
+                          ) : (
+                            <span className="text-green-600">
+                              {ucrr.ucrr.toFixed(2)}%
+                            </span>
+                          )
                         ) : (
-                          <span className="text-green-600">
-                            {ucrr.ucrr.toFixed(2)}%
-                          </span>
+                          "0.00%"
                         )}
                       </TableCell>
-                      <TableCell>{acrr.acrr > 75 ? (
-                          <span className="text-red-600">
-                            {acrr.acrr.toFixed(2)}%
-                          </span>
+                      <TableCell>
+                        {typeof acrr.acrr === "number" ? (
+                          acrr.acrr > 75 ? (
+                            <span className="text-red-600">
+                              {acrr.acrr.toFixed(2)}%
+                            </span>
+                          ) : (
+                            <span className="text-green-600">
+                              {acrr.acrr.toFixed(2)}%
+                            </span>
+                          )
                         ) : (
-                          <span className="text-green-600">
-                            {acrr.acrr.toFixed(2)}%
-                          </span>
-                        )}</TableCell>
+                          "0.00%"
+                        )}
+                      </TableCell>
                       <TableCell>
                         <Select
                           onValueChange={(value) => {

@@ -25,10 +25,30 @@ import { FormValues, SaleForm } from "@/components/sales/SaleForm";
 import { useToast } from "@/components/ui/use-toast";
 import { format } from "date-fns";
 import { useUserBranch } from "@/hooks/user-branch";
+import {
+  startOfDay,
+  endOfDay,
+  startOfWeek,
+  endOfWeek,
+  startOfMonth,
+  endOfMonth,
+  startOfYear,
+  endOfYear,
+  isWithinInterval,
+} from "date-fns";
+
+const TIME_PERIODS = [
+  { label: "Today", value: "day" },
+  { label: "This Week", value: "week" },
+  { label: "This Month", value: "month" },
+  { label: "This Year", value: "year" },
+];
 
 const Sales = () => {
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [timePeriod, setTimePeriod] = useState("day");
+  const [selectedBranchId, setSelectedBranchId] = useState<string | null>(null);
   const { toast } = useToast();
   const {
     data: { id },
@@ -48,9 +68,25 @@ const Sales = () => {
     },
   });
 
-  const { data: sales, refetch: refetchSales } = useQuery({
-    queryKey: ["sales"],
+  // Fetch all branches if user is HEAD OFFICE
+  const { data: branches } = useQuery({
+    queryKey: ["branches"],
     queryFn: async () => {
+      const { data, error } = await supabase.from("branches").select("*");
+      if (error) throw error;
+      return data;
+    },
+    enabled: id === "HEAD OFFICE",
+  });
+
+  // Determine which branch to use for sales query
+  const branchToUse = id === "HEAD OFFICE" ? selectedBranchId : id;
+
+  // Fetch sales for the selected branch
+  const { data: sales, refetch: refetchSales } = useQuery({
+    queryKey: ["sales", branchToUse],
+    queryFn: async () => {
+      if (!branchToUse) return [];
       const { data, error } = await supabase
         .from("sales")
         .select(
@@ -62,12 +98,13 @@ const Sales = () => {
           )
         `
         )
-        .eq("branch_id", id)
+        .eq("branch_id", branchToUse)
         .order("created_at", { ascending: false });
 
       if (error) throw error;
       return data as Sale[];
     },
+    enabled: !!branchToUse,
   });
 
   const { data: productRecipes } = useQuery({
@@ -143,10 +180,73 @@ const Sales = () => {
     }
   };
 
+  // Filter sales by time period
+  const getPeriodRange = () => {
+    const now = new Date();
+    switch (timePeriod) {
+      case "day":
+        return { start: startOfDay(now), end: endOfDay(now) };
+      case "week":
+        return {
+          start: startOfWeek(now, { weekStartsOn: 1 }),
+          end: endOfWeek(now, { weekStartsOn: 1 }),
+        };
+      case "month":
+        return { start: startOfMonth(now), end: endOfMonth(now) };
+      case "year":
+        return { start: startOfYear(now), end: endOfYear(now) };
+      default:
+        return { start: startOfDay(now), end: endOfDay(now) };
+    }
+  };
+
+  const { start, end } = getPeriodRange();
+
+  const filteredSales = (sales ?? []).filter((sale) =>
+    isWithinInterval(new Date(sale.created_at), { start, end })
+  );
+
   return (
     <div className="space-y-6 p-3 backdrop-blur supports-[backdrop-filter]:bg-background/50 rounded-lg shadow-md w-full mx-auto margin-100">
-      <div className="flex justify-between items-center">
-        <h2 className="text-3xl font-bold tracking-tight">Sales</h2>
+      <div className="flex flex-col md:flex-row md:justify-between md:items-center gap-4">
+        <div className="flex items-center justify-between gap-2">
+          <h2 className="text-3xl font-bold tracking-tight">Sales</h2>
+          <h2 className="text-3xl font-semibold">
+            ₦{filteredSales
+              .reduce((sum, sale) => sum + sale.total_amount, 0)
+              .toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+          </h2>
+          </div>
+          {/* Time period select */}
+          <select
+            className="border rounded px-2 py-1"
+            value={timePeriod}
+            onChange={(e) => setTimePeriod(e.target.value)}
+          >
+            {TIME_PERIODS.map((period) => (
+              <option key={period.value} value={period.value}>
+                {period.label}
+              </option>
+            ))}
+          </select>
+          {/* Branch select for HEAD OFFICE */}
+          {id === "HEAD OFFICE" && (
+            <select
+              className="border rounded px-2 py-1"
+              value={selectedBranchId ?? ""}
+              onChange={(e) => setSelectedBranchId(e.target.value)}
+            >
+              <option value="">Select Branch</option>
+              {branches?.map((branch: any) => (
+                <option key={branch.id} value={branch.id}>
+                  {branch.name}
+                </option>
+              ))}
+            </select>
+          )}
+          
+        {/* </div> */}
+
         <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
           <DialogTrigger asChild>
             <Button>
@@ -165,7 +265,7 @@ const Sales = () => {
               <SaleForm
                 products={products}
                 onSubmit={handleCreateSale}
-                branchId={id}
+                branchId={branchToUse}
               />
             )}
           </DialogContent>
@@ -183,7 +283,7 @@ const Sales = () => {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {sales?.map((sale) => (
+            {filteredSales.map((sale) => (
               <TableRow key={sale.id}>
                 <TableCell>
                   {format(new Date(sale.created_at), "MMM d, yyyy h:mm a")}

@@ -20,6 +20,7 @@ import { Button } from "@/components/ui/button";
 import { Package, Utensils } from "lucide-react";
 import { useUserBranch } from "@/hooks/user-branch";
 import { useProductionContext } from "@/context/ProductionContext";
+import { Input } from "@/components/ui/input"; // If you have a custom Input, else use <input>
 
 interface RecipeMaterial {
   id: string;
@@ -87,6 +88,7 @@ const Production = () => {
   });
 
   const [recipes, setRecipes] = useState<Recipe[]>([]);
+  const [search, setSearch] = useState(""); // <-- Add this
 
   useEffect(() => {
     const fetchProductionData = async () => {
@@ -240,6 +242,11 @@ const Production = () => {
     );
   };
 
+  // Filter recipes by search term (product name)
+  const filteredRecipes = recipes.filter((recipe) =>
+    recipe.product.name.toLowerCase().includes(search.toLowerCase())
+  );
+
   return (
     <div className="space-y-6 p-3 bg-white rounded-lg shadow-md w-full mx-auto margin-100">
       <div className="flex items-center justify-between">
@@ -247,10 +254,20 @@ const Production = () => {
           <Utensils className="h-6 w-6" />
           <h1 className="text-3xl font-bold">Production</h1>
         </div>
+        {/* Search input */}
+        <div>
+          <Input
+            type="text"
+            placeholder="Search"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="w-32 md:w-64 lg:w-96"
+          />
+        </div>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-6">
-        {recipes.map((recipe) => (
+        {filteredRecipes.map((recipe) => (
           <Card key={recipe.id} className="shadow-md">
             <CardHeader>
               <div className="flex items-center gap-2">

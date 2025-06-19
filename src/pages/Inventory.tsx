@@ -43,28 +43,28 @@ const getViewName = (
   if (userBranch?.name === "HEAD OFFICE" && selectedBranch === "Cumulative") {
     switch (timePeriod) {
       case "today":
-        return "admin_material_today_summary_view";
+        return "admin_material_today_view";
       case "this_week":
-        return "admin_material_this_week_summary_view";
+        return "admin_material_this_week_view";
       case "this_month":
-        return "admin_material_monthly_summary_view";
+        return "admin_material_this_month_view";
       case "this_year":
-        return "admin_material_this_year_summary_view";
+        return "admin_material_this_year_view";
       default:
-        return "admin_material_today_summary_view";
+        return "admin_material_today_view";
     }
   } else {
     switch (timePeriod) {
       case "today":
-        return "branch_today_material_summary_view";
+        return "branch_material_today_view";
       case "this_week":
-        return "branch_this_week_material_summary_view";
+        return "branch_material_this_week_view";
       case "this_month":
-        return "branch_monthly_material_summary_view";
+        return "branch_material_this_month_view";
       case "this_year":
-        return "branch_this_year_material_summary_view";
+        return "branch_material_this_year_view";
       default:
-        return "branch_today_material_summary_view";
+        return "branch_material_today_view";
     }
   }
 };
@@ -230,58 +230,6 @@ const Inventory = () => {
     }
   };
 
-  const saveDailyClosingStock = async (dateString: string) => {
-    if (!userBranch?.id) return;
-
-    // Prepare closing stock data for all filtered materials
-    const closingStockData = filteredMaterials?.map((material) => {
-      const item = summaryByMaterialId[material.id] || {};
-      const currentQuantity =
-        (item.total_quantity ?? 0) +
-        (item.total_procurement_quantity ?? 0) +
-        (item.total_transfer_in_quantity ?? 0) -
-        (item.total_transfer_out_quantity ?? 0) -
-        (item.total_usage ?? 0) -
-        (item.total_damage_quantity ?? 0);
-
-      return {
-        material_id: material.id,
-        branch_id: userBranch.id,
-        quantity: currentQuantity,
-        // created_at will be set automatically by the database
-      };
-    });
-
-    // Only insert if not already present for that day/material/branch
-    for (const row of closingStockData) {
-      // Check if a record exists for today
-      const { data: existing, error: fetchError } = await supabase
-        .from("material_closing_stock")
-        .select("id")
-        .eq("material_id", row.material_id)
-        .eq("branch_id", row.branch_id)
-        .gte("created_at", `${dateString}T00:00:00.000Z`)
-        .lt("created_at", `${dateString}T23:59:59.999Z`)
-        .maybeSingle();
-
-      if (!existing && !fetchError) {
-        const { error } = await supabase
-          .from("material_closing_stock")
-          .insert([row]);
-        if (error) {
-          toast({
-            title: "Error",
-            description: error.message,
-            variant: "destructive",
-          });
-        }
-      }
-    }
-    toast({
-      title: "Closing stock saved",
-      description: "Closing stock has been recorded.",
-    });
-  };
 
   if (isLoadingBranch) {
     return (
@@ -305,14 +253,6 @@ const Inventory = () => {
     <div className="space-y-4 p-3 bg-transparent rounded-lg shadow-md w-full mx-auto margin-100">
       <div className="flex justify-between items-center">
         <h2 className="text-3xl font-bold tracking-tight">Inventory</h2>
-        <Button
-          onClick={() =>
-            saveDailyClosingStock(new Date().toISOString().slice(0, 10))
-          }
-          variant="outline"
-        >
-          Save Today's Closing Stock
-        </Button>
       </div>
 
       <div className="flex flex-col sm:flex-row justify-between items-start space-y-4 sm:space-y-0 sm:space-x-4">
@@ -626,7 +566,7 @@ const Inventory = () => {
                           onChange={(e) =>
                             handleUsageInputChange(material.id, e.target.value)
                           }
-                          className="w-8 border rounded px-1 py-0.5 text-sm"
+                          className="w-12 border rounded px-1 py-0.5 text-sm"
                           placeholder="1"
                           disabled={isSubmittingUsage[material.id]}
                         />

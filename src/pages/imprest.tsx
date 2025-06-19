@@ -28,12 +28,31 @@ import { useToast } from "@/hooks/use-toast";
 import { useUserBranch } from "@/hooks/user-branch";
 import { useAuth } from "@/hooks/auth";
 import { FinalizeOrderDialog } from "@/components/ui/finalize-order";
+import {
+  startOfDay,
+  endOfDay,
+  startOfWeek,
+  endOfWeek,
+  startOfMonth,
+  endOfMonth,
+  startOfYear,
+  endOfYear,
+  isWithinInterval,
+} from "date-fns";
+
+const TIME_PERIODS = [
+  { label: "Today", value: "day" },
+  { label: "This Week", value: "week" },
+  { label: "This Month", value: "month" },
+  { label: "This Year", value: "year" },
+];
 
 const Imprest = () => {
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [isAddDialogOpenAccept, setIsAddDialogOpenAccept] = useState(false);
   const [loading, setLoading] = useState(false);
   const [page, setPage] = useState(1);
+  const [timePeriod, setTimePeriod] = useState("day");
   const { selectedItems, handleSelectAll, resetCheck, toggleCheck } =
     useCheck();
   const { toast } = useToast();
@@ -146,11 +165,64 @@ const Imprest = () => {
   const calculateTotalCost = (quantity: number, unitPrice: number) =>
     quantity * unitPrice;
 
+  // Helper to get date range for filter
+  const getPeriodRange = () => {
+    const now = new Date();
+    switch (timePeriod) {
+      case "day":
+        return { start: startOfDay(now), end: endOfDay(now) };
+      case "week":
+        return {
+          start: startOfWeek(now, { weekStartsOn: 1 }),
+          end: endOfWeek(now, { weekStartsOn: 1 }),
+        };
+      case "month":
+        return { start: startOfMonth(now), end: endOfMonth(now) };
+      case "year":
+        return { start: startOfYear(now), end: endOfYear(now) };
+      default:
+        return { start: startOfDay(now), end: endOfDay(now) };
+    }
+  };
+
+  const { start, end } = getPeriodRange();
+
+  const branchId = userBranch?.data?.id;
+
+  // Filter imprests by branch and time period
+  const filteredImprests = branchId
+    ? (data?.imprests ?? []).filter(
+        (imprest) =>
+          String(imprest.branch_id) === String(branchId) &&
+          isWithinInterval(new Date(imprest.created_at), { start, end })
+      )
+    : [];
+
+  if (!branchId) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <span>Loading branch data...</span>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6 p-3 bg-white rounded-lg shadow-md w-full mx-auto margin-100">
       <div className="flex justify-between items-center">
         <h2 className="text-3xl font-bold tracking-tight">Imprests</h2>
         <div className="flex flex-col sm:flex-row justify-between items-center space-y-2 sm:space-y-0 sm:space-x-2">
+          {/* Time period select */}
+          <select
+            className="border rounded px-2 py-1"
+            value={timePeriod}
+            onChange={(e) => setTimePeriod(e.target.value)}
+          >
+            {TIME_PERIODS.map((period) => (
+              <option key={period.value} value={period.value}>
+                {period.label}
+              </option>
+            ))}
+          </select>
           <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
             <DialogTrigger asChild id="imprest-requests">
               <Button disabled={!!selectedItems?.length}>
@@ -245,9 +317,9 @@ const Imprest = () => {
               <TableHead>Status</TableHead>
             </TableRow>
           </TableHeader>
-          {data?.imprests?.length && !isLoading ? (
+          {filteredImprests.length && !isLoading ? (
             <TableBody>
-              {data?.imprests?.map((imprest) => (
+              {filteredImprests.map((imprest) => (
                 <TableRow key={imprest.id}>
                   <TableCell>
                     <input
