@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import capitalize from "lodash/capitalize";
 import { supabase } from "@/integrations/supabase/client";
@@ -50,12 +50,37 @@ const TIME_PERIODS = [
   { label: "This Year", value: "year" },
 ];
 
+// Helper to fetch average weekly usage for a material and branch
+const fetchAverageWeeklyUsage = async (
+  materialId: string,
+  branchId: string
+): Promise<number | null> => {
+  const fourWeeksAgo = new Date(
+    Date.now() - 30 * 24 * 60 * 60 * 1000
+  ).toISOString();
+
+  const { data, error } = await supabase
+    .from("material_usage")
+    .select("quantity")
+    .eq("material_id", materialId)
+    .eq("branch_id", branchId)
+    .gte("created_at", fourWeeksAgo);
+
+  if (error) return null;
+
+  const totalUsage = data?.reduce((sum, row) => sum + (row.quantity || 0), 0) || 0;
+  return totalUsage / 4;
+};
+
 const MaterialRequest = () => {
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [isAddDialogOpenAccept, setIsAddDialogOpenAccept] = useState(false);
   const [page, setPage] = useState(1);
   const [loading, setLoading] = useState(false);
   const [timePeriod, setTimePeriod] = useState("day");
+  const [isMarkBadLoading, setIsMarkBadLoading] = useState(false);
+  const [avgUsageMap, setAvgUsageMap] = useState<Record<string, number>>({});
+  const [avgUsageLoading, setAvgUsageLoading] = useState(false);
   const { selectedItems, handleSelectAll, resetCheck, toggleCheck } =
     useCheck();
   const userBranch = useUserBranch();
@@ -137,31 +162,7 @@ const MaterialRequest = () => {
         .in("material_id", orderReqIds); // Filter all relevant order IDs
 
       if (updateReqError) throw updateReqError;
-
-      // Sequentially update each record
-      for (const item of new_items) {
-        const { data: existingData, error: fetchError } = await supabase
-          .from("inventory")
-          .select("quantity")
-          .eq("material_id", item.material_id)
-          .single();
-
-        if (fetchError) {
-          throw new Error(
-            `Failed to fetch current quantity for ${item.material_id}`
-          );
-        }
-
-        const newQuantity = (existingData?.quantity || 0) + item.quantity;
-        const { error } = await supabase
-          .from("inventory")
-          .update({ procurement: item.quantity, quantity: newQuantity })
-          .eq("material_id", item.material_id);
-
-        if (error) {
-          throw new Error(`Failed to update order ${item.material_id}`);
-        }
-      }
+      // Show success toast
 
       toast({
         title: "Success",
@@ -188,6 +189,44 @@ const MaterialRequest = () => {
       });
     } finally {
       setLoading(false);
+    }
+  };
+
+  // New: Mark selected requests as "rejected" and update all connected tables
+  const handleMarkAsBad = async () => {
+    if (!selectedItems.length) return;
+    setIsMarkBadLoading(true);
+    try {
+      // Update material_requests
+      const { error: mrError } = await supabase
+        .from("material_requests")
+        .update({ status: "rejected" })
+        .in("id", selectedItems);
+
+      if (mrError) throw mrError;
+
+      // Update procurement_orders (if material_request_id is a foreign key)
+      const { error: poError } = await supabase
+        .from("procurement_orders")
+        .update({ status: "rejected" })
+        .in("material_request_id", selectedItems);
+
+      if (poError) throw poError;
+
+      toast({
+        title: "Marked as Rejected",
+        description: "Selected materials have been marked as rejected.",
+      });
+      await refetchMaterialRequests();
+      resetCheck();
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to mark as rejected.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsMarkBadLoading(false);
     }
   };
 
@@ -226,6 +265,55 @@ const MaterialRequest = () => {
       )
     : [];
 
+  // Real-time subscription for material_requests changes
+  useEffect(() => {
+    const channel = supabase
+      .channel("material_requests_changes")
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "material_requests",
+        },
+        (payload) => {
+          // Optionally, you can show a toast or log
+          toast({
+            title: "Material Request Update",
+            description: "A material request has been updated.",
+          });
+          // Refetch data for real-time update
+          refetchMaterialRequests();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [toast, refetchMaterialRequests]);
+
+  // Fetch average weekly usage for all filtered requests
+  useEffect(() => {
+    const fetchAllAvgUsage = async () => {
+      if (!filteredRequests.length) return;
+      setAvgUsageLoading(true);
+      const entries = await Promise.all(
+        filteredRequests.map(async (req) => {
+          const avg = await fetchAverageWeeklyUsage(
+            req.material_id,
+            req.branch_id
+          );
+          return [req.id, avg ?? 0];
+        })
+      );
+      setAvgUsageMap(Object.fromEntries(entries));
+      setAvgUsageLoading(false);
+    };
+    fetchAllAvgUsage();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [filteredRequests.map((r) => r.id).join(",")]);
+
   if (!branchId) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -254,7 +342,7 @@ const MaterialRequest = () => {
           <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
             <DialogTrigger asChild id="edit-material-request">
               <Button disabled={!!selectedItems.length || isLoading}>
-                Make request
+                Request
               </Button>
             </DialogTrigger>
             <MaterialRequestDialog
@@ -269,7 +357,7 @@ const MaterialRequest = () => {
           >
             <DialogTrigger asChild id="procurement order">
               <Button disabled={!selectedItems.length || isLoading}>
-                Accept Order
+                Accept
               </Button>
             </DialogTrigger>
             <FinalizeOrderDialog
@@ -299,6 +387,14 @@ const MaterialRequest = () => {
               onSubmit={handleFinalizeOrder}
             />
           </Dialog>
+          {/* New: Mark as Bad Button */}
+          <Button
+            variant="destructive"
+            disabled={!selectedItems.length || isMarkBadLoading}
+            onClick={handleMarkAsBad}
+          >
+            {isMarkBadLoading ? "Rejecting..." : "Reject"}
+          </Button>
         </div>
       </div>
 
@@ -321,6 +417,7 @@ const MaterialRequest = () => {
                   onChange={() =>
                     handleSelectAll(
                       data?.material_requests,
+                      // Allow selection of "bad" status for re-approval
                       (req) => !["supplied", "pending"].includes(req.status)
                     )
                   }
@@ -339,8 +436,8 @@ const MaterialRequest = () => {
               <TableHead>Branch</TableHead>
               <TableHead>Status</TableHead>
               <TableHead>Date</TableHead>
-              <TableHead>Usage</TableHead>
-              <TableHead>Closing stock</TableHead>
+              <TableHead>Avg/wk</TableHead>
+              {/* <TableHead>Closing stock</TableHead> */}
             </TableRow>
           </TableHeader>
           {filteredRequests.length && !isLoading ? (
@@ -358,6 +455,7 @@ const MaterialRequest = () => {
                       }
                       onChange={() => toggleCheck(material_request.id)}
                       className="h-4 w-4 disabled:cursor-not-allowed"
+                      // Allow editing if status is "rejected" or "approved"
                       disabled={["supplied", "pending"].includes(
                         material_request.status
                       )}
@@ -397,9 +495,15 @@ const MaterialRequest = () => {
                     )}
                   </TableCell>
                   <TableCell>
-                    {material_request?.material?.inventory[0]?.usage.toFixed(2)}
+                    {avgUsageLoading ? (
+                      "Loading..."
+                    ) : avgUsageMap[material_request.id] ? (
+                      avgUsageMap[material_request.id].toFixed(2)
+                    ) : (
+                      "N/A"
+                    )}
                   </TableCell>
-                  <TableCell
+                  {/* <TableCell
                     style={{
                       color:
                         material_request.material?.inventory[0]?.closing_stock <
@@ -409,7 +513,7 @@ const MaterialRequest = () => {
                     }}
                   >
                     {material_request?.material?.inventory[0]?.closing_stock}
-                  </TableCell>
+                  </TableCell> */}
                 </TableRow>
               ))}
             </TableBody>

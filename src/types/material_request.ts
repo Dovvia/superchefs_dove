@@ -4,7 +4,7 @@ export interface MaterialRequest {
   branch_id: string;
   quantity: number;
   user_id: string;
-  status: "pending" | "approved" | "supplied";
+  status: "pending" | "approved" | "supplied" | "rejected";
   created_at: string;
   user: {
     first_name: string;

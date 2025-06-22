@@ -38,13 +38,28 @@ const Procurement = () => {
   }, [toast]);
 
   return (
-    <div className="space-y-6 p-3 bg-white rounded-lg shadow-md w-full mx-auto margin-100">
+    <div className="space-y-6 p-3 bg-transparent rounded-lg shadow-md w-full mx-auto margin-100">
       <h1 className="text-3xl font-bold">Procurement Management</h1>
-      <Tabs defaultValue="requests" className="w-full" >
-        <TabsList>
-          <TabsTrigger value="requests">Material Requests</TabsTrigger>
-          <TabsTrigger value="orders">Procurement Orders</TabsTrigger>
-          <TabsTrigger value="summary">Summary</TabsTrigger>
+      <Tabs defaultValue="requests" className="w-full  ">
+        <TabsList className="bg-white text-black shadow-sm rounded-lg p-1">
+          <TabsTrigger
+            value="requests"
+            className="data-[state=active]:bg-green-600 data-[state=active]:text-white"
+          >
+            Requests
+          </TabsTrigger>
+          <TabsTrigger
+            value="orders"
+            className="data-[state=active]:bg-green-600 data-[state=active]:text-white"
+          >
+            POs
+          </TabsTrigger>
+          <TabsTrigger
+            value="summary"
+            className="data-[state=active]:bg-green-600 data-[state=active]:text-white"
+          >
+            Summary
+          </TabsTrigger>
         </TabsList>
         
         <TabsContent value="requests">

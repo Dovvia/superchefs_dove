@@ -42,21 +42,13 @@ const IosInstallPrompt = () => {
           textAlign: "center",
         }}
       >
-        <h2>Install this app</h2>
+        <h2>Install App</h2>
         <p>
           To install this app on your iPhone/iPad, tap <strong>Share</strong>{" "}
-          <img
-            src="https://upload.wikimedia.org/wikipedia/commons/6/6b/Ios_share_icon.png"
-            alt="Share Icon"
-            style={{ verticalAlign: "middle", width: 24 }}
-          />{" "}
+          {" "}
           and then <strong>Add to Home Screen</strong>.
         </p>
-        <img
-          src="https://developer.apple.com/design/human-interface-guidelines/images/intro/add-to-home-screen_2x.png"
-          alt="Add to Home Screen Example"
-          style={{ width: 60, margin: "1em 0" }}
-        />
+        
         <button
           style={{
             marginTop: "1em",

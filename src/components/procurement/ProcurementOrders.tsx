@@ -51,19 +51,50 @@ export interface MiniProcurementOrderItem {
 
 export interface ProcurementOrder {
   id: string;
-  status: "pending" | "supplied" | "approved";
+  status: "pending" | "supplied" | "approved" | "rejected";
   created_at: string;
   updated_at: string;
   items: ProcurementOrderItem[];
 }
 
+// Helper to get the start and end ISO strings for the selected timeframe
+const getTimeframeRange = (timeframe: "weekly" | "monthly" | "yearly") => {
+  const now = new Date();
+  let start: Date, end: Date;
+
+  if (timeframe === "weekly") {
+    // Week starts on Monday
+    const day = now.getDay();
+    const diffToMonday = (day === 0 ? -6 : 1) - day;
+    start = new Date(now);
+    start.setDate(now.getDate() + diffToMonday);
+    start.setHours(0, 0, 0, 0);
+
+    end = new Date(start);
+    end.setDate(start.getDate() + 6);
+    end.setHours(23, 59, 59, 999);
+  } else if (timeframe === "monthly") {
+    start = new Date(now.getFullYear(), now.getMonth(), 1, 0, 0, 0, 0);
+    end = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999);
+  } else {
+    // yearly
+    start = new Date(now.getFullYear(), 0, 1, 0, 0, 0, 0);
+    end = new Date(now.getFullYear(), 11, 31, 23, 59, 59, 999);
+  }
+
+  return {
+    start: start.toISOString(),
+    end: end.toISOString(),
+  };
+};
+
 const ProcurementOrders = () => {
   const printRef = useRef<HTMLDivElement>(null);
   const [page, setPage] = useState(1);
   const { toast } = useToast();
-  const [statusFilter, setStatusFilter] = useState<"supplied" | "approved">(
-    "supplied"
-  );
+  const [statusFilter, setStatusFilter] = useState<
+    "supplied" | "approved" | "rejected"
+  >("supplied");
   const [timeframe, setTimeframe] = useState<"weekly" | "monthly" | "yearly">(
     "weekly"
   );
@@ -111,9 +142,13 @@ const ProcurementOrders = () => {
         .eq("status", statusFilter);
 
       // Filter by branch if a branch is selected
-      if (selectedBranchId) {
+      if (selectedBranchId && selectedBranchId !== "SELECT") {
         query = query.eq("branch_id", selectedBranchId);
       }
+
+      // Filter by time period
+      const { start, end } = getTimeframeRange(timeframe);
+      query = query.gte("created_at", start).lte("created_at", end);
 
       const { data, error, count } = await query;
       if (error) throw error;
@@ -158,7 +193,7 @@ const ProcurementOrders = () => {
   const loading = isLoading || isFetching;
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-4 bg-white p-6 rounded-lg shadow-md w-full mx-auto">
       <div className="flex justify-between items-center">
         <h2 className="text-2xl font-semibold">Procurement Orders</h2>
         <div className="flex justify-between items-center space-x-4">
@@ -171,7 +206,7 @@ const ProcurementOrders = () => {
         <RadioGroup
           value={statusFilter}
           onValueChange={(value) =>
-            setStatusFilter(value as "supplied" | "approved")
+            setStatusFilter(value as "supplied" | "approved" | "rejected")
           }
           className="flex gap-4"
         >
@@ -187,6 +222,13 @@ const ProcurementOrders = () => {
               Approved
             </label>
           </div>
+          {/* New: Rejected status filter */}
+          <div className="flex items-center space-x-2">
+            <RadioGroupItem value="rejected" id="rejected" />
+            <label htmlFor="rejected" className="text-sm font-medium">
+              Rejected
+            </label>
+          </div>
         </RadioGroup>
 
         {/* Select for Time Period */}
@@ -200,24 +242,22 @@ const ProcurementOrders = () => {
             <SelectValue placeholder="Time Period" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="weekly">Weekly</SelectItem>
-            <SelectItem value="monthly">Monthly</SelectItem>
-            <SelectItem value="yearly">Yearly</SelectItem>
+            <SelectItem value="weekly">This Week</SelectItem>
+            <SelectItem value="monthly">This Month</SelectItem>
+            <SelectItem value="yearly">This Year</SelectItem>
           </SelectContent>
         </Select>
 
         {/* Select for Branch */}
         <Select
-          value={selectedBranchId || "all"}
-          onValueChange={(value) =>
-            setSelectedBranchId(value === "all" ? "" : value)
-          }
+          value={selectedBranchId}
+          onValueChange={(value) => setSelectedBranchId(value)}
         >
           <SelectTrigger className="w-[240px]">
-            <SelectValue placeholder="All Branches" />
+            <SelectValue placeholder="SELECT BRANCH" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="all">All Branches</SelectItem>
+            <SelectItem value="SELECT">SELECT BRANCH</SelectItem>
             {branches?.map((branch) => (
               <SelectItem key={branch.id} value={branch.id}>
                 {branch.name}
@@ -228,39 +268,65 @@ const ProcurementOrders = () => {
       </div>
 
       <div ref={printRef}>
-        {data?.orders?.map((order) => (
-          <div
-            key={order.id}
-            className="flex justify-between mb-4 items-center bg-green-100 p-4 rounded-md shadow-sm"
-          >
-            <h2>
-              Total cost:{" "}
-              {`₦${order.items
-                ?.reduce((itemAcc, item) => {
+        {data?.orders?.length > 0 && (
+            <div className="flex flex-col mb-4 gap-4 bg-green-100 p-4 rounded-md shadow-sm overflow-x-auto relative">
+            {/* Logo positioned top right */}
+            <img
+              src="/superchefs-logo.png"
+              alt="SuperChefs Logo"
+              className="w-10 h-10 absolute top-4 right-4"
+              style={{ zIndex: 10 }}
+            />
+
+            <div className="w-full flex gap-4 justify-start">
+              <p className="text-xl font-bold">
+              {`₦${data.orders
+                .reduce((orderAcc, order) => {
+                return (
+                  orderAcc +
+                  order.items.reduce((itemAcc, item) => {
                   return (
                     itemAcc +
                     item.material_request.quantity *
-                      item.material_request.material.unit_price
+                    item.material_request.material.unit_price
                   );
+                  }, 0)
+                );
                 }, 0)
                 .toLocaleString("en-US", {
-                  minimumSignificantDigits: 2,
-                  maximumFractionDigits: 2,
+                minimumSignificantDigits: 2,
+                maximumFractionDigits: 2,
                 })}`}
-            </h2>
-            <h1>Date: {new Date().toLocaleDateString()}</h1>
-            <h1>Time: {new Date().toLocaleTimeString()}</h1>
-            <p>Branch: {order.items[0]?.material_request?.branch?.name}</p>
-            <p>Manager: {order.items[0]?.material_request?.branch?.manager}</p>
-            <p>Phone: {order.items[0]?.material_request?.branch?.phone}</p>
-            <p>
-              Branch Address:{" "}
-              {order.items[0]?.material_request?.branch?.address}
-            </p>
-          </div>
-        ))}
+              </p>
+              <p>
+              {data.orders[0]?.items[0]?.material_request?.branch?.name ||
+                "N/A"}
+              </p>
+            </div>
 
-        {/* Table for Procurement Orders */}
+            <div className="w-full flex gap-4 justify-start">
+              <p>{new Date().toLocaleDateString()}</p>
+              <p>
+              {data.orders[0]?.items[0]?.material_request?.branch?.manager ||
+                "N/A"}
+              </p>
+            </div>
+
+            <div className="w-full flex gap-4 justify-start">
+              <h1>{new Date().toLocaleTimeString()}</h1>
+              <p>
+              {data.orders[0]?.items[0]?.material_request?.branch?.phone ||
+                "N/A"}
+              </p>
+            </div>
+
+            <div className="w-full flex gap-4 justify-start">
+              {data.orders[0]?.items[0]?.material_request?.branch?.address ||
+              "N/A"}
+            </div>
+            </div>
+        )}
+
         <Table>
           <TableHeader>
             <TableRow>
@@ -270,15 +336,14 @@ const ProcurementOrders = () => {
               <TableHead>Quantity</TableHead>
               <TableHead>Cost</TableHead>
               <TableHead>Branch</TableHead>
-              <TableHead>Date Created</TableHead>
-              <TableHead>Date Updated</TableHead>
+              <TableHead>Date</TableHead>
             </TableRow>
           </TableHeader>
           {data?.orders?.length && !loading ? (
             <TableBody>
               {data.orders.map((order) => (
                 <TableRow key={order.id}>
-                  <TableCell>{order.id}</TableCell>
+                  <TableCell>{order.id.slice(0, 8)}</TableCell>
                   <TableCell>
                     <Badge status={order.status}>{order.status}</Badge>
                   </TableCell>
@@ -301,9 +366,6 @@ const ProcurementOrders = () => {
                   </TableCell>
                   <TableCell>
                     {new Date(order.created_at).toLocaleDateString()}
-                  </TableCell>
-                  <TableCell>
-                    {new Date(order.updated_at).toLocaleDateString()}
                   </TableCell>
                 </TableRow>
               ))}
