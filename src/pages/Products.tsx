@@ -385,6 +385,7 @@ const Products = () => {
                 <TableHead>QTY</TableHead>
                 <TableHead>QC</TableHead>
                 <TableHead>Prod. Stock</TableHead>
+                <TableHead>Usage</TableHead>
                 <TableHead>TRF (In)</TableHead>
                 <TableHead>TRF (Out)</TableHead>
                 <TableHead>CMP</TableHead>
@@ -435,13 +436,15 @@ const Products = () => {
                       100,
                   };
                   const currentQuantity =
+                    (product.total_production_quantity || 0) +
                     (product.total_quantity || 0) +
-                    (product.total_yield || 0) +
+                    (product.opening_stock || 0) +
                     (product.total_transfer_in_quantity || 0) -
+                    (product.total_usage_quantity || 0) -
                     (product.total_transfer_out_quantity || 0) -
                     (product.total_complimentary_quantity || 0) -
                     (product.total_damage_quantity || 0) -
-                    (product.total_sale_quantity || 0);
+                    (product.total_sales_quantity || 0);
 
                   return (
                     <TableRow
@@ -456,6 +459,7 @@ const Products = () => {
                       </TableCell>
                       <TableCell>{product.total_quantity || 0}</TableCell>
                       <TableCell>{product.total_production_quantity || 0}</TableCell>
+                      <TableCell>{product.total_usage_quantity || 0}</TableCell>
                       <TableCell>
                         {product.total_transfer_in_quantity || 0}
                       </TableCell>

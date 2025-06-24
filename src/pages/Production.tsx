@@ -20,13 +20,18 @@ import { Button } from "@/components/ui/button";
 import { Package, Utensils } from "lucide-react";
 import { useUserBranch } from "@/hooks/user-branch";
 import { useProductionContext } from "@/context/ProductionContext";
-import { Input } from "@/components/ui/input"; // If you have a custom Input, else use <input>
+import { Input } from "@/components/ui/input";
 
 interface RecipeMaterial {
+  product_id?: any;
+  product?: {
+    name: string;
+    unit: string;
+  };
   id: string;
-  material_id: string;
+  material_id?: string;
   quantity: number;
-  material: {
+  material?: {
     name: string;
     unit: string;
   };
@@ -70,9 +75,11 @@ const Production = () => {
         product:products(name, id),
         recipe_materials(
           id,
+          product_id,
           material_id,
           quantity,
-          material:materials(name, unit)
+          material:materials(name, unit),
+          product:products(name)
         )
       `);
 
@@ -123,27 +130,50 @@ const Production = () => {
 
         // Insert material usage for each material used
         for (const material of recipe.recipe_materials) {
-          const { error: usageInsertError } = await supabase
-            .from("material_usage")
-            .insert({
-              material_id: material.material_id,
-              branch_id:
-                userBranch &&
-                typeof userBranch === "object" &&
-                "id" in userBranch
-                  ? (userBranch as { id: string }).id
-                  : "Unknown Branch",
-              quantity: material.quantity,
-              // timestamp,
-              // production_id: null,
-            });
+          if (material.material_id && material.material) {
+            // Insert into material_usage
+            const { error: usageInsertError } = await supabase
+              .from("material_usage")
+              .insert({
+                material_id: material.material_id,
+                branch_id:
+                  userBranch &&
+                  typeof userBranch === "object" &&
+                  "id" in userBranch
+                    ? (userBranch as { id: string }).id
+                    : "Unknown Branch",
+                quantity: material.quantity,
+              });
 
-          if (usageInsertError) {
-            console.error(
-              `Error inserting material usage for ${material.material.name}:`,
-              usageInsertError
-            );
-            throw usageInsertError;
+            if (usageInsertError) {
+              console.error(
+                `Error inserting material usage for ${material.material.name}:`,
+                usageInsertError
+              );
+              throw usageInsertError;
+            }
+          } else if (material.product_id && material.product) {
+            // Insert into product_usage
+            const { error: productUsageInsertError } = await supabase
+              .from("product_usage")
+              .insert({
+                product_id: material.product_id,
+                branch_id:
+                  userBranch &&
+                  typeof userBranch === "object" &&
+                  "id" in userBranch
+                    ? (userBranch as { id: string }).id
+                    : "Unknown Branch",
+                quantity: material.quantity,
+              });
+
+            if (productUsageInsertError) {
+              console.error(
+                `Error inserting product usage for ${material.product.name}:`,
+                productUsageInsertError
+              );
+              throw productUsageInsertError;
+            }
           }
         }
 
@@ -295,17 +325,33 @@ const Production = () => {
                   <span>Materials Required</span>
                 </summary>
                 <div className="space-y-2">
-                  {recipe.recipe_materials.map((material) => (
-                    <div
-                      key={material.id}
-                      className="flex justify-between items-center py-1 border-b"
-                    >
-                      <span>{material.material.name}</span>
-                      <span className="text-sm text-muted-foreground">
-                        {material.quantity.toFixed(2)} {material.material.unit}
-                      </span>
-                    </div>
-                  ))}
+                  {recipe.recipe_materials.map((material) => {
+                    let name = "";
+                    let unit = "";
+
+                    if (material.material_id && material.material) {
+                      name = material.material.name;
+                      unit = material.material.unit;
+                    } else if (material.product_id && material.product) {
+                      name = material.product.name;
+                      unit = material.product.unit || "unit";
+                    } else {
+                      name = "Unknown";
+                      unit = "";
+                    }
+
+                    return (
+                      <div
+                        key={material.id}
+                        className="flex justify-between items-center py-1 border-b"
+                      >
+                        <span>{name}</span>
+                        <span className="text-sm text-muted-foreground">
+                          {material.quantity.toFixed(2)} {unit}
+                        </span>
+                      </div>
+                    );
+                  })}
                 </div>
                 <div className="flex justify-end mt-2">
                   <Button

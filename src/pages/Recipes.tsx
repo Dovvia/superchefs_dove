@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import {
   Card,
@@ -17,7 +17,12 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import {Select, SelectTrigger, SelectContent, SelectItem} from "@/components/ui/select";
+import {
+  Select,
+  SelectTrigger,
+  SelectContent,
+  SelectItem,
+} from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Unit } from "@/components/ui/unit";
@@ -26,6 +31,7 @@ import { useToast } from "@/hooks/use-toast";
 interface RecipeMaterial {
   id?: string; // Make id optional for new materials
   material_id: string;
+  product_id?: string;
   quantity: number;
   material: {
     name: string;
@@ -83,7 +89,34 @@ function AddMaterialForm({
     },
   });
 
-  const selectedMaterial = materialsList?.find((m) => m.id === materialId);
+  const { data: productsList } = useQuery({
+    queryKey: ["products"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("products")
+        .select("id, name, price");
+      if (error) throw error;
+      return data as {
+        id: string;
+        name: string;
+        unit: string;
+        price: number;
+      }[];
+    },
+  });
+
+  const allOptions = [
+    ...(materialsList || []).map((m) => ({ ...m, type: "material" })),
+    ...(productsList || []).map((p) => ({
+      id: p.id,
+      name: p.name,
+      unit: p.unit,
+      unit_price: p.price,
+      type: "product",
+    })),
+  ];
+
+  const selectedOption = allOptions.find((o) => o.id === materialId);
 
   return (
     <div className="flex gap-2 items-center mt-4">
@@ -95,14 +128,16 @@ function AddMaterialForm({
         <Select value={materialId} onValueChange={setMaterialId}>
           <SelectTrigger className="border rounded px-2 py-1 w-48">
             {materialId
-              ? materialsList?.find((m) => m.id === materialId)?.name || "Select Material"
-              : "Select Material"}
+              ? selectedOption?.name || "Select Material/Product"
+              : "Select Material/Product"}
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="Select Material">Select Material</SelectItem>
-            {materialsList?.map((m) => (
-              <SelectItem key={m.id} value={m.id}>
-                {m.name}
+            <SelectItem value="Select Material/Product">
+              Select Material/Product
+            </SelectItem>
+            {allOptions.map((o) => (
+              <SelectItem key={o.id} value={o.id}>
+                {o.name} {o.type === "product" ? "(Product)" : ""}
               </SelectItem>
             ))}
           </SelectContent>
@@ -119,21 +154,24 @@ function AddMaterialForm({
       <Button
         size="sm"
         onClick={() => {
-          if (!selectedMaterial || !quantity) return;
+          if (!selectedOption || !quantity) return;
           onAdd({
-            material_id: selectedMaterial.id,
+            material_id:
+              selectedOption.type === "material" ? selectedOption.id : null,
+            product_id:
+              selectedOption.type === "product" ? selectedOption.id : null,
             quantity,
             yield: 1,
             material: {
-              name: selectedMaterial.name,
-              unit: selectedMaterial.unit,
-              unit_price: selectedMaterial.unit_price,
+              name: selectedOption.name,
+              unit: selectedOption.unit,
+              unit_price: selectedOption.unit_price,
             },
           } as RecipeMaterial);
           setMaterialId("");
           setQuantity(1);
         }}
-        disabled={!selectedMaterial}
+        disabled={!selectedOption}
       >
         + Add
       </Button>
@@ -145,7 +183,35 @@ const Recipes = () => {
   const queryClient = useQueryClient();
   const [isCreateRecipeOpen, setIsCreateRecipeOpen] = useState(false);
   const [editingRecipe, setEditingRecipe] = useState<Recipe | null>(null);
+  const [fetchedProducts, setFetchedProducts] = useState<{
+    [id: string]: {
+      price: number;
+      name: string;
+      unit: string;
+    };
+  }>({});
   const { toast } = useToast();
+
+  // Fetch all products for lookup
+  const {
+    data: allProducts,
+    isLoading: isProductsLoading,
+    isError: isProductsError,
+  } = useQuery({
+    queryKey: ["all-products"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("products")
+        .select("id, name, unit, price");
+      if (error) throw error;
+      return data as {
+        id: string;
+        name: string;
+        unit: string;
+        price: number;
+      }[];
+    },
+  });
 
   const {
     data: recipes,
@@ -161,9 +227,11 @@ const Recipes = () => {
           recipe_materials(
             id,
             material_id,
+            product_id,
             quantity,
             yield,
-            material:materials(name, unit, unit_price)
+            material:materials(name, unit, unit_price),
+            product:products(name) 
           )
         `);
 
@@ -208,11 +276,12 @@ const Recipes = () => {
       const materialInserts = updatedRecipe.recipe_materials.map(
         (material) => ({
           recipe_id: updatedRecipe.id,
-          material_id: material.material_id,
+          material_id: material.material_id || null,
+          product_id: material.product_id || null,
           quantity: material.quantity,
           yield: material.yield,
-          material_cost: material.material.unit_price,
-          name: material.material.name,
+          material_cost: material.material?.unit_price ?? 0,
+          name: material.material?.name ?? "",
         })
       );
 
@@ -254,6 +323,22 @@ const Recipes = () => {
     }
   };
 
+  // Helper to get material or product info
+  const getMaterialDisplay = (material: any) => {
+    if (material.material_id && material.material) {
+      return {
+        name: material.material.name,
+        unit: material.material.unit,
+      };
+    } else if (material.product_id && material.product) {
+      return {
+        name: material.product.name,
+        unit: material.product.unit,
+      };
+    }
+    return { name: "Unknown", unit: "" };
+  };
+
   return (
     <div className="space-y-6 p-3 bg-white rounded-lg shadow-md w-full mx-auto margin-100">
       <div className="flex items-center justify-between">
@@ -293,21 +378,27 @@ const Recipes = () => {
               </CardHeader>
               <CardContent>
                 <details>
-                  <summary className="w-1/4 cursor-pointer hover:text-green-700">
-                    <span className="font-medium">Materials</span>
-                  </summary>
+                  <summary className="w-1/4 cursor-pointer hover:text-green-700"></summary>
                   <div className="space-y-2">
-                    {recipe.recipe_materials.map((material) => (
-                      <div
-                        key={material.id}
-                        className="flex justify-between items-center py-1 border-b"
-                      >
-                        <span>{material.material.name}</span>
-                        <span className="text-sm text-muted-foreground">
-                          {material.quantity} {material.material.unit}
-                        </span>
-                      </div>
-                    ))}
+                    {recipe.recipe_materials.map((material) => {
+                      // Use getMaterialDisplay to fetch name/unit for both material and product-as-material
+                      const { name, unit } = getMaterialDisplay(material);
+                      return (
+                        <div
+                          key={
+                            material.id ||
+                            material.material_id ||
+                            material.product_id
+                          }
+                          className="flex justify-between items-center py-1 border-b"
+                        >
+                          <span>{name}</span>
+                          <span className="text-sm text-muted-foreground">
+                            {material.quantity} {unit || "units"}
+                          </span>
+                        </div>
+                      );
+                    })}
                   </div>
                   <div className="flex bg-green-700 items-end justify-center h-5 w-1/2 gap-1 border rounded-md p-0 mt-4 shadow-md">
                     <span className="text-sm text-white">
@@ -353,51 +444,56 @@ const Recipes = () => {
             <div className="mt-4">
               <h2 className="text-lg font-bold">Materials</h2>
               <div className="space-y-2">
-                {editingRecipe.recipe_materials.map((material, idx) => (
-                  <div
-                    key={material.id || idx}
-                    className="flex justify-between bg-gray-100 pl-4 items-center py-1 border-b rounded gap-2"
-                  >
-                    <span>
-                      {material.material.name}{" "}
-                      <Unit unit={material.material.unit} />
-                    </span>
-                    <div className="flex items-end justify-end w-3/4">
-                    <div className="w-1/2">
-                      <Input
-                        type="number"
-                        value={material.quantity}
-                        onChange={(e) =>
-                          setEditingRecipe({
-                            ...editingRecipe,
-                            recipe_materials:
-                              editingRecipe.recipe_materials.map((m, i) =>
-                                i === idx
-                                  ? { ...m, quantity: Number(e.target.value) }
-                                  : m
-                              ),
-                          })
-                        }
-                      />
-                    </div>
-                    <Button
-                      className="bg-transparent text-red-500 hover:bg-transparent hover:text-red-600"
-                      size="sm"
-                      onClick={() => {
-                        setEditingRecipe({
-                          ...editingRecipe,
-                          recipe_materials:
-                            editingRecipe.recipe_materials.filter(
-                              (_, i) => i !== idx
-                            ),
-                        });
-                      }}
+                {editingRecipe.recipe_materials.map((material, idx) => {
+                  const { name, unit } = getMaterialDisplay(material);
+                  return (
+                    <div
+                      key={material.id || idx}
+                      className="flex justify-between bg-gray-100 pl-4 items-center py-1 border-b rounded gap-2"
                     >
-                      <Trash2 className="bg-transparent" />
-                    </Button>
+                      <span>
+                        {name} <Unit unit={unit} />
+                      </span>
+                      <div className="flex items-end justify-end w-3/4">
+                        <div className="w-1/2">
+                          <Input
+                            type="number"
+                            value={material.quantity}
+                            onChange={(e) =>
+                              setEditingRecipe({
+                                ...editingRecipe,
+                                recipe_materials:
+                                  editingRecipe.recipe_materials.map((m, i) =>
+                                    i === idx
+                                      ? {
+                                          ...m,
+                                          quantity: Number(e.target.value),
+                                        }
+                                      : m
+                                  ),
+                              })
+                            }
+                          />
+                        </div>
+                        <Button
+                          className="bg-transparent text-red-500 hover:bg-transparent hover:text-red-600"
+                          size="sm"
+                          onClick={() => {
+                            setEditingRecipe({
+                              ...editingRecipe,
+                              recipe_materials:
+                                editingRecipe.recipe_materials.filter(
+                                  (_, i) => i !== idx
+                                ),
+                            });
+                          }}
+                        >
+                          <Trash2 className="bg-transparent" />
+                        </Button>
+                      </div>
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
               <AddMaterialForm
                 onAdd={(newMaterial) => {
