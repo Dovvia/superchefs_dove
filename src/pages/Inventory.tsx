@@ -318,6 +318,7 @@ const Inventory = () => {
                 const item = summaryByMaterialId[material.id] || {};
                 const currentQuantity =
                   (item.total_quantity ?? 0) +
+                  (item.opening_stock ?? 0) +
                   (item.total_procurement_quantity ?? 0) +
                   (item.total_transfer_in_quantity ?? 0) -
                   (item.total_transfer_out_quantity ?? 0) -
@@ -356,6 +357,7 @@ const Inventory = () => {
                 const item = summaryByMaterialId[material.id] || {};
                 const currentQuantity =
                   (item.total_quantity ?? 0) +
+                  (item.opening_stock ?? 0) +
                   (item.total_procurement_quantity ?? 0) +
                   (item.total_transfer_in_quantity ?? 0) -
                   (item.total_transfer_out_quantity ?? 0) -

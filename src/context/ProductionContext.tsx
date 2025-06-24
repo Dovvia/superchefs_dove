@@ -6,7 +6,7 @@ interface ProductionRecord {
   productName: string;
   yield: number;
   timestamp: string;
-}
+} 
 
 interface ProductionContextType {
   productionData: ProductionRecord[];

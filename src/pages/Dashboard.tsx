@@ -27,11 +27,11 @@ import {
 import { Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
 import { productionData } from "./Production";
 import { useUserBranch } from "@/hooks/user-branch";
 import { useProductionContext } from "@/context/ProductionContext";
 import { Progress } from "@/components/ui/progress";
-
 
 const Dashboard = () => {
   const { data: userBranch, isLoading: isBranchLoading } = useUserBranch() as {
@@ -39,62 +39,90 @@ const Dashboard = () => {
     isLoading: boolean;
   };
   const { productionData } = useProductionContext();
+  const { toast } = useToast();
 
   const [recentProduction, setRecentProduction] = useState([]);
 
+  // Real-time subscription for production table
   useEffect(() => {
-    const fetchRecentProduction = async () => {
-      if (userBranch) {
-        try {
-          let query = supabase
-            .from("production")
-            .select(
-              `
-            id,
-            branch_name,
-            product_name,
-            yield,
-            timestamp
-          `
-            )
-            .order("timestamp", { ascending: false }) // by most recent
-            .limit(20); // last 20 records
-
-          // If the user is not from HEAD OFFICE, filter by branch
-          if (userBranch.name !== "HEAD OFFICE") {
-            query = query.eq("branch_name", userBranch.name);
-          }
-
-          const { data, error } = await query;
-
-          if (error) {
-            console.error("Error fetching recent production data:", error);
-            return;
-          }
-
-          if (!data || data.length === 0) {
-            console.warn("No recent production data found.");
-            setRecentProduction([]);
-            return;
-          }
-
-          const recentData = data.map((item) => ({
-            branch: item.branch_name || "Unknown Branch",
-            productName: item.product_name || "Unknown Product",
-            yield: item.yield || 0,
-            timestamp: item.timestamp || new Date().toISOString(),
-          }));
-
-          setRecentProduction(recentData);
-        } catch (err) {
-          console.error(
-            "Unexpected error fetching recent production data:",
-            err
-          );
+    const channel = supabase
+      .channel("production_changes")
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "production",
+        },
+        (payload) => {
+          toast({
+            title: "Production Update",
+            description: "A production record has been updated.",
+          });
+          // Refetch recent production activities
+          fetchRecentProduction();
         }
-      }
-    };
+      )
+      .subscribe();
 
+    return () => {
+      supabase.removeChannel(channel);
+    };
+    // fetchRecentProduction must be stable or wrapped in useCallback to avoid infinite loop
+  }, [toast, userBranch]);
+
+  // Move fetchRecentProduction outside useEffect so it can be called from subscription
+  const fetchRecentProduction = async () => {
+    if (userBranch) {
+      try {
+        let query = supabase
+          .from("production")
+          .select(
+            `
+          id,
+          branch_name,
+          product_name,
+          yield,
+          timestamp
+        `
+          )
+          .order("timestamp", { ascending: false }) // by most recent
+          .limit(20); // last 20 records
+
+        // If the user is not from HEAD OFFICE, filter by branch
+        if (userBranch.name !== "HEAD OFFICE") {
+          query = query.eq("branch_name", userBranch.name);
+        }
+
+        const { data, error } = await query;
+
+        if (error) {
+          console.error("Error fetching recent production data:", error);
+          return;
+        }
+
+        if (!data || data.length === 0) {
+          console.warn("No recent production data found.");
+          setRecentProduction([]);
+          return;
+        }
+
+        const recentData = data.map((item) => ({
+          branch: item.branch_name || "Unknown Branch",
+          productName: item.product_name || "Unknown Product",
+          yield: item.yield || 0,
+          timestamp: item.timestamp || new Date().toISOString(),
+        }));
+
+        setRecentProduction(recentData);
+      } catch (err) {
+        console.error("Unexpected error fetching recent production data:", err);
+      }
+    }
+  };
+
+  // Update the first useEffect to use fetchRecentProduction
+  useEffect(() => {
     fetchRecentProduction();
   }, [userBranch]);
 

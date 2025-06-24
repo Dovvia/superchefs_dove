@@ -13,15 +13,6 @@ import {
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import PaginationComponent from "@/components/pagination";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { Badge } from "@/components/ui/badge";
 
 const PAGE_LIMIT = 10;
 
@@ -41,36 +32,13 @@ export const PoSummary = () => {
   const printRef = useRef<HTMLDivElement>(null);
   const [page, setPage] = useState(1);
   const { toast } = useToast();
-  const [statusFilter, setStatusFilter] = useState<"supplied" | "approved">(
-    "supplied"
-  );
-  const [timeframe, setTimeframe] = useState<"weekly" | "monthly" | "yearly">(
-    "weekly"
-  );
-  const [selectedBranchId, setSelectedBranchId] = useState<string>("");
 
-  // Fetch branches
-  const { data: branches } = useQuery({
-    queryKey: ["branches"],
-    queryFn: async () => {
-      const { data, error } = await supabase.from("branches").select("*");
-      if (error) throw error;
-      return data;
-    },
-  });
-
-  // Fetch cumulative material requests
+  // Fetch cumulative material requests (no time period filter)
   const { data, isLoading } = useQuery<{
     materials: CumulativeMaterialRequest[];
     hasNextPage: boolean;
   }>({
-    queryKey: [
-      "cumulative_material_requests_view",
-      page,
-      statusFilter,
-      timeframe,
-      selectedBranchId,
-    ],
+    queryKey: ["cumulative_material_requests_view", page],
     queryFn: async () => {
       const from = (page - 1) * PAGE_LIMIT;
       const to = from + PAGE_LIMIT - 1;
@@ -91,11 +59,6 @@ export const PoSummary = () => {
         )
         .order("total_quantity", { ascending: false })
         .range(from, to);
-      // .eq("status", statusFilter);
-
-      if (selectedBranchId) {
-        query = query.eq("branch_id", selectedBranchId);
-      }
 
       const { data, error, count } = await query;
       if (error) throw error;
@@ -138,70 +101,10 @@ export const PoSummary = () => {
   });
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-4 bg-white p-4 rounded-lg shadow-md w-full mx-auto">
       <div className="flex justify-between items-center">
         <h2 className="text-2xl font-semibold">Procurement Orders Summary</h2>
         <Button onClick={() => handlePrint()}>Print Orders</Button>
-      </div>
-
-      <div className="flex flex-wrap gap-4 items-center">
-        {/* Radio Buttons for Status */}
-        <RadioGroup
-          value={statusFilter}
-          onValueChange={(value) =>
-            setStatusFilter(value as "supplied" | "approved")
-          }
-          className="flex gap-4"
-        >
-          <div className="flex items-center space-x-2">
-            <RadioGroupItem value="supplied" id="supplied" />
-            <label htmlFor="supplied" className="text-sm font-medium">
-              Supplied
-            </label>
-          </div>
-          <div className="flex items-center space-x-2">
-            <RadioGroupItem value="approved" id="approved" />
-            <label htmlFor="approved" className="text-sm font-medium">
-              Approved
-            </label>
-          </div>
-        </RadioGroup>
-        {/* Time Period Selector */}
-        <Select
-          value={timeframe}
-          onValueChange={(value) =>
-            setTimeframe(value as "weekly" | "monthly" | "yearly")
-          }
-        >
-          <SelectTrigger className="w-[160px]">
-            <SelectValue placeholder="Time Period" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="weekly">Weekly</SelectItem>
-            <SelectItem value="monthly">Monthly</SelectItem>
-            <SelectItem value="yearly">Yearly</SelectItem>
-          </SelectContent>
-        </Select>
-
-        {/* Branch Selector */}
-        <Select
-          value={selectedBranchId || "all"}
-          onValueChange={(value) =>
-            setSelectedBranchId(value === "all" ? "" : value)
-          }
-        >
-          <SelectTrigger className="w-[240px]">
-            <SelectValue placeholder="All Branches" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All Branches</SelectItem>
-            {branches?.map((branch) => (
-              <SelectItem key={branch.id} value={branch.id}>
-                {branch.name}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
       </div>
 
       <div ref={printRef}>
@@ -226,16 +129,16 @@ export const PoSummary = () => {
           <TableHeader>
             <TableRow>
               <TableHead>Material Name</TableHead>
-              <TableHead>Status</TableHead>
+               <TableHead>Total Requests</TableHead>
               <TableHead>Total Quantity</TableHead>
-              <TableHead>Total Requests</TableHead>
               <TableHead>Unit Price</TableHead>
+              <TableHead>Cost</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {isLoading ? (
               <TableRow>
-                <TableCell colSpan={5} className="text-center">
+                <TableCell colSpan={4} className="text-center">
                   Loading...
                 </TableCell>
               </TableRow>
@@ -247,11 +150,8 @@ export const PoSummary = () => {
                       ? material.materials[0]?.name || "N/A"
                       : material.materials?.name || "N/A"}
                   </TableCell>
-                  <TableCell>
-                    <Badge variant="outline">Approved</Badge>
-                  </TableCell>
-                  <TableCell>{material.total_quantity || 0}</TableCell>
                   <TableCell>{material.total_requests || 0}</TableCell>
+                  <TableCell>{material.total_quantity || 0}</TableCell>
                   <TableCell>
                     ₦
                     {(Array.isArray(material.materials)
@@ -259,11 +159,20 @@ export const PoSummary = () => {
                       : material.materials?.unit_price || 0
                     ).toFixed(2)}
                   </TableCell>
+                  <TableCell >
+                    ₦
+                    {(
+                      (material.total_quantity || 0) *
+                      (Array.isArray(material.materials)
+                        ? material.materials[0]?.unit_price || 0
+                        : material.materials?.unit_price || 0)
+                    ).toFixed(2)}
+                  </TableCell>
                 </TableRow>
               ))
             ) : (
               <TableRow>
-                <TableCell colSpan={5} className="text-center">
+                <TableCell colSpan={4} className="text-center">
                   No materials found.
                 </TableCell>
               </TableRow>

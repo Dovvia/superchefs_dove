@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Edit2Icon } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
@@ -20,6 +20,66 @@ import type { EditRequestFormValues } from "@/types/edit-request";
 import PaginationComponent from "@/components/pagination";
 import { PAGE_LIMIT } from "@/constants";
 import { MaterialRequest } from "@/types/material_request";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+
+// Helper to get the start and end ISO strings for the selected timeframe
+const getTimeframeRange = (timeframe: "weekly" | "monthly" | "yearly") => {
+  const now = new Date();
+  let start: Date, end: Date;
+
+  if (timeframe === "weekly") {
+    // Week starts on Monday
+    const day = now.getDay();
+    const diffToMonday = (day === 0 ? -6 : 1) - day;
+    start = new Date(now);
+    start.setDate(now.getDate() + diffToMonday);
+    start.setHours(0, 0, 0, 0);
+
+    end = new Date(start);
+    end.setDate(start.getDate() + 6);
+    end.setHours(23, 59, 59, 999);
+  } else if (timeframe === "monthly") {
+    start = new Date(now.getFullYear(), now.getMonth(), 1, 0, 0, 0, 0);
+    end = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999);
+  } else {
+    // yearly
+    start = new Date(now.getFullYear(), 0, 1, 0, 0, 0, 0);
+    end = new Date(now.getFullYear(), 11, 31, 23, 59, 59, 999);
+  }
+
+  return {
+    start: start.toISOString(),
+    end: end.toISOString(),
+  };
+};
+
+// Helper to fetch average weekly usage for a material and branch
+const fetchAverageWeeklyUsage = async (
+  materialId: string,
+  branchId: string
+): Promise<number | null> => {
+  const fourWeeksAgo = new Date(
+    Date.now() - 30 * 24 * 60 * 60 * 1000
+  ).toISOString();
+
+  const { data, error } = await supabase
+    .from("material_usage")
+    .select("quantity")
+    .eq("material_id", materialId)
+    .eq("branch_id", branchId)
+    .gte("created_at", fourWeeksAgo);
+
+  if (error) return null;
+
+  const totalUsage = data?.reduce((sum, row) => sum + (row.quantity || 0), 0) || 0;
+  return totalUsage / 4;
+};
 
 const MaterialRequests = () => {
   const { toast } = useToast();
@@ -34,11 +94,24 @@ const MaterialRequests = () => {
   const [page, setPage] = useState(1);
   const [loading, setLoading] = useState(false);
 
+  // Add timeframe state
+  const [timeframe, setTimeframe] = useState<"weekly" | "monthly" | "yearly">(
+    "weekly"
+  );
+
+  // State for average usage
+  const [avgUsageMap, setAvgUsageMap] = useState<Record<string, number>>({});
+  const [avgUsageLoading, setAvgUsageLoading] = useState(false);
+
   const { data, refetch, isLoading } = useQuery({
-    queryKey: ["material-requests", page],
+    queryKey: ["material-requests", page, timeframe],
     queryFn: async () => {
       const from = (page - 1) * PAGE_LIMIT;
       const to = from + PAGE_LIMIT - 1;
+
+      // Get date range for selected timeframe
+      const { start, end } = getTimeframeRange(timeframe);
+
       const { data, error, count } = await supabase
         .from("material_requests")
         .select(
@@ -51,7 +124,8 @@ const MaterialRequests = () => {
         `,
           { count: "exact" }
         )
-        // .eq("status", "pending")
+        .gte("created_at", start)
+        .lte("created_at", end)
         .order("created_at", { ascending: false })
         .range(from, to);
 
@@ -63,6 +137,27 @@ const MaterialRequests = () => {
     },
     placeholderData: (prevData) => prevData,
   });
+
+  // Fetch average weekly usage for all requests on this page
+  useEffect(() => {
+    const fetchAllAvgUsage = async () => {
+      if (!data?.requests?.length) return;
+      setAvgUsageLoading(true);
+      const entries = await Promise.all(
+        data.requests.map(async (req) => {
+          const avg = await fetchAverageWeeklyUsage(
+            req.material_id,
+            req.branch_id
+          );
+          return [req.id, avg ?? 0];
+        })
+      );
+      setAvgUsageMap(Object.fromEntries(entries));
+      setAvgUsageLoading(false);
+    };
+    fetchAllAvgUsage();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [data?.requests?.map((r) => r.id).join(",")]);
 
   const handleEditRequest = async (values: EditRequestFormValues) => {
     try {
@@ -219,7 +314,7 @@ const MaterialRequests = () => {
   };
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-4 bg-white p-4 rounded-lg shadow-md">
       <div className="flex justify-between items-center">
         <h2 className="text-2xl font-semibold">Pending Material Requests</h2>
         <div className="flex flex-col sm:flex-row justify-between items-center space-y-2 sm:space-y-0 sm:space-x-2">
@@ -253,10 +348,29 @@ const MaterialRequests = () => {
         </div>
       </div>
 
+      {/* Time period filter */}
+      <div className="mb-4 flex items-center gap-4">
+        <Select
+          value={timeframe}
+          onValueChange={(value) =>
+            setTimeframe(value as "weekly" | "monthly" | "yearly")
+          }
+        >
+          <SelectTrigger className="w-[160px]">
+            <SelectValue placeholder="Time Period" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="weekly">This Week</SelectItem>
+            <SelectItem value="monthly">This Month</SelectItem>
+            <SelectItem value="yearly">This Year</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
+
       <Table>
         <TableHeader>
-          <TableRow>
-            <TableHead>
+          <TableRow className="w-4 text-center text-bold bg-gray-100">
+            <TableHead >
               <input
                 type="checkbox"
                 checked={selectedItems?.length === data?.requests?.length}
@@ -271,10 +385,10 @@ const MaterialRequests = () => {
             </TableHead>
             <TableHead>Material</TableHead>
             <TableHead>Branch</TableHead>
+            <TableHead>Avg/wk</TableHead>
             <TableHead>Quantity</TableHead>
             <TableHead>Status</TableHead>
-            <TableHead>Date Created</TableHead>
-            <TableHead>Date Updated</TableHead>
+            <TableHead>Date</TableHead>
           </TableRow>
         </TableHeader>
         {data?.requests?.length && !isLoading ? (
@@ -284,17 +398,22 @@ const MaterialRequests = () => {
                 <TableCell>
                   <input
                     type="checkbox"
-                    checked={
-                      selectedItems.includes(request.id) ||
-                      !!request?.orders?.length
-                    }
+                    checked={selectedItems.includes(request.id)}
                     onChange={() => toggleCheck(request.id)}
                     className="h-4 w-4"
-                    disabled={!!request?.orders?.length}
+                    // Only allow selection for "pending" and "rejected" items
+                    disabled={!["pending", "rejected"].includes(request.status)}
                   />
                 </TableCell>
                 <TableCell>{request.material?.name}</TableCell>
                 <TableCell>{request.branch?.name}</TableCell>
+                <TableCell>
+                  {avgUsageLoading
+                    ? "Loading..."
+                    : avgUsageMap[request.id] !== undefined
+                    ? avgUsageMap[request.id].toFixed(2)
+                    : "N/A"}
+                </TableCell>
                 <TableCell>
                   {request.quantity} {request.material?.unit}
                 </TableCell>
@@ -304,16 +423,14 @@ const MaterialRequests = () => {
                 <TableCell>
                   {new Date(request.created_at).toLocaleDateString()}
                 </TableCell>
-                <TableCell>
-                  {new Date(request.updated_at).toLocaleDateString()}
-                </TableCell>
+                
               </TableRow>
             ))}
           </TableBody>
         ) : !data?.requests?.length && !isLoading ? (
           <TableBody>
             <TableRow>
-              <TableCell colSpan={5} className="text-center">
+              <TableCell colSpan={7} className="text-center">
                 No current material requests
               </TableCell>
             </TableRow>
@@ -321,7 +438,7 @@ const MaterialRequests = () => {
         ) : (
           <TableBody>
             <TableRow>
-              <TableCell colSpan={5} className="text-center">
+              <TableCell colSpan={7} className="text-center">
                 Loading, please wait...
               </TableCell>
             </TableRow>

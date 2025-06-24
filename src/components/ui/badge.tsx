@@ -23,8 +23,7 @@ const badgeVariants = cva(
           "border-transparent text-emerald-600 bg-gray-100 hover:bg-gray-200",
         supplied: "border-transparent text-sky-600 bg-gray-100 hover:bg-gray-200",
         received: "border-transparent text-sky-600 bg-gray-100 hover:bg-gray-200",
-        rejected:
-          "border-transparent text-rose-600 bg-rose-100 hover:bg-rose-200",
+        rejected: "border-transparent text-red-600 bg-rose-100 hover:bg-rose-200",
       },
     },
     defaultVariants: {

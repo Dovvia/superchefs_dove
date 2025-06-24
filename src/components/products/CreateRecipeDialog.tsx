@@ -17,9 +17,11 @@ import { useToast } from "@/hooks/use-toast";
 import { Unit } from "../ui/unit";
 import { Trash2 } from "lucide-react";
 
+// Add a type to RecipeMaterial to distinguish between material and product
 interface RecipeMaterial {
   id: string;
-  material_id: string;
+  material_id: string; // for materials
+  product_id?: string; // for products used as materials
   quantity: number;
   material: {
     name: string;
@@ -27,6 +29,7 @@ interface RecipeMaterial {
     unit_price: number;
   };
   yield: number;
+  type: "material" | "product";
 }
 
 interface CreateRecipeDialogProps {
@@ -35,7 +38,7 @@ interface CreateRecipeDialogProps {
   onError: (error: Error) => void;
 }
 
-const CreateRecipeDialog: React.FC<CreateRecipeDialogProps> = ({ 
+const CreateRecipeDialog: React.FC<CreateRecipeDialogProps> = ({
   open,
   onOpenChange,
   onError,
@@ -55,8 +58,18 @@ const CreateRecipeDialog: React.FC<CreateRecipeDialogProps> = ({
         unit_price: 0,
       },
       yield: 0,
+      type: "material",
     },
   ]);
+  const [allMaterialOptions, setAllMaterialOptions] = useState<
+    Array<{
+      id: string;
+      name: string;
+      unit: string;
+      unit_price: number;
+      type: "material" | "product";
+    }>
+  >([]);
 
   const fetchProducts = async () => {
     try {
@@ -68,34 +81,57 @@ const CreateRecipeDialog: React.FC<CreateRecipeDialogProps> = ({
     }
   };
 
-  const fetchMaterials = async () => {
+  // Fetch both materials and products for use as materials
+  const fetchMaterialOptions = async () => {
     try {
-      const { data, error } = await supabase.from("materials").select("*");
-      if (error) throw error;
-      if (data) setMaterials(data);
+      const { data: materialsData, error: materialsError } = await supabase
+        .from("materials")
+        .select("*");
+      const { data: productsData, error: productsError } = await supabase
+        .from("products")
+        .select("*");
+      if (materialsError || productsError)
+        throw materialsError || productsError;
+      const materialOptions = (materialsData || []).map((mat) => ({
+        id: mat.id,
+        name: mat.name,
+        unit: mat.unit,
+        unit_price: mat.unit_price,
+        type: "material" as const,
+      }));
+      const productOptions = (productsData || []).map((prod) => ({
+        id: prod.id,
+        name: prod.name,
+        unit: prod.unit || "", // ensure your products have a unit field, or handle accordingly
+        unit_price: prod.price || 0,
+        type: "product" as const,
+      }));
+      setAllMaterialOptions([...materialOptions, ...productOptions]);
     } catch (error) {
-      console.error("Error fetching materials", error.message);
+      console.error("Error fetching material options", error.message);
     }
   };
 
   useEffect(() => {
     fetchProducts();
-    fetchMaterials();
+    fetchMaterialOptions();
   }, []);
 
   const addMaterialField = () => {
     setSelectedMaterials([
       ...selectedMaterials,
       {
-      id: "",
-      material_id: "",
-      quantity: 0,
-      material: {
-        name: "",
-        unit: "",
-        unit_price: 0,
-      },
-      yield: selectedMaterials[0]?.yield || 0,
+        id: "",
+        material_id: undefined,
+        product_id: undefined,
+        quantity: 0,
+        material: {
+          name: "",
+          unit: "",
+          unit_price: 0,
+        },
+        yield: selectedMaterials[0]?.yield || 0,
+        type: "material",
       },
     ]);
   };
@@ -106,6 +142,7 @@ const CreateRecipeDialog: React.FC<CreateRecipeDialogProps> = ({
     setSelectedMaterials(updatedMaterials);
   };
 
+  // Update handleMaterialChange to handle both types
   const handleMaterialChange = (
     index: number,
     field: keyof RecipeMaterial,
@@ -114,14 +151,21 @@ const CreateRecipeDialog: React.FC<CreateRecipeDialogProps> = ({
     const updatedMaterials = [...selectedMaterials];
 
     if (field === "material_id") {
-      const selectedMaterial = materials.find((mat) => mat.id === value);
-      if (selectedMaterial) {
+      const selectedOption = allMaterialOptions.find((opt) => opt.id === value);
+      if (selectedOption) {
         updatedMaterials[index].material = {
-          ...updatedMaterials[index].material,
-          name: selectedMaterial.name,
-          unit: selectedMaterial.unit,
-          unit_price: selectedMaterial.unit_price,
+          name: selectedOption.name,
+          unit: selectedOption.unit,
+          unit_price: selectedOption.unit_price,
         };
+        updatedMaterials[index].type = selectedOption.type;
+        if (selectedOption.type === "material") {
+          updatedMaterials[index].material_id = selectedOption.id;
+          updatedMaterials[index].product_id = undefined; // <-- use undefined, not ""
+        } else {
+          updatedMaterials[index].product_id = selectedOption.id;
+          updatedMaterials[index].material_id = undefined; // <-- use undefined, not ""
+        }
       }
     }
 
@@ -136,7 +180,7 @@ const CreateRecipeDialog: React.FC<CreateRecipeDialogProps> = ({
       !selectedProduct ||
       selectedMaterials.some(
         (material) =>
-          !material.material_id ||
+          (!material.material_id && !material.product_id) ||
           material.quantity === 0 ||
           material.yield === 0
       )
@@ -145,49 +189,22 @@ const CreateRecipeDialog: React.FC<CreateRecipeDialogProps> = ({
       return;
     }
 
-    const recipeEntries = selectedMaterials
-      .filter(
-        (material) =>
-          material.material_id && material.quantity > 0 && material.yield > 0
-      )
-      .map((material) => {
-        const materialCost =
-          material.material.unit_price * material.quantity || 0;
-        console.log(
-          `Material: ${material.material.name}, Unit Price: ${material.material.unit_price}, Quantity: ${material.quantity}, Material Cost: ${materialCost}`
-        );
-        return {
-          product_id: selectedProduct,
-          material_id: material.material_id,
-          quantity: material.quantity,
-          material_cost: materialCost,
-          yield: material.yield,
-          name: material.material?.name || "",
-        };
-      });
-
-    console.log("Recipe Entries:", recipeEntries);
-    const totalMaterialCost = recipeEntries.reduce(
-      (total, material) => total + material.material_cost,
-      0
-    );
-    console.log("Total Material Cost:", totalMaterialCost);
-
     const selectedProductData = products.find((p) => p.id === selectedProduct);
-    const yields = recipeEntries[0]?.yield || 0;
-    const materialCost = recipeEntries.reduce(
-      (total, material) => total + material.material_cost,
+    const yields = selectedMaterials[0]?.yield || 0;
+    const materialCost = selectedMaterials.reduce(
+      (total, material) =>
+        total + (material.material.unit_price * material.quantity || 0),
       0
     );
     const { error: recipeError } = await supabase
       .from("product_recipes")
       .insert({
-      product_id: selectedProduct,
-      name: `${selectedProductData?.name || "Unknown Product"} Recipe`,
-      yield: yields,
-      material_cost: materialCost,
-      unit_cost: materialCost / yields,
-      selling_price: selectedProductData?.price || 0,
+        product_id: selectedProduct,
+        name: `${selectedProductData?.name || "Unknown Product"} Recipe`,
+        yield: yields,
+        material_cost: materialCost,
+        unit_cost: materialCost / yields,
+        selling_price: selectedProductData?.price || 0,
       });
 
     if (recipeError) {
@@ -218,17 +235,34 @@ const CreateRecipeDialog: React.FC<CreateRecipeDialogProps> = ({
     }
 
     const recipeId = recipeData[0].id;
+
+    // Now map recipeEntries using recipeId
+    const recipeEntries = selectedMaterials
+      .filter(
+        (material) =>
+          (material.material_id || material.product_id) &&
+          material.quantity > 0 &&
+          material.yield > 0
+      )
+      .map((material) => {
+        const materialCost =
+          material.material.unit_price * material.quantity || 0;
+        return {
+          name: material.material?.name || "",
+          recipe_id: recipeId,
+          material_id:
+            material.type === "material" ? material.material_id || null : null,
+          product_id:
+            material.type === "product" ? material.product_id || null : null,
+          quantity: material.quantity,
+          material_cost: materialCost,
+          yield: material.yield,
+        };
+      });
+
     const { error: recipeMaterialsError } = await supabase
       .from("recipe_materials")
-      .insert(
-        recipeEntries.map((material) => ({
-          recipe_id: recipeId,
-          material_id: material.material_id,
-          quantity: material.quantity,
-          material_cost: material.material_cost,
-          yield: material.yield,
-        }))
-      );
+      .insert(recipeEntries);
 
     if (recipeMaterialsError) {
       console.log(
@@ -259,6 +293,7 @@ const CreateRecipeDialog: React.FC<CreateRecipeDialogProps> = ({
           unit_price: 0,
         },
         yield: 0,
+        type: "material",
       },
     ]);
     setSelectedProduct("");
@@ -282,7 +317,9 @@ const CreateRecipeDialog: React.FC<CreateRecipeDialogProps> = ({
               <SelectTrigger>
                 <SelectValue placeholder="Select a product" />
               </SelectTrigger>
-              <SelectContent style={{ zIndex: 1500 }}>
+              <SelectContent
+                style={{ zIndex: 1500, maxHeight: "250px", overflowY: "auto" }}
+              >
                 {products.length > 0 ? (
                   products.map((product) => (
                     <SelectItem key={product.id} value={product.id}>
@@ -308,21 +345,66 @@ const CreateRecipeDialog: React.FC<CreateRecipeDialogProps> = ({
             {selectedMaterials.map((material, index) => (
               <div key={index} className="flex items-center space-x-2">
                 <Select
-                  value={material.material_id}
+                  value={material.material_id || material.product_id || ""}
                   onValueChange={(value) =>
                     handleMaterialChange(index, "material_id", value)
                   }
                   required
                 >
-                  <SelectTrigger >
-                    <SelectValue placeholder="Select a material" />
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select a material or product" />
                   </SelectTrigger>
-                  <SelectContent style={{ zIndex: 1500}}>
-                    {materials.map((mat) => (
-                      <SelectItem key={mat.id} value={mat.id}>
-                        {mat.name} <Unit unit={mat.unit} />
-                      </SelectItem>
-                    ))}
+                  <SelectContent
+                    style={{
+                      zIndex: 1500,
+                      maxHeight: "250px",
+                      overflowY: "auto",
+                    }}
+                  >
+                    {/* Materials label */}
+                    <div
+                      style={{
+                        fontWeight: "bold",
+                        padding: "4px 8px",
+                        position: "sticky",
+                        top: 0,
+                        background: "#fff",
+                        zIndex: 1,
+                      }}
+                    >
+                      Materials
+                    </div>
+                    {allMaterialOptions
+                      .filter((opt) => opt.type === "material")
+                      .map((mat) => (
+                        <SelectItem key={mat.id} value={mat.id}>
+                          {mat.name} <Unit unit={mat.unit} />
+                        </SelectItem>
+                      ))}
+                    {/* Products label */}
+                    <div
+                      style={{
+                        fontWeight: "bold",
+                        padding: "4px 8px",
+                        position: "sticky",
+                        top: 0,
+                        background: "#fff",
+                        zIndex: 1,
+                      }}
+                    >
+                      Products
+                    </div>
+                    {allMaterialOptions
+                      .filter((opt) => opt.type === "product")
+                      .map((prod) => (
+                        <SelectItem
+                          className="bg-gray-200"
+                          key={prod.id}
+                          value={prod.id}
+                        >
+                          {prod.name}
+                        </SelectItem>
+                      ))}
                   </SelectContent>
                 </Select>
 

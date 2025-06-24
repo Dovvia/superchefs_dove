@@ -248,7 +248,7 @@ export type Database = {
           material_id: string;
           notes: string | null;
           quantity: number;
-          status: "pending" | "approved" | "supplied";
+          status: "pending" | "approved" | "supplied" | "rejected";
         };
         Insert: {
           branch_id: string;
@@ -259,7 +259,7 @@ export type Database = {
           material_id: string;
           notes?: string | null;
           quantity: number;
-          status?: "pending" | "approved" | "supplied";
+          status?: "pending" | "approved" | "supplied" | "rejected";
         };
         Update: {
           branch_id?: string;
@@ -270,7 +270,7 @@ export type Database = {
           material_id?: string;
           notes?: string | null;
           quantity?: number;
-          status?: "pending" | "approved" | "supplied";
+          status?: "pending" | "approved" | "supplied" | "rejected";
         };
         Relationships: [
           {
@@ -602,7 +602,7 @@ export type Database = {
           material_request_id: string;
           branch_id: string;
           notes: string | null;
-          status: "pending" | "approved" | "supplied";
+          status: "pending" | "approved" | "supplied" | "rejected";
           updated_at: string;
         };
         Insert: {
@@ -611,7 +611,7 @@ export type Database = {
           material_request_id?: string;
           branch_id?: string;
           notes?: string | null;
-          status?: "pending" | "approved" | "supplied";
+          status?: "pending" | "approved" | "supplied" | "rejected";
           updated_at?: string;
         };
         Update: {
@@ -620,7 +620,7 @@ export type Database = {
           material_request_id?: string;
           branch_id?: string;
           notes?: string | null;
-          status?: "pending" | "approved" | "supplied";
+          status?: "pending" | "approved" | "supplied" | "rejected";
           updated_at?: string;
         };
         Relationships: [];
