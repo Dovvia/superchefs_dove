@@ -3,7 +3,7 @@ import { useAuth } from "@/hooks/auth";
 
 interface RoleProtectedRouteProps {
   children: React.ReactNode;
-  allowedRoles: Array<"admin" | "staff" | "manager">;
+  allowedRoles: Array<"admin" | "staff" | "manager" | "baker" | "cook" | "sales_rep" | "procurement" | "quality_control" | "accountant">;
 }
 
 const RoleProtectedRoute = ({
@@ -24,7 +24,7 @@ const RoleProtectedRoute = ({
   const hasRequiredRole = Array.isArray(userRoles)
     ? userRoles.some((role) => allowedRoles.includes(role))
     : allowedRoles.includes(
-        userRoles as unknown as "admin" | "staff" | "manager"
+        userRoles as unknown as "admin" | "staff" | "manager" | "baker" | "cook" | "sales_rep" | "procurement" | "quality_control" | "accountant"
       );
   if (!hasRequiredRole) {
     return <Navigate to="/" replace />;

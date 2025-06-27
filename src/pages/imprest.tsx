@@ -27,7 +27,7 @@ import { useCheck } from "@/hooks/use-check";
 import { useToast } from "@/hooks/use-toast";
 import { useUserBranch } from "@/hooks/user-branch";
 import { useAuth } from "@/hooks/auth";
-import { FinalizeOrderDialog } from "@/components/ui/finalize-order";
+import { FinalizeOrderDialog } from "@/components/ui/finalize-imprest";
 import {
   startOfDay,
   endOfDay,
@@ -104,6 +104,10 @@ const Imprest = () => {
         unit: x?.unit,
         imprest_order_id: x?.order_id,
         user_id: user?.id,
+        cost: calculateTotalCost(
+          Number(x?.quantity),
+          Number(x?.unit_price ?? 0)
+        ),
       }));
 
       // Get all imprest order IDs that need to be updated
@@ -210,6 +214,16 @@ const Imprest = () => {
     <div className="space-y-6 p-3 bg-white rounded-lg shadow-md w-full mx-auto margin-100">
       <div className="flex justify-between items-center">
         <h2 className="text-3xl font-bold tracking-tight">Imprests</h2>
+        <h2 className="text-2xl font-bold tracking-tight">
+          ₦
+          {filteredImprests
+            .reduce(
+              (acc, imprest) =>
+          acc + calculateTotalCost(imprest.quantity, imprest.unit_price),
+              0
+            )
+            .toLocaleString()}
+        </h2>
         <div className="flex flex-col sm:flex-row justify-between items-center space-y-2 sm:space-y-0 sm:space-x-2">
           {/* Time period select */}
           <select
@@ -262,6 +276,7 @@ const Imprest = () => {
                           name: imprest?.name,
                           quantity: String(imprest?.quantity),
                           unit: imprest?.unit,
+                          unit_price: imprest?.unit_price,
                         }
                       : null;
                   })

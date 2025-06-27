@@ -1,14 +1,29 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { MapPin, Building } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
+// import { useUserBranch } from "@/hooks/user-branch";
+// import { useAuth } from "@/hooks/auth";
 
 type Branch = {
   id: number;
@@ -124,6 +139,7 @@ const Branches = () => {
       return fetchedBranches || [];
     },
   });
+  const queryClient = useQueryClient();
 
   const [branches, setBranches] = useState<Branch[]>([]);
   const [selectedBranch, setSelectedBranch] = useState<Branch | null>(null);
@@ -173,10 +189,9 @@ const Branches = () => {
       return;
     }
 
-    const updatedBranches = branches.map((branch) =>
-      branch.id === selectedBranch.id ? (updatedBranch as Branch) : branch
-    );
-    setBranches(updatedBranches);
+    // Invalidate the branches query to refetch fresh data
+    queryClient.invalidateQueries({ queryKey: ["branches"] });
+
     setSelectedBranch(null);
     toast.success("Branch updated successfully");
   };
@@ -187,7 +202,10 @@ const Branches = () => {
         <h1 className="text-3xl font-bold">Branches</h1>
         <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
           <DialogTrigger asChild>
-            <Button className="flex items-center gap-2" onClick={() => setIsDialogOpen(true)}>
+            <Button
+              className="flex items-center gap-2"
+              onClick={() => setIsDialogOpen(true)}
+            >
               <Building className="w-4 h-4" />
               Add Branch
             </Button>
@@ -196,13 +214,17 @@ const Branches = () => {
             <DialogHeader>
               <DialogTitle>Add New Branch</DialogTitle>
             </DialogHeader>
-            <BranchForm onSubmit={handleAddBranch} title="Add New Branch" onClose={() => setIsDialogOpen(false)} />
+            <BranchForm
+              onSubmit={handleAddBranch}
+              title="Add New Branch"
+              onClose={() => setIsDialogOpen(false)}
+            />
           </DialogContent>
         </Dialog>
       </div>
 
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-        {branches.map((branch) => (
+        {branches.filter(Boolean).map((branch) => (
           <Card key={branch.id} className="hover:shadow-lg transition-shadow">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-xl font-bold">{branch.name}</CardTitle>
@@ -215,47 +237,51 @@ const Branches = () => {
                   <span className="text-sm">{branch.address}</span>
                 </div>
                 <div className="space-y-1">
-                  <p className="text-sm font-medium">Manager: {branch.manager}</p>
+                  <p className="text-sm font-medium">
+                    Manager: {branch.manager}
+                  </p>
                   <p className="text-sm text-muted-foreground">
                     Phone: {branch.phone}
                   </p>
                 </div>
                 <div className="flex gap-2 mt-4">
-                    <Dialog open={isEditDialogOpen && selectedBranch?.id === branch.id} onOpenChange={(isOpen) => {
-                    if (!isOpen) {
-                      setSelectedBranch(null);
-                    }
-                    setIsEditDialogOpen(isOpen);
-                    }}>
+                  <Dialog
+                    open={isEditDialogOpen && selectedBranch?.id === branch.id}
+                    onOpenChange={(isOpen) => {
+                      if (!isOpen) {
+                        setSelectedBranch(null);
+                      }
+                      setIsEditDialogOpen(isOpen);
+                    }}
+                  >
                     <DialogTrigger asChild>
                       <Button
-                      variant="outline"
-                      size="sm"
-                      className="flex-1"
-                      onClick={() => {
-                        setSelectedBranch(branch);
-                        setIsEditDialogOpen(true);
-                      }} 
-                      disabled
+                        variant="outline"
+                        size="sm"
+                        className="flex-1"
+                        onClick={() => {
+                          setSelectedBranch(branch);
+                          setIsEditDialogOpen(true);
+                        }}
                       >
-                      Edit
+                        Edit
                       </Button>
                     </DialogTrigger>
                     <DialogContent>
                       <DialogHeader>
-                      <DialogTitle>Edit Branch</DialogTitle>
+                        <DialogTitle>Edit Branch</DialogTitle>
                       </DialogHeader>
                       <BranchForm
-                      onSubmit={handleEditBranch}
-                      initialData={branch}
-                      title="Edit Branch"
-                      onClose={() => {
-                        setSelectedBranch(null);
-                        setIsEditDialogOpen(false);
-                      }}
+                        onSubmit={handleEditBranch}
+                        initialData={branch}
+                        title="Edit Branch"
+                        onClose={() => {
+                          setSelectedBranch(null);
+                          setIsEditDialogOpen(false);
+                        }}
                       />
                     </DialogContent>
-                    </Dialog>
+                  </Dialog>
                   <Dialog>
                     <DialogTrigger asChild>
                       <Button variant="secondary" size="sm" className="flex-1">

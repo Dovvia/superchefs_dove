@@ -36,7 +36,7 @@ const ImprestManagement = () => {
   }, [toast]);
 
   return (
-    <div className="space-y-6 p-3 bg-white rounded-lg shadow-md w-full mx-auto margin-100">
+    <div className="space-y-6 p-3 bg-transparent rounded-lg shadow-md w-full mx-auto margin-100">
       <h1 className="text-3xl font-bold">Imprest Management</h1>
 
       <Tabs defaultValue="requests" className="w-full">

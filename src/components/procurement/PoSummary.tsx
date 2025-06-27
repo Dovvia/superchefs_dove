@@ -156,7 +156,7 @@ export const PoSummary = () => {
                     ₦
                     {(Array.isArray(material.materials)
                       ? material.materials[0]?.unit_price || 0
-                      : material.materials?.unit_price || 0
+                      : material.materials?.unit_price || 0 
                     ).toFixed(2)}
                   </TableCell>
                   <TableCell >

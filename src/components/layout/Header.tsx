@@ -43,7 +43,6 @@ const Header = ({ onMenuClick }: HeaderProps) => {
           {session && userBranch?.id && (
             <NotificationBell branchId={userBranch.id} />
           )}
-          {/* <NotificationBell /> */}
           {session && <UserMenu />}
         </div>
       </div>

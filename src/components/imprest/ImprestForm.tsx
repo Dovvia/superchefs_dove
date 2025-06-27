@@ -59,8 +59,8 @@ const ImprestForm = ({ onSubmit, isLoading, onCancel }: ImprestFormProps) => {
           const quantity = form.watch(`items.${index}.quantity`) || 0;
           const unit_price = form.watch(`items.${index}.unit_price`) || 0;
           return (
-            <div className="flex grid-cols-2 gap-4" key={index}>
-              <FormItem className="flex-auto w-[60%]">
+            <div className="flex gap-2" key={index}>
+              <FormItem >
                 <FormControl>
                   <Input
                     placeholder="Item"
@@ -73,7 +73,7 @@ const ImprestForm = ({ onSubmit, isLoading, onCancel }: ImprestFormProps) => {
               <FormItem className="flex-initial">
                 <FormControl>
                   <Input
-                    placeholder="Unit (kg)"
+                    placeholder="(kg)"
                     type="text"
                     {...form.register(`items.${index}.unit`)}
                   />
@@ -83,7 +83,7 @@ const ImprestForm = ({ onSubmit, isLoading, onCancel }: ImprestFormProps) => {
               <FormItem className="flex-initial">
                 <FormControl>
                   <Input
-                    placeholder="Unit Price"
+                    placeholder="₦"
                     type="number"
                     {...form.register(`items.${index}.unit_price`)}
                   />
@@ -112,13 +112,12 @@ const ImprestForm = ({ onSubmit, isLoading, onCancel }: ImprestFormProps) => {
                 <FormMessage />
               </FormItem>
               <Button
-                type="button"
-                variant="destructive"
                 size="sm"
+                style={{ position: "relative", top: "8px", right: "30px", width: "20px", height: "20px", backgroundColor: "transparent" }}
                 className="mt-0.5"
                 onClick={() => removeItem(index)}
               >
-                <Trash2 className="h-4 w-4" />
+                <Trash2 className="h-2 w-2 text-destructive" />
               </Button>
             </div>
           );
