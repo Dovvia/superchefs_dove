@@ -52,4 +52,5 @@ export interface MiniImprestOrderItem {
   quantity: string;
   name: string;
   unit: string;
+  unit_price: number;
 }

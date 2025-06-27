@@ -29,6 +29,7 @@ export const MaterialDamageDialog = ({
     reason: string;
     branch: string;
     user: string;
+    cost: number;
   }) => {
     if (!values.branch) {
       toast({
@@ -41,13 +42,30 @@ export const MaterialDamageDialog = ({
 
     try {
       setIsLoading(true);
+
+      // Fetch unit_price for the selected material
+      const { data: materialData, error: materialError } = await supabase
+        .from("materials")
+        .select("unit_price")
+        .eq("id", values.material)
+        .single();
+
+      if (materialError || !materialData) {
+        throw materialError || new Error("Material not found");
+      }
+
+      const unitPrice = Number(materialData.unit_price) || 0;
+      const quantity = Number(values.quantity) || 0;
+      const cost = unitPrice * quantity;
+
       const { error } = await supabase.from("damaged_materials").insert([
         {
-          material_id: values?.material,
-          branch_id: values?.branch,
-          user_id: values?.user,
-          quantity: Number(values?.quantity),
-          reason: values?.reason,
+          material_id: values.material,
+          branch_id: values.branch,
+          user_id: values.user,
+          quantity,
+          reason: values.reason,
+          cost, // Always calculated
         },
       ]);
       if (error) throw error;

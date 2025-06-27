@@ -25,6 +25,37 @@ import {
 } from "@/components/ui/select";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 
+function getTimeframeRange(timeframe: "weekly" | "monthly" | "yearly") {
+  const now = new Date();
+  let start: Date;
+  let end: Date = new Date(now);
+
+  if (timeframe === "weekly") {
+    // Monday as the first day of the week
+    const day = now.getDay();
+    const diffToMonday = (day === 0 ? -6 : 1) - day; // Sunday (0) => -6, Monday (1) => 0, etc.
+    start = new Date(now);
+    start.setDate(now.getDate() + diffToMonday);
+    start.setHours(0, 0, 0, 0);
+
+    end = new Date(start);
+    end.setDate(start.getDate() + 6);
+    end.setHours(23, 59, 59, 999);
+  } else if (timeframe === "monthly") {
+    start = new Date(now.getFullYear(), now.getMonth(), 1, 0, 0, 0, 0);
+    end = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999);
+  } else {
+    // yearly
+    start = new Date(now.getFullYear(), 0, 1, 0, 0, 0, 0);
+    end = new Date(now.getFullYear(), 11, 31, 23, 59, 59, 999);
+  }
+
+  return {
+    start: start.toISOString(),
+    end: end.toISOString(),
+  };
+}
+
 const ImprestOrders = () => {
   const printRef = useRef<HTMLDivElement>(null);
   const [page, setPage] = useState(1);
@@ -83,6 +114,9 @@ const ImprestOrders = () => {
         query = query.eq("branch_id", selectedBranchId);
       }
 
+      const { start, end } = getTimeframeRange(timeframe);
+      query = query.gte("created_at", start).lte("created_at", end);
+
       const { data, error, count } = await query;
       if (error) throw error;
 
@@ -126,7 +160,7 @@ const ImprestOrders = () => {
   const loading = isLoading || isFetching;
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-4 bg-white p-4 rounded-lg shadow-md">
       <div className="flex justify-between items-center">
         <h2 className="text-2xl font-semibold">Imprest Orders</h2>
         <div className="flex justify-between items-center space-x-4">
@@ -169,9 +203,9 @@ const ImprestOrders = () => {
             <SelectValue placeholder="Time Period" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="weekly">Weekly</SelectItem>
-            <SelectItem value="monthly">Monthly</SelectItem>
-            <SelectItem value="yearly">Yearly</SelectItem>
+            <SelectItem value="weekly">This week</SelectItem>
+            <SelectItem value="monthly">This month</SelectItem>
+            <SelectItem value="yearly">This year</SelectItem>
           </SelectContent>
         </Select>
 
@@ -198,111 +232,102 @@ const ImprestOrders = () => {
       </div>
 
       <div ref={printRef}>
-        {data?.orders?.map((order) => (
-          <div
-            key={order.id}
-            className="flex justify-between mb-4 items-center bg-green-100 p-4 rounded-md shadow-sm"
-          >
-            <h2>
-              Total cost:{" "}
-              {`₦${order.items
-                ?.reduce((itemAcc, item) => {
-                  return (
-                    itemAcc + item.imprest.quantity * item.imprest.unit_price
-                  );
-                }, 0)
-                .toLocaleString("en-US", {
-                  minimumSignificantDigits: 2,
-                  maximumFractionDigits: 2,
-                })}`}
-            </h2>
-            <h1>Date: {new Date().toLocaleDateString()}</h1>
-            <h1>Time: {new Date().toLocaleTimeString()}</h1>
-            <p>Branch: {order.items[0]?.imprest?.branch?.name}</p>
-            <p>Manager: {order.items[0]?.imprest?.branch?.manager}</p>
-            <p>Phone: {order.items[0]?.imprest?.branch?.phone}</p>
-            <p>Branch Address: {order.items[0]?.imprest?.branch?.address}</p>
+        {data?.orders?.length > 0 && (
+          <div className="flex flex-col mb-4 gap-4 bg-green-100 p-4 rounded-md shadow-sm overflow-x-auto relative">
+            {/* Logo positioned top right */}
+            <img
+              src="/superchefs-logo.png"
+              alt="SuperChefs Logo"
+              className="w-10 h-10 absolute top-4 right-4"
+              style={{ zIndex: 10 }}
+            />
+
+            <div className="w-full flex gap-4 justify-start items-center">
+              <p className="text-xl font-bold">
+                {`₦${data.orders
+                  .reduce((orderAcc, order) => {
+                    return (
+                      orderAcc +
+                      order.items.reduce((itemAcc, item) => {
+                        return (
+                          itemAcc +
+                          item.imprest.quantity * item.imprest.unit_price
+                        );
+                      }, 0)
+                    );
+                  }, 0)
+                  .toLocaleString("en-US", {
+                    minimumSignificantDigits: 2,
+                    maximumFractionDigits: 2,
+                  })}`}
+              </p>
+              <p>{data.orders[0]?.items[0]?.imprest?.branch?.name || "N/A"}</p>
+            </div>
+
+            <div className="w-full flex gap-4 justify-start">
+              <p>{data.orders[0]?.items[0]?.imprest?.branch?.phone || "N/A"}</p>
+              <p>
+                {data.orders[0]?.items[0]?.imprest?.branch?.manager || "N/A"}
+              </p>
+            </div>
+
+            <div className="w-full flex gap-4 justify-start">
+              {/* <h1>{new Date().toLocaleTimeString()}</h1> */}
+              
+            </div>
           </div>
-        ))}
+        )}
 
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>
-                <input
-                  type="checkbox"
-                  checked={true}
-                  className="h-4 w-4 disabled:cursor-not-allowed"
-                  disabled={true}
-                />
-              </TableHead>
               <TableHead>Order ID</TableHead>
               <TableHead>Status</TableHead>
               <TableHead>Name</TableHead>
               <TableHead>Quantity</TableHead>
+              <TableHead>Cost</TableHead>
               <TableHead>Branch</TableHead>
-              <TableHead>Date Created</TableHead>
-              <TableHead>Date Updated</TableHead>
+              <TableHead>Date</TableHead>
             </TableRow>
           </TableHeader>
           {data?.orders?.length && !loading ? (
             <TableBody>
-              {data?.orders?.map((order) => (
-                <TableRow key={order?.id}>
-                  <TableCell>
-                    <input
-                      type="checkbox"
-                      checked={true}
-                      className="h-4 w-4 disabled:cursor-not-allowed"
-                      disabled={true}
-                    />
-                  </TableCell>
-                  <TableCell>{order?.id}</TableCell>
-                  <TableCell>
-                    <Badge status={order?.status}>{order?.status}</Badge>
-                  </TableCell>
-                  {/* <TableCell>
-                    <ul className="list-disc list-inside">
-                      {order.items?.map((item) => (
-                        <li key={item.id}>
-                          {capitalize(item?.imprest?.name)} -{" "}
-                          {item?.imprest?.quantity} {item?.imprest?.unit} for{" "}
-                          {item?.imprest?.branch?.name}
-                        </li>
-                      ))}
-                    </ul>
-                  </TableCell> */}
-                  <TableCell className="capitalize">
-                    {order?.items[0]?.imprest?.name}
-                  </TableCell>
-                  <TableCell>{`${
-                    order?.items[0]?.imprest?.quantity
-                  } (${order?.items[0]?.imprest?.unit?.toLowerCase()})`}</TableCell>
-                  <TableCell>
-                    {order?.items[0]?.imprest?.branch?.name}
-                  </TableCell>
-                  <TableCell>
-                    {new Date(order?.created_at).toLocaleDateString()}
-                  </TableCell>
-                  <TableCell>
-                    {new Date(order?.updated_at).toLocaleDateString()}
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          ) : !data?.orders?.length && !loading ? (
-            <TableBody>
-              <TableRow>
-                <TableCell colSpan={5} className="text-center">
-                  No imprest order
-                </TableCell>
-              </TableRow>
+              {data.orders.map((order) =>
+                order.items.map((item, idx) => (
+                  <TableRow key={order.id + "-" + idx}>
+                    <TableCell>{order.id.slice(0, 8)}</TableCell>
+                    <TableCell>
+                      <Badge status={order.status}>{order.status}</Badge>
+                    </TableCell>
+                    <TableCell className="capitalize">
+                      {item.imprest?.name}
+                    </TableCell>
+                    <TableCell>
+                      {item.imprest?.quantity} {item.imprest?.unit}
+                    </TableCell>
+                    <TableCell>
+                      ₦
+                      {(
+                        (item.imprest?.quantity || 0) *
+                        (item.imprest?.unit_price || 0)
+                      ).toLocaleString("en-US", {
+                        minimumFractionDigits: 2,
+                        maximumFractionDigits: 2,
+                      })}
+                    </TableCell>
+                    <TableCell>{item.imprest?.branch?.name}</TableCell>
+                    <TableCell>
+                      {new Date(order.created_at).toLocaleDateString()}
+                    </TableCell>
+                  </TableRow>
+                ))
+              )}
             </TableBody>
           ) : (
             <TableBody>
               <TableRow>
-                <TableCell colSpan={5} className="text-center">
-                  Loading, please wait...
+                <TableCell colSpan={8} className="text-center">
+                  {loading ? "Loading..." : "No imprest orders found."}
                 </TableCell>
               </TableRow>
             </TableBody>

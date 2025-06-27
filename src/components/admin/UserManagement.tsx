@@ -154,6 +154,7 @@ const UserManagement = () => {
         email: profile.email || "Unknown email",
         created_at: profile.created_at,
         profile: {
+          id: profile.id,
           first_name: profile.first_name || "",
           last_name: profile.last_name || "",
           email: profile.email || "N/A",
@@ -372,6 +373,8 @@ const UserManagement = () => {
   //   }
   // };
 
+
+
   const handleUpdateRole = async (
     role:
       | "staff"
@@ -391,13 +394,26 @@ const UserManagement = () => {
   ) => {
     if (selectedUser) {
       try {
-        // Update profile role in the database
-        const { error: profileError } = await supabase
+        console.log(
+          "Updating role for profile id:",
+          selectedUser.id,
+          "to",
+          role
+        );
+        console.log("selectedUser", selectedUser);
+console.log("selectedUser.id", selectedUser.id, typeof selectedUser.id);
+        const { data, error: profileError } = await supabase
           .from("profiles")
           .update({ role })
-          .eq("id", selectedUser.id);
+          .eq("id", selectedUser.id)
+          .select();
 
         if (profileError) throw profileError;
+        if (!data || data.length === 0) {
+          throw new Error(
+            "No profile updated. Check if the profile id is correct."
+          );
+        }
 
         toast({
           title: "Success",
@@ -405,7 +421,6 @@ const UserManagement = () => {
           variant: "default",
         });
 
-        // Refetch users to reflect the updated role
         await refetchUsers();
 
         setIsRoleModalOpen(false);
@@ -424,13 +439,24 @@ const UserManagement = () => {
   const handleUpdateBranch = async (branchId: string) => {
     if (selectedUser) {
       try {
-        // Update profile branch_id in the database
-        const { error: profileError } = await supabase
+        console.log(
+          "Updating branch for profile id:",
+          selectedUser.id,
+          "to",
+          branchId
+        );
+        const { data, error: profileError } = await supabase
           .from("profiles")
           .update({ branch_id: branchId })
-          .eq("id", selectedUser.id);
+          .eq("id", selectedUser.id)
+          .select();
 
         if (profileError) throw profileError;
+        if (!data || data.length === 0) {
+          throw new Error(
+            "No profile updated. Check if the profile id is correct."
+          );
+        }
 
         toast({
           title: "Success",
@@ -438,7 +464,6 @@ const UserManagement = () => {
           variant: "default",
         });
 
-        // Refetch users to reflect the updated branch
         await refetchUsers();
 
         setIsAssignBranchModalOpen(false);
@@ -792,11 +817,14 @@ const UserManagement = () => {
                       </div>
                     </TableCell>
                     <TableCell className="text-center">
-                    {branchName === "HEAD OFFICE" ? (
-                      <span className="text-green-500 font-bold">{branchName}</span>
-                    ) : (
-                      branchName
-                    )}</TableCell>
+                      {branchName === "HEAD OFFICE" ? (
+                        <span className="text-green-500 font-bold">
+                          {branchName}
+                        </span>
+                      ) : (
+                        branchName
+                      )}
+                    </TableCell>
                     <TableCell className="text-right">
                       <div className="flex justify-end gap-2">
                         <Dialog
@@ -980,9 +1008,13 @@ const UserManagement = () => {
                               <div className="space-y-2">
                                 <Label>Current Branch</Label>
                                 <div>
-                                  <Badge variant={
-                          user.profile?.role === "HEAD OFFICE" ? "default" : "secondary"
-                          }>
+                                  <Badge
+                                    variant={
+                                      user.profile?.role === "HEAD OFFICE"
+                                        ? "default"
+                                        : "secondary"
+                                    }
+                                  >
                                     {branchName}
                                   </Badge>
                                 </div>

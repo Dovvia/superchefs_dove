@@ -69,7 +69,7 @@ export const ImprestDialog = ({
   };
 
   return (
-    <DialogContent aria-describedby="imprest request" className="max-w-[50%]">
+    <DialogContent aria-describedby="imprest request" className="sm:max-w-2xl">
       <DialogHeader>
         <DialogTitle>Send Imprest Request</DialogTitle>
       </DialogHeader>

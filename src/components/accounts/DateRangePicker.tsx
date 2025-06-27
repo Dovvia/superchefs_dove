@@ -55,6 +55,7 @@ export function DatePickerWithRange({
             selected={date}
             onSelect={setDate}
             numberOfMonths={2}
+            fixedWeeks
           />
         </PopoverContent>
       </Popover>

@@ -65,7 +65,7 @@ const BranchAnalytics = () => {
 
       return data as Branch[];
     },
-  }); 
+  });
 
   // Fetch sales data for selected branch or all branches if none selected
   const { data: salesData, isLoading: isLoadingSales } = useQuery({
@@ -189,6 +189,43 @@ const BranchAnalytics = () => {
     },
   });
 
+  // Fetch material inventory summary view (admin or branch)
+  const { data: materialSummary, isLoading: isLoadingMaterialSummary } =
+    useQuery({
+      queryKey: ["admin-material-summary", selectedBranchId],
+      queryFn: async () => {
+    
+        let view = selectedBranchId
+          ? "branch_material_today_view"
+          : "admin_material_today_view";
+        let query = supabase.from(view).select("*");
+        if (selectedBranchId) query = query.eq("branch_id", selectedBranchId);
+        const { data, error } = await query;
+        if (error) throw error;
+        return data || [];
+      },
+      enabled: !!true,
+    });
+
+  // Fetch product inventory summary view (admin or branch)
+  const { data: productSummary, isLoading: isLoadingProductSummary } = useQuery(
+    {
+      queryKey: ["admin-product-summary", selectedBranchId],
+      queryFn: async () => {
+        
+        let view = selectedBranchId
+          ? "branch_product_today_view"
+          : "admin_product_today_view";
+        let query = supabase.from(view).select("*");
+        if (selectedBranchId) query = query.eq("branch_id", selectedBranchId);
+        const { data, error } = await query;
+        if (error) throw error;
+        return data || [];
+      },
+      enabled: !!true,
+    }
+  );
+
   // Helper function to group data by timeframe
   const groupByTimeframe = (
     data: any[],
@@ -260,6 +297,34 @@ const BranchAnalytics = () => {
     "Materials Field:",
     inventoryData.map((item) => item.materials)
   );
+
+  // Helper to compute currentQuantity for materials
+  const getMaterialCurrentQuantity = (item: any) => {
+    return (
+      (item.total_quantity ?? 0) +
+      (item.opening_stock ?? 0) +
+      (item.total_procurement_quantity ?? 0) +
+      (item.total_transfer_in_quantity ?? 0) -
+      (item.total_transfer_out_quantity ?? 0) -
+      (item.total_usage ?? 0) -
+      (item.total_damage_quantity ?? 0)
+    );
+  };
+
+  // Helper to compute currentQuantity for products
+  const getProductCurrentQuantity = (item: any) => {
+    return (
+      (item.total_production_quantity ?? 0) +
+      (item.total_quantity ?? 0) +
+      (item.opening_stock ?? 0) +
+      (item.total_transfer_in_quantity ?? 0) -
+      (item.total_usage_quantity ?? 0) -
+      (item.total_transfer_out_quantity ?? 0) -
+      (item.total_complimentary_quantity ?? 0) -
+      (item.total_damage_quantity ?? 0) -
+      (item.total_sales_quantity ?? 0)
+    );
+  };
 
   return (
     <div className="space-y-6">
@@ -400,21 +465,34 @@ const BranchAnalytics = () => {
               <div className="h-[300px]">
                 <ResponsiveContainer width="100%" height="100%">
                   <BarChart
-                    data={(inventoryData || [])
-                      .filter(
-                        (item) => item.materials && item.quantity !== null
-                      )
-                      .map((item) => ({
-                        name:
-                          (item.materials as unknown as { name: string })
-                            ?.name || "Unknown",
-                        value: item.quantity || 0,
-                      }))}
+                    data={(materialSummary || []).map((item, idx) => ({
+                      name: idx + 1, // Use index as x-axis value (1-based)
+                      label:
+                        item.material_name ||
+                        (item.materials?.name ?? "Unknown"),
+                      value: getMaterialCurrentQuantity(item),
+                    }))}
                   >
                     <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis dataKey="name" />
+                    <XAxis
+                      dataKey="name"
+                      tickFormatter={(value) => value}
+                      tickLine={true}
+                      axisLine={true}
+                      label={null}
+                    />
                     <YAxis />
-                    <Tooltip />
+                    <Tooltip 
+                      formatter={(value: any, name: any, props: any) => value}
+                      labelFormatter={(index: any) => {
+                        const item = (materialSummary || [])[index];
+                        return (
+                          item?.material_name ||
+                          item?.materials?.name ||
+                          `Material ${index}`
+                        );
+                      }}
+                    />
                     <Legend />
                     <Bar dataKey="value" name="Quantity" fill="#10b981" />
                   </BarChart>
@@ -423,7 +501,7 @@ const BranchAnalytics = () => {
               <div className="mt-6">
                 <h3 className="text-lg font-bold">Material List</h3>
                 <table className="w-full border-collapse border border-gray-300 mt-4">
-                  <thead>
+                  <thead className="bg-gray-200">
                     <tr>
                       <th className="border border-gray-300 px-4 py-2">
                         Material Name
@@ -433,18 +511,22 @@ const BranchAnalytics = () => {
                       </th>
                     </tr>
                   </thead>
-                  <tbody>
-                    {(inventoryData || []).map((item, index) => (
-                      <tr key={index}>
-                        <td className="border border-gray-300 px-4 py-2">
-                          {(item.materials as unknown as { name: string })?.name || "Unknown"}
-                        </td>
-                        <td className="border border-gray-300 px-4 py-2">
-                          {item.quantity || 0}
-                        </td>
+                    <tbody>
+                    {(materialSummary || []).map((item, index) => (
+                      <tr
+                      key={index}
+                      className={index % 2 === 0 ? "bg-white" : "bg-gray-50"}
+                      >
+                      <td className="border border-gray-300 px-4 py-2">
+                        {item.material_name ||
+                        (item.materials?.name ?? "Unknown")}
+                      </td>
+                      <td className="border border-gray-300 px-4 py-2">
+                        {getMaterialCurrentQuantity(item)}
+                      </td>
                       </tr>
                     ))}
-                  </tbody>
+                    </tbody>
                 </table>
               </div>
             </CardContent>
@@ -463,19 +545,33 @@ const BranchAnalytics = () => {
               <div className="h-[300px]">
                 <ResponsiveContainer width="100%" height="100%">
                   <BarChart
-                    data={(productInventoryData || [])
-                      .filter((item) => item.products && item.quantity !== null) // Filter out invalid data
-                      .map((item) => ({
-                        name:
-                          (item.products as unknown as { name: string })
-                            ?.name || "Unknown", // Explicitly cast products as an object
-                        value: item.quantity || 0,
-                      }))}
+                    data={(productSummary || []).map((item, idx) => ({
+                      name: idx + 1, // Use index as x-axis value (1-based)
+                      label:
+                        item.product_name || (item.products?.name ?? "Unknown"),
+                      value: getProductCurrentQuantity(item),
+                    }))}
                   >
-                    <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis dataKey="name" />
+                    <CartesianGrid strokeDasharray="1 1" />
+                    <XAxis
+                      dataKey="name"
+                      tickFormatter={(value) => value}
+                      tickLine={true}
+                      axisLine={true}
+                      label={null}
+                    />
                     <YAxis />
-                    <Tooltip />
+                    <Tooltip
+                      formatter={(value: any, name: any, props: any) => value}
+                      labelFormatter={(index: any) => {
+                        const item = (productSummary || [])[index - 1];
+                        return (
+                          item?.product_name ||
+                          item?.products?.name ||
+                          `Product ${index}`
+                        );
+                      }}
+                    />
                     <Legend />
                     <Bar dataKey="value" name="Quantity" fill="#8884d8" />
                   </BarChart>
@@ -484,7 +580,7 @@ const BranchAnalytics = () => {
               <div className="mt-6">
                 <h3 className="text-lg font-bold">Product List</h3>
                 <table className="w-full border-collapse border border-gray-300 mt-4">
-                  <thead>
+                  <thead className="bg-gray-200">
                     <tr>
                       <th className="border border-gray-300 px-4 py-2">
                         Product Name
@@ -495,20 +591,20 @@ const BranchAnalytics = () => {
                     </tr>
                   </thead>
                   <tbody>
-                    {(productInventoryData || [])
-                      .filter((item) => item.products && item.quantity !== null) // Filter out invalid data
-                      .map((item, index) => (
-                        <tr key={index}>
-                          <td className="border border-gray-300 px-4 py-2">
-                            {(item.products as unknown as { name: string })
-                              ?.name || "Unknown"}{" "}
-                            {/* Explicitly cast products */}
-                          </td>
-                          <td className="border border-gray-300 px-4 py-2">
-                            {item.quantity || 0}
-                          </td>
-                        </tr>
-                      ))}
+                    {(productSummary || []).map((item, index) => (
+                      <tr 
+                      key={index}
+                      className={index % 2 === 0 ? "bg-white" : "bg-gray-50"}
+                      >
+                        <td className="border border-gray-300 px-4 py-2">
+                          {item.product_name ||
+                            (item.products?.name ?? "Unknown")}
+                        </td>
+                        <td className="border border-gray-300 px-4 py-2">
+                          {getProductCurrentQuantity(item)}
+                        </td>
+                      </tr>
+                    ))}
                   </tbody>
                 </table>
               </div>

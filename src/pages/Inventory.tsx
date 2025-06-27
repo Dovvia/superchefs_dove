@@ -328,7 +328,7 @@ const Inventory = () => {
                   sum + (material.unit_price ?? 0) * (currentQuantity ?? 0)
                 );
               }, 0) ?? 0
-            )}
+            )} 
           </span>
         </h3>
         <Table>
@@ -379,7 +379,7 @@ const Inventory = () => {
                     <TableCell
                       style={{
                         color:
-                          (currentQuantity ?? 0) < (material.minimum_stock ?? 0)
+                          (currentQuantity ?? 0) <= (material.minimum_stock ?? 0)
                             ? "red"
                             : "green",
                       }}

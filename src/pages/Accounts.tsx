@@ -4,14 +4,6 @@ import { ChartBar, Filter, Download } from "lucide-react";
 import dayjs from "dayjs";
 import { DateRange } from "react-day-picker";
 import { supabase } from "@/integrations/supabase/client";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Select,
@@ -29,6 +21,8 @@ import { naira } from "@/lib/utils";
 import useAccountReportGenerator from "@/hooks/use-generate-report";
 import { useUserBranch } from "@/hooks/user-branch";
 import { UserMetadata } from "@supabase/supabase-js";
+import ProductPerformance from "@/components/accounts/ProductPerformance";
+import BranchPerformance from "@/components/accounts/BranchPerformance";
 
 const Accounts = () => {
   const ContentRef = useRef<HTMLDivElement>(null);
@@ -46,9 +40,8 @@ const Accounts = () => {
   const [selectedProduct, setSelectedProduct] = useState<string>("all");
   const generate = useAccountReportGenerator;
   // const browserPrint = useHandlePrint(ContentRef); // for browser printing
-  const {
-    data: { name },
-  } = useUserBranch();
+  const { data: userBranch } = useUserBranch();
+  const branchName = userBranch?.name || "";
 
   const { data: branches } = useQuery({
     queryKey: ["branches"],
@@ -74,20 +67,22 @@ const Accounts = () => {
     },
   });
 
+  // Fetch sales data
   const { data: salesData } = useQuery({
     queryKey: ["sales", dateRange, selectedBranch, selectedProduct],
     queryFn: async () => {
       let query = supabase.from("sales").select(`
-          *,
-          branch:branches(name),
-          items:sale_items(
-            quantity,
-            unit_price,
-            unit_cost,
-            subtotal,
-            product:products(*)
-          )
-        `);
+        *,
+        branch:branches(name),
+        items:sale_items(
+          quantity,
+          unit_price,
+          unit_cost,
+          total_cost,
+          subtotal,
+          product:products(*)
+        )
+      `);
 
       if (dateRange?.from && dateRange?.to) {
         query = query
@@ -108,7 +103,7 @@ const Accounts = () => {
         return data.map((sale) => ({
           ...sale,
           items: sale.items.filter(
-            (item) => item.product.id === selectedProduct
+            (item: { product: { id: string; }; }) => item.product.id === selectedProduct
           ),
         }));
       }
@@ -117,21 +112,113 @@ const Accounts = () => {
     },
   });
 
-  const calculateMetrics = (sales: Sale[]) => {
+  // Fetch complimentary_products cost
+  const { data: complimentaryCosts } = useQuery({
+    queryKey: ["complimentary_costs", dateRange, selectedBranch],
+    queryFn: async () => {
+      let query = supabase
+        .from("complimentary_products")
+        .select("cost, created_at, branch_id");
+      if (dateRange?.from && dateRange?.to) {
+        query = query
+          .gte("created_at", dateRange.from.toISOString())
+          .lte("created_at", dateRange.to.toISOString());
+      }
+      if (selectedBranch !== "all") {
+        query = query.eq("branch_id", selectedBranch);
+      }
+      const { data, error } = await query;
+      if (error) throw error;
+      return data;
+    },
+  });
+
+  //Fetch material_damages cost
+  const { data: materialDamageCosts } = useQuery({
+    queryKey: ["material_damage_costs", dateRange, selectedBranch],
+    queryFn: async () => {
+      let query = supabase
+        .from("damaged_materials")
+        .select("cost, created_at, branch_id");
+      if (dateRange?.from && dateRange?.to) {
+        query = query
+          .gte("created_at", dateRange.from.toISOString())
+          .lte("created_at", dateRange.to.toISOString());
+      }
+      if (selectedBranch !== "all") {
+        query = query.eq("branch_id", selectedBranch);
+      }
+      const { data, error } = await query;
+      if (error) throw error;
+      return data;
+    },
+  });
+
+  // Fetch product_damages cost
+  const { data: damageCosts } = useQuery({
+    queryKey: ["damage_costs", dateRange, selectedBranch],
+    queryFn: async () => {
+      let query = supabase
+        .from("product_damages")
+        .select("cost, created_at, branch_id");
+      if (dateRange?.from && dateRange?.to) {
+        query = query
+          .gte("created_at", dateRange.from.toISOString())
+          .lte("created_at", dateRange.to.toISOString());
+      }
+      if (selectedBranch !== "all") {
+        query = query.eq("branch_id", selectedBranch);
+      }
+      const { data, error } = await query;
+      if (error) throw error;
+      return data;
+    },
+  });
+
+  // Fetch imprest_supplied cost
+  const { data: imprestCosts } = useQuery({
+    queryKey: ["imprest_costs", dateRange, selectedBranch],
+    queryFn: async () => {
+      let query = supabase
+        .from("imprest_supplied")
+        .select("cost, created_at, branch_id");
+      if (dateRange?.from && dateRange?.to) {
+        query = query
+          .gte("created_at", dateRange.from.toISOString())
+          .lte("created_at", dateRange.to.toISOString());
+      }
+      if (selectedBranch !== "all") {
+        query = query.eq("branch_id", selectedBranch);
+      }
+      const { data, error } = await query;
+      if (error) throw error;
+      return data;
+    },
+  });
+
+  // Calculate metrics
+  const metrics = useMemo(() => {
     let totalRevenue = 0;
     let totalCost = 0;
     let totalItems = 0;
 
-    sales?.forEach((sale) => {
-      sale.items?.forEach((item) => {
-        const itemRevenue = item.subtotal;
-        const itemCost = item.unit_cost * item.quantity;
-
-        totalRevenue += itemRevenue;
-        totalCost += itemCost;
-        totalItems += item.quantity;
+    // Revenue and cost from sales
+    (salesData || []).forEach((sale) => {
+      (sale.items || []).forEach((item: { subtotal: any; total_cost: any; quantity: any; }) => {
+        totalRevenue += Number(item.subtotal) || 0;
+        totalCost += Number(item.total_cost) || 0; // Use total_cost directly
+        totalItems += Number(item.quantity) || 0;
       });
     });
+
+    // Add costs from other tables
+    const sumCost = (arr: { cost: any; created_at: any; branch_id: any; }[]) =>
+      (arr || []).reduce((acc: number, curr: { cost: any; }) => acc + (Number(curr.cost) || 0), 0);
+
+    totalCost += sumCost(complimentaryCosts);
+    totalCost += sumCost(damageCosts);
+    totalCost += sumCost(imprestCosts);
+    totalCost += sumCost(materialDamageCosts);
 
     const profit = totalRevenue - totalCost;
     const costToRevenueRatio =
@@ -144,14 +231,12 @@ const Accounts = () => {
       costToRevenueRatio,
       totalItems,
     };
-  };
-
-  const metrics = calculateMetrics((salesData as unknown as Sale[]) || []);
+  }, [salesData, complimentaryCosts, damageCosts, imprestCosts, materialDamageCosts]);
 
   const accountData = useMemo(() => {
     return {
       username: `${user?.first_name} ${user?.last_name}`,
-      userBranch: name,
+      userBranch: branchName || "All Branches",
       dateRange: !dateRange
         ? "All time"
         : `${dayjs(dateRange?.from).format("Do MMMM YYYY")} - ${dayjs(
@@ -179,7 +264,10 @@ const Accounts = () => {
           date: dayjs(x?.created_at).format("D MMMM, YYYY"),
           branch: branches?.filter((b) => b?.id === x?.branch_id)[0]?.name,
           items: x?.items
-            ?.map((t) => `${t?.quantity}x ${t?.product?.name}`)
+            ?.map(
+              (t: { quantity: any; product: { name: any } }) =>
+                `${t?.quantity}x ${t?.product?.name}`
+            )
             .join(", "),
           amount: naira(x?.total_amount),
         };
@@ -198,7 +286,9 @@ const Accounts = () => {
     metrics.profit,
     metrics.revenue,
     metrics.totalItems,
-    name,
+    branchName,
+    salesData,
+    selectedBranch,
     products,
     salesData,
     selectedBranch,
@@ -281,42 +371,28 @@ const Accounts = () => {
 
         <Card>
           <CardHeader>
-            <CardTitle>Sales Details</CardTitle>
+            <CardTitle>Product Performance</CardTitle>
           </CardHeader>
           <CardContent>
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Date</TableHead>
-                  <TableHead>Branch</TableHead>
-                  <TableHead>Items</TableHead>
-                  <TableHead className="text-right">Amount</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {salesData?.map((sale) => (
-                  <TableRow key={sale.id}>
-                    <TableCell>
-                      {dayjs(new Date(sale.created_at)).format("D MMMM, YYYY")}
-                    </TableCell>
-                    <TableCell>{sale.branch?.name}</TableCell>
-                    <TableCell>
-                      {sale.items
-                        ?.map(
-                          (item) => `${item.quantity}x ${item.product.name}`
-                        )
-                        .join(", ")}
-                    </TableCell>
-                    <TableCell className="text-right">
-                      {naira(sale.total_amount.toFixed(2))}
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+            <ProductPerformance salesData={salesData} />
           </CardContent>
         </Card>
       </div>
+      <Card>
+  <CardHeader>
+    <CardTitle>Branch Performance</CardTitle>
+  </CardHeader>
+  <CardContent>
+    <BranchPerformance
+      salesData={salesData || []}
+      branches={branches || []}
+      complimentaryCosts={complimentaryCosts}
+      damageCosts={damageCosts}
+      imprestCosts={imprestCosts}
+      materialDamageCosts={materialDamageCosts}
+    />
+  </CardContent>
+</Card>
     </div>
   );
 };

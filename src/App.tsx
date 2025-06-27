@@ -9,7 +9,6 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { AuthProvider } from "./contexts/AuthContext";
 import { ProductionProvider } from "@/context/ProductionContext";
-
 import PWAInstallButton from "@/components/PWAInstallButton";
 import IosInstallPrompt from "./components/IosInstallPrompt";
 import Layout from "./components/layout/Layout";
@@ -35,7 +34,6 @@ import NotFound from "./pages/NotFound";
 import ImprestManagement from "./pages/ImprestManagement";
 
 const queryClient = new QueryClient();
-
 function App() {
   return (
     <QueryClientProvider client={queryClient}>
@@ -55,21 +53,70 @@ function App() {
                 }
               >
                 <Route index element={<Dashboard />} />
-                <Route path="inventory" element={<Inventory />} />
-                <Route path="products" element={<Products />} />
-                <Route path="sales" element={<Sales />} />
-                <Route path="material-request" element={<MaterialRequest />} />
-                <Route path="imprest-request" element={<Imprest />} />
-                <Route path="damages" element={<Damages />} />
-                {/* <Route path="admin" element={<Admin />} /> */}
-                {/* <Route path="users" element={<Users />} />
-                <Route path="accounts" element={<Accounts />} />
-                <Route path="branches" element={<Branches />} /> */}
-                {/* <Route path="recipes" element={<Recipes />} /> */}
-                {/* <Route path="procurement" element={<Procurement />} />
-                <Route path="manage-imprest" element={<ImprestManagement />} /> */}
-                <Route path="production" element={<Production />} />
                 <Route path="settings" element={<Settings />} />
+
+                <Route
+                  path="inventory"
+                  element={
+                    <RoleProtectedRoute allowedRoles={["baker", "manager", "admin","quality_control"]}>
+                      <Inventory />
+                    </RoleProtectedRoute>
+                  }
+                />
+
+                <Route
+                  path="products"
+                  element={
+                    <RoleProtectedRoute allowedRoles={["sales_rep", "manager", "admin", "quality_control"]}>
+                      <Products />
+                    </RoleProtectedRoute>
+                  }
+                />
+
+                <Route
+                  path="sales"
+                  element={
+                    <RoleProtectedRoute allowedRoles={["sales_rep", "manager"]}>
+                      <Sales />
+                    </RoleProtectedRoute>
+                  }
+                />
+
+                <Route
+                  path="damages"
+                  element={
+                    <RoleProtectedRoute allowedRoles={["baker", "cook", "manager", "admin"]}>
+                      <Damages />
+                    </RoleProtectedRoute>
+                  }
+                />
+
+                <Route
+                  path="production"
+                  element={
+                    <RoleProtectedRoute allowedRoles={["baker", "cook", "manager"]}>
+                      <Production />
+                    </RoleProtectedRoute>
+                  }
+                />
+
+                <Route
+                  path="material-request"
+                  element={
+                    <RoleProtectedRoute allowedRoles={["manager"]}>
+                      <MaterialRequest />
+                    </RoleProtectedRoute>
+                  }
+                />
+
+                <Route
+                  path="imprest-request"
+                  element={
+                    <RoleProtectedRoute allowedRoles={["manager"]}>
+                      <Imprest />
+                    </RoleProtectedRoute>
+                  }
+                />
 
                 <Route
                   path="admin"
@@ -91,7 +138,7 @@ function App() {
                 <Route
                   path="recipes"
                   element={
-                    <RoleProtectedRoute allowedRoles={["admin"]}>
+                    <RoleProtectedRoute allowedRoles={["admin", "quality_control"]}>
                       <Recipes />
                     </RoleProtectedRoute>
                   }
@@ -99,7 +146,7 @@ function App() {
                 <Route
                   path="procurement"
                   element={
-                    <RoleProtectedRoute allowedRoles={["admin"]}>
+                    <RoleProtectedRoute allowedRoles={["admin", "procurement"]}>
                       <Procurement />
                     </RoleProtectedRoute>
                   }
@@ -124,7 +171,7 @@ function App() {
                 <Route
                   path="accounts"
                   element={
-                    <RoleProtectedRoute allowedRoles={["admin"]}>
+                    <RoleProtectedRoute allowedRoles={["admin", "accountant"]}>
                       <Accounts />
                     </RoleProtectedRoute>
                   }

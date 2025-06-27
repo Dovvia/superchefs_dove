@@ -278,7 +278,7 @@ const ProcurementOrders = () => {
               style={{ zIndex: 10 }}
             />
 
-            <div className="w-full flex gap-4 justify-start">
+            <div className="w-full flex gap-4 justify-start items-center">
               <p className="text-xl font-bold">
               {`₦${data.orders
                 .reduce((orderAcc, order) => {

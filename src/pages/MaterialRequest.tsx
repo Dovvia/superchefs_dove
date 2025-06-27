@@ -426,7 +426,7 @@ const MaterialRequest = () => {
                     (req) => req.status === "supplied"
                   )}
                 />
-              </TableHead>
+              </TableHead> 
               <TableHead>Material</TableHead>
               <TableHead>Unit</TableHead>
               <TableHead>Cost</TableHead>
