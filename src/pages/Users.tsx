@@ -66,7 +66,10 @@ const Users = () => {
   });
 
   if (isLoading) {
-    return <div className="p-4">Loading users...</div>;
+    return <div className="flex justify-center items-center">Loading users
+    <br />
+      <div className="animate-spin rounded-full text-green-500 h-8 w-8 border-t-2 border-b-2  border-green-500"></div>
+    </div>;
   }
 
   return (

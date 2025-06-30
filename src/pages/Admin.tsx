@@ -76,7 +76,9 @@ const Admin = () => {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              {isLoadingBranches ? <div>Loading...</div> : <BranchAnalytics />}
+              {isLoadingBranches ? <div className="flex justify-center items-center">Loading
+      <div className="animate-spin rounded-full text-green-500 h-8 w-8 border-t-2 border-b-2  border-green-500"></div>
+    </div> : <BranchAnalytics />}
             </CardContent>
           </Card>
         </TabsContent>

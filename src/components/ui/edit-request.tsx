@@ -166,7 +166,9 @@ const EditRequestForm = ({
             Cancel
           </Button>
           <Button type="submit" disabled={isLoading}>
-            {isLoading ? "Submiting..." : "Submit"}
+            {isLoading ? <div className="flex justify-center items-center">Submitting
+      <div className="animate-spin rounded-full text-green-500 h-8 w-8 border-t-2 border-b-2  border-white"></div>
+    </div> : "Submit"}
           </Button>
         </div>
       </form>

@@ -18,6 +18,7 @@ interface BranchPerformanceProps {
   damageCosts?: any[];
   imprestCosts?: any[];
   materialDamageCosts?: any[];
+  indirectMaterialCosts?: any[];
 }
 
 export default function BranchPerformance({
@@ -27,6 +28,7 @@ export default function BranchPerformance({
   damageCosts = [],
   imprestCosts = [],
   materialDamageCosts = [],
+  indirectMaterialCosts = [],
 }: BranchPerformanceProps) {
   // Aggregate profitability by branch
   const branchMetrics = useMemo(() => {
@@ -74,6 +76,7 @@ export default function BranchPerformance({
       map[branchId].cost += sumCost(damageCosts, branchId);
       map[branchId].cost += sumCost(imprestCosts, branchId);
       map[branchId].cost += sumCost(materialDamageCosts, branchId);
+      map[branchId].cost += sumCost(indirectMaterialCosts, branchId);
       map[branchId].profit = map[branchId].revenue - map[branchId].cost;
       map[branchId].costToRevenueRatio =
         map[branchId].revenue > 0
@@ -89,6 +92,7 @@ export default function BranchPerformance({
     damageCosts,
     imprestCosts,
     materialDamageCosts,
+    indirectMaterialCosts,
   ]);
 
   // Prepare data for diverging bar chart (vertical)

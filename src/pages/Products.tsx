@@ -594,7 +594,9 @@ const Products = () => {
                 <TableRow>
                   <TableCell colSpan={18} className="text-center">
                     {isLoading
-                      ? "Loading, please wait..."
+                      ? <div className="flex justify-center items-center">Loading... Please wait
+      <div className="animate-spin rounded-full text-green-500 h-8 w-8 border-t-2 border-b-2  border-green-500"></div>
+    </div>
                       : "No products found."}
                   </TableCell>
                 </TableRow>

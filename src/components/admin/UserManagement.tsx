@@ -238,7 +238,9 @@ const UserManagement = () => {
 
   // Graceful fallback for loading or errors
   if (isLoadingUsers || isLoadingBranches) {
-    return <div>Loading users and their details...</div>;
+    return <div className="flex justify-center items-center">Loading data...
+      <div className="animate-spin rounded-full text-green-500 h-8 w-8 border-t-2 border-b-2  border-green-500"></div>
+    </div>;
   }
 
   if (usersError || branchesError) {
@@ -771,7 +773,9 @@ console.log("selectedUser.id", selectedUser.id, typeof selectedUser.id);
               <DialogFooter>
                 <Button type="submit" disabled={creationLoading}>
                   {creationLoading ? <Progress className="mr-2" /> : null}
-                  {creationLoading ? "Creating..." : "Create User"}
+                  {creationLoading ? <div className="flex justify-center items-center">Creating User...
+      <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2  border-white"></div>
+    </div> : "Create User"}
                 </Button>
               </DialogFooter>
             </form>

@@ -170,7 +170,12 @@ const Auth = () => {
             <Button type="submit" className="w-full" disabled={loading}>
               {loading
                 ? isLogin
-                  ? "Signing in..."
+                  ? (
+                      <div className="flex justify-center items-center">
+                        Signing in
+                        <div className="animate-spin rounded-full text-white h-8 w-8 border-t-2 border-b-2  border-white"></div>
+                      </div>
+                    )
                   : "Creating account..."
                 : isLogin
                 ? "Sign in"

@@ -139,7 +139,9 @@ export const PoSummary = () => {
             {isLoading ? (
               <TableRow>
                 <TableCell colSpan={4} className="text-center">
-                  Loading...
+                 <div className="flex justify-center items-center">Loading...
+      <div className="animate-spin rounded-full text-green-500 h-8 w-8 border-t-2 border-b-2  border-green-500"></div>
+    </div>
                 </TableCell>
               </TableRow>
             ) : data?.materials && data.materials.length > 0 ? (

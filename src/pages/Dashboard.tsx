@@ -228,6 +228,7 @@ const Dashboard = () => {
   const { data: damageCosts } = fetchCostTable("product_damages");
   const { data: imprestCosts } = fetchCostTable("imprest_supplied");
   const { data: materialDamageCosts } = fetchCostTable("damaged_materials");
+  const {data: indirectMaterialCosts} = fetchCostTable("material_usage");
 
   const metrics = useMemo(() => {
     let totalRevenue = 0;
@@ -247,6 +248,7 @@ const Dashboard = () => {
     totalCost += sumCost(damageCosts);
     totalCost += sumCost(imprestCosts);
     totalCost += sumCost(materialDamageCosts);
+    totalCost += sumCost(indirectMaterialCosts);
 
     const costToRevenueRatio =
       totalRevenue > 0 ? (totalCost / totalRevenue) * 100 : 0;
@@ -260,6 +262,7 @@ const Dashboard = () => {
     damageCosts,
     imprestCosts,
     materialDamageCosts,
+    indirectMaterialCosts,
   ]);
 
   const { data: lowStockCount, isLoading: isLoadingLowStock } = useQuery({
@@ -304,11 +307,12 @@ const Dashboard = () => {
           (item.total_damage_quantity ?? 0);
 
         if (
-          material.minimum_stock !== undefined &&
-          currentQuantity <= (material.minimum_stock ?? 0)
-        ) {
-          count += 1;
-        }
+  material.minimum_stock !== undefined &&
+  currentQuantity !== 0 && // Exclude exactly zero
+  currentQuantity <= (material.minimum_stock ?? 0)
+) {
+  count += 1;
+}
       });
 
       return count;

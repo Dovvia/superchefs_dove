@@ -135,7 +135,9 @@ const Settings = () => {
         </div>
 
         <Button type="submit" disabled={isLoading}>
-          {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+          {isLoading && <div className="flex justify-center items-center">Saving
+      <div className="animate-spin rounded-full text-green-500 h-8 w-8 border-t-2 border-b-2  border-white"></div>
+    </div>}
           Save Changes
         </Button>
       </form>

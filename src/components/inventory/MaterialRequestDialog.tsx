@@ -192,7 +192,9 @@ export const MaterialRequestDialog = ({ materials, onSubmit, isLoading, branchId
               </Button>
 
         <Button type="submit" className="w-full" disabled={isLoading}>
-          {isLoading ? "Sending Request..." : "Send Request"}
+          {isLoading ? <div className="flex justify-center items-center">Sending request...
+      <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2  border-white"></div>
+    </div> : "Send Request"}
         </Button>
 
       </form>

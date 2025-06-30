@@ -121,7 +121,9 @@ function AddMaterialForm({
   return (
     <div className="flex gap-2 items-center mt-4">
       {isLoading ? (
-        <span>Loading materials...</span>
+       <div className="flex justify-center items-center">Loading materials
+      <div className="animate-spin rounded-full text-green-500 h-8 w-8 border-t-2 border-b-2  border-green-500"></div>
+    </div>
       ) : isError ? (
         <span className="text-red-500">Error loading materials</span>
       ) : (
@@ -351,7 +353,9 @@ const Recipes = () => {
           Add Recipe
         </Button>
       </div>
-      {isLoading && <p>Loading... </p>}
+      {isLoading && <div className="flex justify-center items-center">Loading
+      <div className="animate-spin rounded-full text-green-500 h-8 w-8 border-t-2 border-b-2  border-green-500"></div>
+    </div>}
       {isError && <p>Error: {error.message}</p>}
       {recipes && recipes.length > 0 ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">

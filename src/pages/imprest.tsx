@@ -388,7 +388,9 @@ const Imprest = () => {
             <TableBody>
               <TableRow>
                 <TableCell colSpan={5} className="text-center">
-                  Loading, please wait...
+                 <div className="flex justify-center items-center">Loading... Please wait
+      <div className="animate-spin rounded-full text-green-500 h-8 w-8 border-t-2 border-b-2  border-green-500"></div>
+    </div>
                 </TableCell>
               </TableRow>
             </TableBody>

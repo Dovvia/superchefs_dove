@@ -208,11 +208,18 @@ const Inventory = () => {
       return;
     }
     setIsSubmittingUsage((prev) => ({ ...prev, [materialId]: true }));
+
+    // Find the material to get its unit_price (cost)
+    const material = allMaterials?.find((mat) => mat.id === materialId);
+    const unit_cost = material?.unit_price ?? null;
+    const cost = quantity * unit_cost;
+
     const { error } = await supabase.from("material_usage").insert([
       {
         material_id: materialId,
         quantity,
         branch_id: userBranch.id,
+        cost, 
         // add other fields as needed, e.g. user_id, timestamp
       },
     ]);
@@ -234,7 +241,9 @@ const Inventory = () => {
   if (isLoadingBranch) {
     return (
       <div className="text-center">
-        <p>Loading branch information...</p>
+        <div className="flex justify-center items-center">Loading branch information
+      <div className="animate-spin rounded-full text-green-500 h-8 w-8 border-t-2 border-b-2  border-green-500"></div>
+    </div>
       </div>
     );
   }
@@ -458,7 +467,9 @@ const Inventory = () => {
             <TableBody>
               <TableRow>
                 <TableCell colSpan={13} className="text-center">
-                  Loading, please wait...
+                  <div className="flex justify-center items-center">Loading... Please wait
+      <div className="animate-spin rounded-full text-green-500 h-8 w-8 border-t-2 border-b-2  border-green-500"></div>
+    </div>
                 </TableCell>
               </TableRow>
             </TableBody>
@@ -639,7 +650,9 @@ const Inventory = () => {
               <TableRow>
                 <TableCell colSpan={13} className="text-center">
                   {isLoadingInventory
-                    ? "Loading, please wait..."
+                    ? <div className="flex justify-center items-center">Loading... Please wait
+      <div className="animate-spin rounded-full text-green-500 h-8 w-8 border-t-2 border-b-2  border-green-500"></div>
+    </div>
                     : "No indirect materials found."}
                 </TableCell>
               </TableRow>

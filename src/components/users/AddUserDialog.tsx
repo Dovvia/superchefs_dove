@@ -179,7 +179,9 @@ const AddUserDialog = ({ open, onOpenChange }: AddUserDialogProps) => {
               )}
             />
             <Button type="submit" className="w-full" disabled={isLoading}>
-              {isLoading ? "Creating..." : "Create User"}
+              {isLoading ? <div className="flex justify-center items-center">Creating
+      <div className="animate-spin rounded-full text-green-500 h-8 w-8 border-t-2 border-b-2  border-white"></div>
+    </div> : "Create User"}
             </Button>
           </form>
         </Form>

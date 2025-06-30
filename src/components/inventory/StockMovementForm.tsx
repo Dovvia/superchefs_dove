@@ -125,7 +125,9 @@ const StockMovementForm = ({
             Cancel
           </Button>
           <Button type="submit" disabled={isLoading}>
-            {isLoading ? "Updating..." : "Update Stock"}
+            {isLoading ? <div className="flex justify-center items-center">Updating
+      <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2  border-white"></div>
+    </div> : "Update Stock"}
           </Button>
         </div>
       </form>

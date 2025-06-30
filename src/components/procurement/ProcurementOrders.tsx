@@ -374,7 +374,9 @@ const ProcurementOrders = () => {
             <TableBody>
               <TableRow>
                 <TableCell colSpan={8} className="text-center">
-                  {loading ? "Loading..." : "No procurement orders found."}
+                  {loading ? <div className="flex justify-center items-center">Loading... Please wait
+      <div className="animate-spin rounded-full text-green-500 h-8 w-8 border-t-2 border-b-2  border-green-500"></div>
+    </div> : "No procurement orders found."}
                 </TableCell>
               </TableRow>
             </TableBody>

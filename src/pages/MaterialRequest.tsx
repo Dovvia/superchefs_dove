@@ -317,7 +317,9 @@ const MaterialRequest = () => {
   if (!branchId) {
     return (
       <div className="flex items-center justify-center h-64">
-        <span>Loading branch data...</span>
+        <div className="flex justify-center items-center">Loading branch data
+      <div className="animate-spin rounded-full text-green-500 h-8 w-8 border-t-2 border-b-2  border-green-500"></div>
+    </div>
       </div>
     );
   }
@@ -393,7 +395,9 @@ const MaterialRequest = () => {
             disabled={!selectedItems.length || isMarkBadLoading}
             onClick={handleMarkAsBad}
           >
-            {isMarkBadLoading ? "Rejecting..." : "Reject"}
+            {isMarkBadLoading ? <div className="flex justify-center items-center">Rejecting
+      <div className="animate-spin rounded-full text-green-500 h-8 w-8 border-t-2 border-b-2  border-white"></div>
+    </div> : "Reject"}
           </Button>
         </div>
       </div>
@@ -496,7 +500,9 @@ const MaterialRequest = () => {
                   </TableCell>
                   <TableCell>
                     {avgUsageLoading ? (
-                      "Loading..."
+                      <div className="flex justify-center items-center">Loading
+      <div className="animate-spin rounded-full text-green-500 h-8 w-8 border-t-2 border-b-2  border-green-500"></div>
+    </div>
                     ) : avgUsageMap[material_request.id] ? (
                       avgUsageMap[material_request.id].toFixed(2)
                     ) : (
@@ -529,7 +535,9 @@ const MaterialRequest = () => {
             <TableBody>
               <TableRow>
                 <TableCell colSpan={5} className="text-center">
-                  Loading, please wait...
+                 <div className="flex justify-center items-center">Loading
+      <div className="animate-spin rounded-full text-green-500 h-8 w-8 border-t-2 border-b-2  border-green-500"></div>
+    </div>
                 </TableCell>
               </TableRow>
             </TableBody>

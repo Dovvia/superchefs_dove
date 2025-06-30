@@ -138,7 +138,9 @@ const ImprestForm = ({ onSubmit, isLoading, onCancel }: ImprestFormProps) => {
             Cancel
           </Button>
           <Button type="submit" disabled={isLoading}>
-            {isLoading ? "Sending..." : "Send imprest"}
+            {isLoading ? <div className="flex justify-center items-center">Sending... 
+      <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2  border-white"></div>
+    </div> : "Send imprest"}
           </Button>
         </div>
       </form>

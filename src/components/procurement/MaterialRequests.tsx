@@ -409,7 +409,9 @@ const MaterialRequests = () => {
                 <TableCell>{request.branch?.name}</TableCell>
                 <TableCell>
                   {avgUsageLoading
-                    ? "Loading..."
+                    ? <div className="flex justify-center items-center">
+      <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2  border-green-500"></div>
+    </div>
                     : avgUsageMap[request.id] !== undefined
                     ? avgUsageMap[request.id].toFixed(2)
                     : "N/A"}
@@ -439,7 +441,9 @@ const MaterialRequests = () => {
           <TableBody>
             <TableRow>
               <TableCell colSpan={7} className="text-center">
-                Loading, please wait...
+               <div className="flex justify-center items-center">Loading... Please wait
+      <div className="animate-spin rounded-full text-green-500 h-8 w-8 border-t-2 border-b-2  border-green-500"></div>
+    </div>
               </TableCell>
             </TableRow>
           </TableBody>

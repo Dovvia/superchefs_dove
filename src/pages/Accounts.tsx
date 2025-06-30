@@ -196,6 +196,27 @@ const Accounts = () => {
     },
   });
 
+  // Fetch indirect materials cost
+  const { data: indirectMaterialCosts } = useQuery({
+    queryKey: ["indirect_material_costs", dateRange, selectedBranch],
+    queryFn: async () => {
+      let query = supabase
+        .from("material_usage")
+        .select("cost, created_at, branch_id");
+      if (dateRange?.from && dateRange?.to) {
+        query = query
+          .gte("created_at", dateRange.from.toISOString())
+          .lte("created_at", dateRange.to.toISOString());
+      }
+      if (selectedBranch !== "all") {
+        query = query.eq("branch_id", selectedBranch);
+      }
+      const { data, error } = await query;
+      if (error) throw error;
+      return data;
+    },
+  });
+
   // Calculate metrics
   const metrics = useMemo(() => {
     let totalRevenue = 0;
@@ -219,6 +240,7 @@ const Accounts = () => {
     totalCost += sumCost(damageCosts);
     totalCost += sumCost(imprestCosts);
     totalCost += sumCost(materialDamageCosts);
+    totalCost += sumCost(indirectMaterialCosts);
 
     const profit = totalRevenue - totalCost;
     const costToRevenueRatio =
@@ -231,7 +253,7 @@ const Accounts = () => {
       costToRevenueRatio,
       totalItems,
     };
-  }, [salesData, complimentaryCosts, damageCosts, imprestCosts, materialDamageCosts]);
+  }, [salesData, complimentaryCosts, damageCosts, imprestCosts, materialDamageCosts, indirectMaterialCosts]);
 
   const accountData = useMemo(() => {
     return {
@@ -390,6 +412,7 @@ const Accounts = () => {
       damageCosts={damageCosts}
       imprestCosts={imprestCosts}
       materialDamageCosts={materialDamageCosts}
+      indirectMaterialCosts={indirectMaterialCosts}
     />
   </CardContent>
 </Card>

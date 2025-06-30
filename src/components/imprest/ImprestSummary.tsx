@@ -180,7 +180,9 @@ export const ImprestSummary = () => {
             {isLoading ? (
               <TableRow>
                 <TableCell colSpan={3} className="text-center">
-                  Loading...
+                 <div className="flex justify-center items-center">Loading... Please wait
+      <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2  border-green-500"></div>
+    </div>
                 </TableCell>
               </TableRow>
             ) : data?.items && data.items.length > 0 ? (
