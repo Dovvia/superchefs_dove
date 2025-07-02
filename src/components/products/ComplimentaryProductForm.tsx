@@ -124,7 +124,7 @@ export const ComplimentaryProductForm = ({
             <SelectItem
               key={product.id}
               value={product.id}
-              disabled={quantity <= 0}
+              // disabled={quantity <= 0}
             >
               {product.name} - ₦{product.price} ({quantity > 5 ? `${quantity}` : quantity > 0 ? `${quantity} low stock` : "Out of stock"})
             </SelectItem>

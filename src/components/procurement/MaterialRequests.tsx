@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Edit2Icon } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
@@ -99,6 +99,11 @@ const MaterialRequests = () => {
     "weekly"
   );
 
+  const [currentQtyMap, setCurrentQtyMap] = useState<Record<string, number>>({});
+  const [currentQtyLoading, setCurrentQtyLoading] = useState(false);
+
+  
+
   // State for average usage
   const [avgUsageMap, setAvgUsageMap] = useState<Record<string, number>>({});
   const [avgUsageLoading, setAvgUsageLoading] = useState(false);
@@ -137,6 +142,51 @@ const MaterialRequests = () => {
     },
     placeholderData: (prevData) => prevData,
   });
+
+  useEffect(() => {
+    const fetchCurrentQuantities = async () => {
+      if(!data?.requests?.length) return;
+      setCurrentQtyLoading(true);
+
+      //get unique materials
+      const pairs = data.requests.map((req) => ({
+        material_id: req.material_id,
+        branch_id: req.branch_id,
+        request_id: req.id,
+      }));
+
+      //Fetch summary data for pairs
+      const { data: summaryRows, error } = await supabase
+      .from("branch_material_today_view")
+      .select("*")
+      .in( "material_id", pairs.map((p) => p.material_id))
+      .in("branch_id", pairs.map((p) => p.branch_id));
+
+      //Map materials to summary view
+      const summaryMap: Record<string, any> = {};
+      summaryRows?.forEach((row) => {
+        summaryMap[`${row.material_id}_${row.branch_id}`] = row;
+      });
+
+      //Calculate current quantities
+      const qtyEntries = pairs.map((p) => {
+        const item = summaryMap[`${p.material_id}_${p.branch_id}`] || {};
+        const currentQuantity = 
+        (item.total_quantity ?? 0) +
+        (item.opening_stock ?? 0) +
+        (item.total_procurement_quantity ?? 0) +
+        (item.total_transfer_in_quantity ?? 0) -
+        (item.total_transfer_out_quantity ?? 0) -
+        (item.total_usage ?? 0) -
+        (item.total_damage_quantity ?? 0);
+        return [p.request_id, currentQuantity];
+      });
+
+      setCurrentQtyMap(Object.fromEntries(qtyEntries));
+      setCurrentQtyLoading(false);
+     };
+     fetchCurrentQuantities();
+  }, [data?.requests?.map((r) => r.id).join(",")]);
 
   // Fetch average weekly usage for all requests on this page
   useEffect(() => {
@@ -385,6 +435,7 @@ const MaterialRequests = () => {
             </TableHead>
             <TableHead>Material</TableHead>
             <TableHead>Branch</TableHead>
+            <TableHead>Current</TableHead>
             <TableHead>Avg/wk</TableHead>
             <TableHead>Quantity</TableHead>
             <TableHead>Status</TableHead>
@@ -407,6 +458,13 @@ const MaterialRequests = () => {
                 </TableCell>
                 <TableCell>{request.material?.name}</TableCell>
                 <TableCell>{request.branch?.name}</TableCell>
+                <TableCell>{currentQtyLoading
+    ? <div className="flex justify-center items-center">
+        <div className="animate-spin rounded-full h-6 w-6 border-t-2 border-b-2 border-blue-400"></div>
+      </div>
+    : currentQtyMap[request.id] !== undefined
+    ? currentQtyMap[request.id].toFixed(2)
+    : "N/A"}</TableCell>
                 <TableCell>
                   {avgUsageLoading
                     ? <div className="flex justify-center items-center">
