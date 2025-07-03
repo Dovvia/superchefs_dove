@@ -379,7 +379,7 @@ const Products = () => {
   <div className="border rounded-lg bg-gray-200 max-h-[70vh] overflow-auto">
   <Table className="w-full">
     <TableHeader>
-      <TableRow className="bg-gray-200 sticky top-0 z-50 shadow-sm">
+      <TableRow className="bg-gray-200 sticky top-0 z-30 shadow-sm">
         <TableHead
           className="sticky left-0 z-50"
           style={{ minWidth: 180, background: "#e5e7eb", top: 0 }}
