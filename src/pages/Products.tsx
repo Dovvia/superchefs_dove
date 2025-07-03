@@ -375,235 +375,238 @@ const Products = () => {
           </Select>
         </div>
       </div>
+   
+  <div className="border rounded-lg bg-gray-200 max-h-[70vh] overflow-auto">
+  <Table className="w-full">
+    <TableHeader>
+      <TableRow className="bg-gray-200 sticky top-0 z-50 shadow-sm">
+        <TableHead
+          className="sticky left-0 z-50"
+          style={{ minWidth: 180, background: "#e5e7eb", top: 0 }}
+        >
+          Name
+        </TableHead>
+            <TableHead >QTY</TableHead>
+            <TableHead>Open</TableHead>
+            <TableHead>QC</TableHead>
+            <TableHead>Prod. Stock</TableHead>
+            <TableHead>Usage</TableHead>
+            <TableHead>TRF (In)</TableHead>
+            <TableHead>TRF (Out)</TableHead>
+            <TableHead>CMP</TableHead>
+            <TableHead>DMG</TableHead>
+            <TableHead>Sales</TableHead>
+            <TableHead>Unit Cost</TableHead>
+            <TableHead>Unit Price</TableHead>
+            <TableHead>Sales Cost</TableHead>
+            <TableHead>N-S Cost</TableHead>
+            <TableHead>Sales Amt</TableHead>
+            <TableHead>UCRR</TableHead>
+            <TableHead>ACRR</TableHead>
+            <TableHead>
+          <Settings className="h-4 w-4 text-gray-800 ml-2" />
+            </TableHead>
+          </TableRow>
+        </TableHeader>
+        {products && products.length > 0 && !isLoading ? (
+          <TableBody className="">
+            {products.map((product, index) => {
+          const recipe = productRecipes?.find(
+            (r) => r.product_id === product.product_id
+          );
+          const ucrr = {
+            ucrr:
+              ((recipe?.unit_cost || 0) /
+            (recipe?.selling_price || 1)) *
+              100,
+          };
+          const acrrCalc = {
+            salesCost: product.total_cost || 0,
+            nSalesCost:
+              (product.total_complimentary_cost || 0) +
+              (product.total_damage_cost || 0),
+            sales: product.total_sale || 0,
+          };
+          const acrr = {
+            acrr:
+              ((acrrCalc.salesCost + acrrCalc.nSalesCost) /
+            (acrrCalc.sales || 1)) *
+              100,
+          };
+          const currentQuantity =
+            (product.total_production_quantity || 0) +
+            (product.total_quantity || 0) +
+            (product.opening_stock || 0) +
+            (product.total_transfer_in_quantity || 0) -
+            (product.total_usage_quantity || 0) -
+            (product.total_transfer_out_quantity || 0) -
+            (product.total_complimentary_quantity || 0) -
+            (product.total_damage_quantity || 0) -
+            (product.total_sales_quantity || 0);
 
-      <div className="border rounded-lg bg-gray-200">
-        <div className="overflow-x-auto">
-          <Table className="w-full table-auto">
-            <TableHeader className="sticky bg-gray-200 top-0 bg-white z-10">
-              <TableRow>
-                <TableHead>Name</TableHead>
-                <TableHead>QTY</TableHead>
-                <TableHead>QC</TableHead>
-                <TableHead>Prod. Stock</TableHead>
-                <TableHead>Usage</TableHead>
-                <TableHead>TRF (In)</TableHead>
-                <TableHead>TRF (Out)</TableHead>
-                <TableHead>CMP</TableHead>
-                <TableHead>DMG</TableHead>
-                <TableHead>Sales</TableHead>
-                <TableHead>Unit Cost</TableHead>
-                <TableHead>Unit Price</TableHead>
-                <TableHead>Sales Cost</TableHead>
-                <TableHead>N-S Cost</TableHead>
-                <TableHead>Sales Amt</TableHead>
-                <TableHead>UCRR</TableHead>
-                <TableHead>ACRR</TableHead>
-                <TableHead>
-                  <Settings className="h-4 w-4 text-gray-800 ml-2" />
-                </TableHead>
-              </TableRow>
-            </TableHeader>
-            {products && products.length > 0 && !isLoading ? (
-              <TableBody>
-                {products.map((product, index) => {
-                  const recipe = productRecipes?.find(
-                    (r) => r.product_id === product.product_id
-                  );
-                  const ucrr = {
-                    // salesAmt:
-                    //   (product.selling_price || 0) *
-                    //   (product.total_sale_quantity || 0),
-                    // nSalesCost:
-                    //   (product.total_complimentary_quantity ||
-                    //     0 + product.total_damage_quantity ||
-                    //     0) * (recipe?.unit_cost || 0),
-                    ucrr:
-                      ((recipe?.unit_cost || 0) /
-                        (recipe?.selling_price || 1)) *
-                      100,
-                  };
-                  const acrrCalc = {
-                    salesCost: product.total_cost || 0,
-                    nSalesCost:
-                      (product.total_complimentary_cost || 0) +
-                      (product.total_damage_cost || 0),
-                    sales: product.total_sale || 0,
-                  };
-                  const acrr = {
-                    acrr:
-                      ((acrrCalc.salesCost + acrrCalc.nSalesCost) /
-                        (acrrCalc.sales || 1)) *
-                      100,
-                  };
-                  const currentQuantity =
-                    (product.total_production_quantity || 0) +
-                    (product.total_quantity || 0) +
-                    (product.opening_stock || 0) +
-                    (product.total_transfer_in_quantity || 0) -
-                    (product.total_usage_quantity || 0) -
-                    (product.total_transfer_out_quantity || 0) -
-                    (product.total_complimentary_quantity || 0) -
-                    (product.total_damage_quantity || 0) -
-                    (product.total_sales_quantity || 0);
-
-                  return (
-                    <TableRow
-                      key={product.product_id}
-                      className={index % 2 === 0 ? "bg-white" : "bg-gray-100"}
-                    >
-                      <TableCell>{product.product_name}</TableCell>
-                      <TableCell>
-                        <span className="text-lg font-bold">
-                          {currentQuantity}
-                        </span>
-                      </TableCell>
-                      <TableCell>{product.total_quantity || 0}</TableCell>
-                      <TableCell>{product.total_production_quantity || 0}</TableCell>
-                      <TableCell>{product.total_usage_quantity || 0}</TableCell>
-                      <TableCell>
-                        {product.total_transfer_in_quantity || 0}
-                      </TableCell>
-                      <TableCell>
-                        {product.total_transfer_out_quantity || 0}
-                      </TableCell>
-                      <TableCell>
-                        {product.total_complimentary_quantity || 0}
-                      </TableCell>
-                      <TableCell>
-                        {product.total_damage_quantity || 0}
-                      </TableCell>
-                      <TableCell>{product.total_sales_quantity || 0}</TableCell>
-                      <TableCell>
-                        ₦
-                        {typeof recipe?.unit_cost === "number"
-                          ? recipe.unit_cost.toFixed(2)
-                          : "0.00"}
-                      </TableCell>
-                      <TableCell>
-                        ₦
-                        {typeof recipe?.selling_price === "number"
-                          ? recipe.selling_price.toFixed(2)
-                          : "0.00"}
-                      </TableCell>
-                      <TableCell>
-                        ₦
-                        {typeof product.total_cost === "number"
-                          ? product.total_cost.toFixed(2)
-                          : "0.00"}
-                      </TableCell>
-                      <TableCell>
-                        <span className="text-yellow-600">
-                          ₦
-                          {typeof product.total_complimentary_cost ===
-                            "number" &&
-                          typeof product.total_damage_cost === "number"
-                            ? (
-                                product.total_complimentary_cost +
-                                product.total_damage_cost
-                              ).toFixed(2)
-                            : "0.00"}
-                        </span>
-                      </TableCell>
-                      <TableCell>
-                        ₦
-                        {typeof product.total_sale === "number"
-                          ? product.total_sale.toFixed(2)
-                          : "0.00"}
-                      </TableCell>
-                      <TableCell>
-                        {typeof ucrr.ucrr === "number" ? (
-                          ucrr.ucrr > 75 ? (
-                            <span className="text-red-600">
-                              {ucrr.ucrr.toFixed(2)}%
-                            </span>
-                          ) : (
-                            <span className="text-green-600">
-                              {ucrr.ucrr.toFixed(2)}%
-                            </span>
-                          )
-                        ) : (
-                          "0.00%"
-                        )}
-                      </TableCell>
-                      <TableCell>
-                        {typeof acrr.acrr === "number" ? (
-                          acrr.acrr > 75 ? (
-                            <span className="text-red-600">
-                              {acrr.acrr.toFixed(2)}%
-                            </span>
-                          ) : (
-                            <span className="text-green-600">
-                              {acrr.acrr.toFixed(2)}%
-                            </span>
-                          )
-                        ) : (
-                          "0.00%"
-                        )}
-                      </TableCell>
-                      <TableCell>
-                        <Select
-                          onValueChange={(value) => {
-                            if (value === "update_price") {
-                              handleOpenPriceDialog({
-                                id: product.product_id,
-                                name: product.product_name,
-                              });
-                            } else if (value === "update_quantity") {
-                              handleOpenQuantityDialog({
-                                id: product.product_id,
-                                name: product.product_name,
-                              });
-                            }
-                          }}
-                        >
-                          <SelectTrigger className="w-3 justify-end appearance-none [&>svg]:hidden p-0 bg-transparent border-0 text-green-500 hover:text-green-900 text-xl font-bold">
-                            <SelectValue placeholder="⋮" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem
-                              value="update_price"
-                              disabled={userBranch?.name !== "HEAD OFFICE"}
-                              className={`${
-                                userBranch?.name !== "HEAD OFFICE"
-                                  ? "text-gray-400 cursor-not-allowed"
-                                  : ""
-                              }`}
-                            >
-                              <span className="pl-1">⋮</span> Update Price
-                            </SelectItem>
-                            <SelectItem
-                              value="update_quantity"
-                              disabled={userBranch?.name !== "HEAD OFFICE"}
-                              className={`${
-                                userBranch?.name !== "HEAD OFFICE"
-                                  ? "text-gray-400 cursor-not-allowed"
-                                  : ""
-                              }`}
-                            >
-                              <span className="pl-1">⋮</span> Add Qty
-                            </SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </TableCell>
-                    </TableRow>
-                  );
-                })}
-              </TableBody>
+          return (
+            <TableRow
+              key={product.product_id}
+              className={index % 2 === 0 ? "bg-white" : "bg-gray-100"}
+            >
+              <TableCell
+            className="sticky left-0 z-10 bg-white"
+            style={{ minWidth: 180, background: index % 2 === 0 ? "#fff" : "#f3f4f6" }}
+              >
+            {product.product_name}
+              </TableCell>
+              <TableCell>
+            <span className="text-lg font-bold">
+              {currentQuantity}
+            </span>
+              </TableCell>
+              <TableCell>{product.opening_stock}</TableCell>
+              <TableCell>{product.total_quantity || 0}</TableCell>
+              <TableCell>{product.total_production_quantity || 0}</TableCell>
+              <TableCell>{product.total_usage_quantity || 0}</TableCell>
+              <TableCell>
+            {product.total_transfer_in_quantity || 0}
+              </TableCell>
+              <TableCell>
+            {product.total_transfer_out_quantity || 0}
+              </TableCell>
+              <TableCell>
+            {product.total_complimentary_quantity || 0}
+              </TableCell>
+              <TableCell>
+            {product.total_damage_quantity || 0}
+              </TableCell>
+              <TableCell>{product.total_sales_quantity || 0}</TableCell>
+              <TableCell>
+            ₦
+            {typeof recipe?.unit_cost === "number"
+              ? recipe.unit_cost.toFixed(2)
+              : "0.00"}
+              </TableCell>
+              <TableCell>
+            ₦
+            {typeof recipe?.selling_price === "number"
+              ? recipe.selling_price.toFixed(2)
+              : "0.00"}
+              </TableCell>
+              <TableCell>
+            ₦
+            {typeof product.total_cost === "number"
+              ? product.total_cost.toFixed(2)
+              : "0.00"}
+              </TableCell>
+              <TableCell>
+            <span className="text-yellow-600">
+              ₦
+              {typeof product.total_complimentary_cost ===
+                "number" &&
+              typeof product.total_damage_cost === "number"
+                ? (
+                product.total_complimentary_cost +
+                product.total_damage_cost
+              ).toFixed(2)
+                : "0.00"}
+            </span>
+              </TableCell>
+              <TableCell>
+            ₦
+            {typeof product.total_sale === "number"
+              ? product.total_sale.toFixed(2)
+              : "0.00"}
+              </TableCell>
+              <TableCell>
+            {typeof ucrr.ucrr === "number" ? (
+              ucrr.ucrr > 75 ? (
+                <span className="text-red-600">
+              {ucrr.ucrr.toFixed(2)}%
+                </span>
+              ) : (
+                <span className="text-green-600">
+              {ucrr.ucrr.toFixed(2)}%
+                </span>
+              )
             ) : (
-              <TableBody>
-                <TableRow>
-                  <TableCell colSpan={18} className="text-center">
-                    {isLoading
-                      ? <div className="flex justify-center items-center">Loading... Please wait
-      <div className="animate-spin rounded-full text-green-500 h-8 w-8 border-t-2 border-b-2  border-green-500"></div>
-    </div>
-                      : "No products found."}
-                  </TableCell>
-                </TableRow>
-              </TableBody>
+              "0.00%"
             )}
-          </Table>
+              </TableCell>
+              <TableCell>
+            {typeof acrr.acrr === "number" ? (
+              acrr.acrr > 75 ? (
+                <span className="text-red-600">
+              {acrr.acrr.toFixed(2)}%
+                </span>
+              ) : (
+                <span className="text-green-600">
+              {acrr.acrr.toFixed(2)}%
+                </span>
+              )
+            ) : (
+              "0.00%"
+            )}
+              </TableCell>
+              <TableCell>
+            <Select
+              onValueChange={(value) => {
+                if (value === "update_price") {
+              handleOpenPriceDialog({
+                id: product.product_id,
+                name: product.product_name,
+              });
+                } else if (value === "update_quantity") {
+              handleOpenQuantityDialog({
+                id: product.product_id,
+                name: product.product_name,
+              });
+                }
+              }}
+            >
+              <SelectTrigger className="w-3 justify-end appearance-none [&>svg]:hidden p-0 bg-transparent border-0 text-green-500 hover:text-green-900 text-xl font-bold">
+                <SelectValue placeholder="⋮" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem
+              value="update_price"
+              disabled={userBranch?.name !== "HEAD OFFICE"}
+              className={`${
+                userBranch?.name !== "HEAD OFFICE"
+                  ? "text-gray-400 cursor-not-allowed"
+                  : ""
+              }`}
+                >
+              <span className="pl-1">⋮</span> Update Price
+                </SelectItem>
+                <SelectItem
+              value="update_quantity"
+              disabled={userBranch?.name !== "HEAD OFFICE"}
+              className={`${
+                userBranch?.name !== "HEAD OFFICE"
+                  ? "text-gray-400 cursor-not-allowed"
+                  : ""
+              }`}
+                >
+              <span className="pl-1">⋮</span> Add Qty
+                </SelectItem>
+              </SelectContent>
+            </Select>
+              </TableCell>
+            </TableRow>
+          );
+            })}
+          </TableBody>
+        ) : (
+          <TableBody>
+            <TableRow>
+          <TableCell colSpan={18} className="text-center">
+            {isLoading
+              ? <div className="flex justify-center items-center">Loading... Please wait
+      <div className="animate-spin rounded-full text-green-500 h-8 w-8 border-t-2 border-b-2  border-green-500"></div>
         </div>
+              : "No products found."}
+          </TableCell>
+            </TableRow>
+          </TableBody>
+        )}
+          </Table>
       </div>
 
       <UpdateProductPriceDialog

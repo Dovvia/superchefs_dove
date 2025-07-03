@@ -259,7 +259,7 @@ const Inventory = () => {
   }
 
   return (
-    <div className="space-y-4 p-3 bg-transparent rounded-lg shadow-md w-full mx-auto margin-100">
+    <div className="space-y-2 p-3 bg-transparent rounded-lg shadow-md w-full mx-auto margin-100">
       <div className="flex justify-between items-center">
         <h2 className="text-3xl font-bold tracking-tight">Inventory</h2>
       </div>
@@ -316,7 +316,7 @@ const Inventory = () => {
         </div>
       </div>
 
-      <div className="border rounded-lg mt-4">
+      <div className="border rounded-lg mt-4 ">
         <h3 className="text-xl font-bold px-4 py-2 bg-gray-100">
           {" "}
           Materials
@@ -340,12 +340,17 @@ const Inventory = () => {
             )} 
           </span>
         </h3>
+        <div className="max-h-[70vh] overflow-auto">
         <Table>
-          <TableHeader>
+          <TableHeader className="sticky bg-gray-200 top-0 bg-white z-10">
             <TableRow className="bg-gray-200">
-              <TableHead>Material</TableHead>
+              <TableHead
+          className="sticky left-0 z-20 bg-gray-200"
+          style={{ minWidth: 180, background: "#e5e7eb" }}
+            >Material</TableHead>
               <TableHead>Unit</TableHead>
               <TableHead>QTY</TableHead>
+              <TableHead>Open</TableHead>
               <TableHead>QC</TableHead>
               <TableHead>PROC.</TableHead>
               <TableHead>TRF IN</TableHead>
@@ -381,7 +386,8 @@ const Inventory = () => {
                         : "bg-gray-100 hover:bg-gray-50"
                     }
                   >
-                    <TableCell>
+                    <TableCell className="sticky left-0 z-10 bg-white"
+            style={{ minWidth: 180, background: index % 2 === 0 ? "#fff" : "#f3f4f6" }}>
                       <strong>{material.name}</strong>
                     </TableCell>
                     <TableCell>{material.unit}</TableCell>
@@ -397,6 +403,7 @@ const Inventory = () => {
                         {currentQuantity.toFixed(2)}
                       </span>
                     </TableCell>
+                    <TableCell>{item.opening_stock ?? 0}</TableCell>
                     <TableCell>{item.total_quantity ?? 0}</TableCell>
                     <TableCell>
                       {item.total_procurement_quantity ?? 0}
@@ -475,10 +482,11 @@ const Inventory = () => {
             </TableBody>
           )}
         </Table>
+        </div>
       </div>
 
       {/* Indirect Materials Table */}
-      <div className="border rounded-lg mt-8">
+      <div className="border bg-green-400 rounded-lg pt-6">
         <h3 className="text-xl font-bold px-4 py-2 bg-gray-100">
           Indirect Materials
           <span className="float-right text-base font-semibold">
@@ -488,6 +496,7 @@ const Inventory = () => {
                 const item = summaryByMaterialId[material.id] || {};
                 const currentQuantity =
                   (item.total_quantity ?? 0) +
+                   (item.opening_stock ?? 0) +
                   (item.total_procurement_quantity ?? 0) +
                   (item.total_transfer_in_quantity ?? 0) -
                   (item.total_transfer_out_quantity ?? 0) -
@@ -500,12 +509,16 @@ const Inventory = () => {
             )}
           </span>
         </h3>
+        <div className="max-h-[70vh] overflow-auto">
         <Table>
-          <TableHeader>
+          <TableHeader className="sticky bg-gray-200 top-0 bg-white z-10">
             <TableRow className="bg-gray-200">
-              <TableHead>Material</TableHead>
+              <TableHead className="sticky left-0 z-20 bg-gray-200"
+          style={{ minWidth: 180, background: "#e5e7eb" }}
+           >Material</TableHead>
               <TableHead>Unit</TableHead>
               <TableHead>QTY</TableHead>
+              <TableHead>Open</TableHead>
               <TableHead>QC</TableHead>
               <TableHead>PROC.</TableHead>
               <TableHead>TRF IN</TableHead>
@@ -527,6 +540,7 @@ const Inventory = () => {
                 const item = summaryByMaterialId[material.id] || {};
                 const currentQuantity =
                   (item.total_quantity ?? 0) +
+                   (item.opening_stock ?? 0) +
                   (item.total_procurement_quantity ?? 0) +
                   (item.total_transfer_in_quantity ?? 0) -
                   (item.total_transfer_out_quantity ?? 0) -
@@ -541,7 +555,8 @@ const Inventory = () => {
                         : "bg-gray-100 hover:bg-gray-50"
                     }
                   >
-                    <TableCell>
+                    <TableCell className="sticky left-0 z-10 bg-white"
+            style={{ minWidth: 180, background: index % 2 === 0 ? "#fff" : "#f3f4f6" }}>
                       <strong>{material.name}</strong>
                     </TableCell>
                     <TableCell>{material.unit}</TableCell>
@@ -557,6 +572,7 @@ const Inventory = () => {
                         {currentQuantity}
                       </span>
                     </TableCell>
+                    <TableCell>{item.opening_stock ?? 0}</TableCell>
                     <TableCell>{item.total_quantity ?? 0}</TableCell>
                     <TableCell>
                       {item.total_procurement_quantity ?? 0}
@@ -659,6 +675,7 @@ const Inventory = () => {
             </TableBody>
           )}
         </Table>
+      </div>
       </div>
 
       <AddMaterialDialog
