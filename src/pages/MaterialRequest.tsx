@@ -365,22 +365,19 @@ const MaterialRequest = () => {
             <FinalizeOrderDialog
               onOpenChange={setIsAddDialogOpenAccept}
               items={
-                data?.material_requests
-                  ?.filter(
-                    (req) =>
-                      selectedItems.includes(req.id) &&
-                      req.status !== "supplied"
-                  )
-                  ?.map((req) => {
-                    return selectedItems.includes(req?.id)
-                      ? {
+                selectedItems
+                .map((id) => {
+                  const req = data?.material_requests?.find(
+                    (r) => r.id === id && r.status !== "supplied"
+                  );
+                if (!req) return null;
+                    return {
                           id: req?.material_id,
                           order_id: req?.orders?.[0]?.procurement_order_id,
                           name: req?.material?.name,
                           quantity: String(req?.quantity),
                           unit: req?.material.unit,
-                        }
-                      : null;
+                        };
                   })
 
                   .filter(Boolean) as unknown as MiniProcurementOrderItem[]

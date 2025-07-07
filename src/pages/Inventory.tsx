@@ -316,7 +316,7 @@ const Inventory = () => {
         </div>
       </div>
 
-      <div className="border rounded-lg mt-4 ">
+      <div className="border rounded-lg mt-4">
         <h3 className="text-xl font-bold px-4 py-2 bg-gray-100">
           {" "}
           Materials
@@ -340,8 +340,8 @@ const Inventory = () => {
             )} 
           </span>
         </h3>
-        <div className="max-h-[70vh] overflow-auto">
-        <Table>
+        <div className="max-h-[70vh] overflow-auto mb-4">
+        <Table >
           <TableHeader className="sticky bg-gray-200 top-0 bg-white z-10">
             <TableRow className="bg-gray-200">
               <TableHead

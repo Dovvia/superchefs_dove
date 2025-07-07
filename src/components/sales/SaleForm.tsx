@@ -54,6 +54,7 @@ export const SaleForm = ({ products, onSubmit, isLoading }: SaleFormProps) => {
   const [items, setItems] = useState([
     { product_id: "", quantity: 1, unit_price: 0, unit_cost: 0 },
   ]);
+  const [submitting, setSubmitting] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [isDamageDialogOpen, setIsDamageDialogOpen] = useState(false);
   const [isComplimentaryDialogOpen, setIsComplimentaryDialogOpen] =
@@ -122,9 +123,18 @@ export const SaleForm = ({ products, onSubmit, isLoading }: SaleFormProps) => {
     product.name.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
+  const handleSubmit = async (values: FormValues) => {
+    setSubmitting(true);
+    try {
+      await onSubmit(values);
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+      <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-6">
         <FormField
           control={form.control}
           name="payment_method"
@@ -268,10 +278,12 @@ export const SaleForm = ({ products, onSubmit, isLoading }: SaleFormProps) => {
           Add Item
         </Button>
 
-        <Button type="submit" className="w-full" disabled={isLoading}>
-          {isLoading ? <div className="flex justify-center items-center">Creating Sale
+        <Button type="submit" className="w-full" disabled={isLoading || submitting}>
+          {isLoading || submitting ? (<div className="flex justify-center items-center">Creating Sale
       <div className="animate-spin rounded-full text-green-500 h-8 w-8 border-t-2 border-b-2  border-white"></div>
-    </div> : "Create Sale"}
+    </div>) : ("Create Sale"
+      
+    )}
         </Button>
 
         {selectedProduct && (

@@ -9,6 +9,7 @@ import { useFieldArray, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Form } from "@/components/ui/form";
 import { Button } from "@/components/ui/button";
+import React from "react";
 
 interface MiniOrderItem {
   id: string;
@@ -28,13 +29,12 @@ interface DialogProps {
   onOpenChange: (open: boolean) => void;
   items: MiniOrderItem[];
 }
-
 export const FinalizeOrderDialog = ({
   onOpenChange,
   items,
   loading,
   onSubmit,
-}: DialogProps) => {
+}: DialogProps) => { 
   return (
     <DialogContent aria-describedby="procurement order" className="max-w-2xl">
       <DialogHeader>
@@ -88,6 +88,12 @@ const FinalizeOrderForm = ({
       items,
     },
   });
+  
+  React.useEffect(() => {
+    form.reset({ items });
+  }, [items, form]);
+
+
   const { fields } = useFieldArray({
     control: form.control,
     name: "items",

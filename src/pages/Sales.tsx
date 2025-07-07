@@ -266,6 +266,7 @@ const Sales = () => {
                 products={products}
                 onSubmit={handleCreateSale}
                 branchId={branchToUse}
+                isLoading={loading}
               />
             )}
           </DialogContent>
