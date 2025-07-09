@@ -36,12 +36,16 @@ interface CreateRecipeDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onError: (error: Error) => void;
+  loading: boolean;
+  setLoading: (loading: boolean) => void;
 }
 
 const CreateRecipeDialog: React.FC<CreateRecipeDialogProps> = ({
   open,
   onOpenChange,
   onError,
+  loading,
+  setLoading,
 }) => {
   const { toast } = useToast();
   const [products, setProducts] = useState<Product[]>([]);
@@ -175,7 +179,9 @@ const CreateRecipeDialog: React.FC<CreateRecipeDialogProps> = ({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-
+    if (loading) return;
+    setLoading(true);
+try{
     if (
       !selectedProduct ||
       selectedMaterials.some(
@@ -298,7 +304,11 @@ const CreateRecipeDialog: React.FC<CreateRecipeDialogProps> = ({
     ]);
     setSelectedProduct("");
     onOpenChange(false);
-  };
+  } catch (err: any) {
+  onError(err);
+  } finally {
+   setLoading(false);
+   }};
 
   return (
     <Dialog open={open} onClose={() => onOpenChange(false)}>
@@ -461,12 +471,17 @@ const CreateRecipeDialog: React.FC<CreateRecipeDialogProps> = ({
               + Add Material
             </Button>
             <br />
-            <Button
-              type="submit"
-              variant="contained"
-              sx={{ width: "100%", backgroundColor: "#4CAF50" }}
-            >
-              Create Recipe
+            <Button type="submit"
+            sx={{backgroundColor: "#4CAF50", color:"white", width: "100%" }} 
+            disabled={loading}>
+              {loading ? (
+                <>
+                  <span className="animate-spin mr-2">⏳</span>
+                  Creating...
+                </>
+              ) : (
+                "Create Recipe"
+              )}
             </Button>
           </div>
         </form>

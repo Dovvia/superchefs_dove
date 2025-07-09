@@ -457,13 +457,13 @@ const Products = () => {
               </TableCell>
               <TableCell>
             <span className="text-lg font-bold">
-              {currentQuantity}
+              {currentQuantity.toFixed(2)}
             </span>
               </TableCell>
-              <TableCell>{product.opening_stock}</TableCell>
+              <TableCell>{(product.opening_stock || 0).toFixed(2)}</TableCell>
               <TableCell>{product.total_quantity || 0}</TableCell>
-              <TableCell>{product.total_production_quantity || 0}</TableCell>
-              <TableCell>{product.total_usage_quantity || 0}</TableCell>
+              <TableCell>{(product.total_production_quantity || 0).toFixed(2)}</TableCell>
+              <TableCell>{(product.total_usage_quantity || 0).toFixed(2)}</TableCell>
               <TableCell>
             {product.total_transfer_in_quantity || 0}
               </TableCell>

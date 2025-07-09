@@ -241,7 +241,7 @@ const ImprestRequests = () => {
             onClick={handleCreateImprestOrder}
             disabled={selectedItems.length === 0 || loading}
           >
-            Create Imprest Order
+            Approve Order
           </Button>
         </div>
       </div>
