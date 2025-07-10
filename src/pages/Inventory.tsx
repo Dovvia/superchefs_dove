@@ -172,8 +172,12 @@ const Inventory = () => {
           mat.description?.toLowerCase() !== "indirect" &&
           (!filterName ||
             mat.name.toLowerCase().includes(filterName.toLowerCase()))
-      ),
-    [allMaterials, filterName]
+      )
+      .map((material) => ({
+        ...material,
+        summary: summaryByMaterialId[material.id] || {},
+      })),
+    [allMaterials, filterName, summaryByMaterialId]
   );
 
   // Filter indirect materials
@@ -324,7 +328,7 @@ const Inventory = () => {
             <Sigma className="inline-block" />:{" "}
             {naira(
               filteredMaterials?.reduce((sum, material) => {
-                const item = summaryByMaterialId[material.id] || {};
+                const item = material.summary || {};
                 const currentQuantity =
                   (item.total_quantity ?? 0) +
                   (item.opening_stock ?? 0) +
@@ -403,7 +407,7 @@ const Inventory = () => {
                         {currentQuantity.toFixed(2)}
                       </span>
                     </TableCell>
-                    <TableCell>{item.opening_stock ?? 0}</TableCell>
+                    <TableCell>{(item.opening_stock ?? 0).toFixed(2)}</TableCell>
                     <TableCell>{item.total_quantity ?? 0}</TableCell>
                     <TableCell>
                       {item.total_procurement_quantity ?? 0}
