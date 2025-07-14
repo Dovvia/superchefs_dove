@@ -1,5 +1,5 @@
-import { useState, useEffect } from "react";
-import { useQueryClient } from "@tanstack/react-query";
+import { useState, useEffect, useMemo } from "react";
+import { useQueryClient, useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import {
   Dialog,
@@ -32,7 +32,7 @@ interface MaterialTransferDialogProps {
 }
 
 const MaterialTransferDialog = ({
-  open,
+  open, 
   onOpenChange,
   material,
   branches,
@@ -50,6 +50,38 @@ const MaterialTransferDialog = ({
     console.log("User Branch ID:", userBranch?.id); // Ensure this is not null or undefined
   }, [userBranch]);
 
+  // Fetch current quantity for the material and branch
+  const { data: materialQtyData } = useQuery({
+    queryKey: ["branch_material_today_view", material?.id, userBranch?.id],
+    enabled: !!material?.id && !!userBranch?.id,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("branch_material_today_view")
+        .select("*")
+        .eq("branch_id", userBranch?.id);
+      if (error) throw error;
+      return data || [];
+    },
+    refetchInterval: 10000,
+  });
+
+  const materialQtyMap = useMemo(() => {
+    const map: Record<string, number> = {};
+    (materialQtyData || []).forEach((row: any) => {
+      map[row.material_id] =
+        (row.total_quantity ?? 0) +
+        (row.opening_stock ?? 0) +
+        (row.total_procurement_quantity ?? 0) +
+        (row.total_transfer_in_quantity ?? 0) -
+        (row.total_transfer_out_quantity ?? 0) -
+        (row.total_usage ?? 0) -
+        (row.total_damage_quantity ?? 0);
+    });
+    return map;
+  }, [materialQtyData]);
+
+  const maxQty = material?.id ? materialQtyMap[material.id] ?? 0 : 0;
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!material) return;
@@ -58,6 +90,15 @@ const MaterialTransferDialog = ({
       toast({
         title: "Error",
         description: "Your branch ID is not set. Please try again later.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (Number(quantity) > maxQty) {
+      toast({
+        title: "Insufficient Quantity",
+        description: `Cannot transfer more than available (${maxQty})`,
         variant: "destructive",
       });
       return;
@@ -123,6 +164,7 @@ const MaterialTransferDialog = ({
         description: "The material transfer has been initiated successfully.",
       });
 
+      queryClient.invalidateQueries({ queryKey: ["branch_material_today_view"] });
       queryClient.invalidateQueries({ queryKey: ["material-transfers"] });
       onOpenChange(false);
     } catch (error: any) {
@@ -166,7 +208,7 @@ const MaterialTransferDialog = ({
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="quantity">Quantity ({material?.unit})</Label>
+            <Label htmlFor="quantity">Quantity ({material?.unit}, Max: {maxQty})</Label>
             <Input
               id="quantity"
               type="number"
@@ -174,6 +216,9 @@ const MaterialTransferDialog = ({
               value={quantity}
               onChange={(e) => setQuantity(e.target.value)}
               required
+              min={1}
+              max={maxQty}
+              disabled={!material}
             />
           </div>
 

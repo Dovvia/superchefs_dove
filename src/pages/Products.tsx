@@ -21,7 +21,7 @@ import {
 } from "@/components/ui/dialog";
 import { ProductForm } from "@/components/products/ProductForm";
 import { ProductDamageDialog } from "@/components/products/ProductDamageDialog";
-import ProductTransferDialog from "@/components/products/ProductTransferDialog";
+import { ProductTransferDialog } from "@/components/products/ProductTransferDialog";
 import { ComplimentaryProductDialog } from "@/components/products/ComplimentaryProductDialog";
 import { useToast } from "@/components/ui/use-toast";
 import { useUserBranch } from "@/hooks/user-branch";
@@ -36,6 +36,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
+import { Branch } from "@/types/branch";
 
 type CumulativeProductView = {
   total_transfer_out_quantity: number;
@@ -83,6 +84,7 @@ const Products = () => {
   const [addTransferOpen, setAddTransferOpen] = useState(false);
   const [isPriceDialogOpen, setIsPriceDialogOpen] = useState(false);
   const [isQuantityDialogOpen, setIsQuantityDialogOpen] = useState(false);
+  const [isTransferDialogOpen, setIsTransferDialogOpen] = useState(false);
   const [isInsertQuantityDialogOpen, setIsInsertQuantityDialogOpen] =
     useState(false);
   const [selectedProduct, setSelectedProduct] = useState<{
@@ -253,18 +255,22 @@ const Products = () => {
     return name.toLowerCase().includes(searchTerm.toLowerCase());
   });
 
+  function refetchTransfers() {
+    throw new Error("Function not implemented.");
+  }
+
   return (
     <div className="space-y-6 p-2 bg-transparent rounded-lg shadow-md w-full mx-auto margin-100">
       <div className="flex justify-between items-center">
         <h2 className="text-3xl font-bold tracking-tight">Products</h2>
 
-        <div className="absolute top-16">
+        <div className="absolute top-14 z-40 bg-transparent">
           <Input
             type="text"
             placeholder="Search"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-32"
+            className="w-32 bg-transparent h-8"
           />
         </div>
 
@@ -351,19 +357,18 @@ const Products = () => {
 
                   <Button
                     className="m-0.5"
-                    onClick={() => setAddTransferOpen(true)}
+                    onClick={() => setIsTransferDialogOpen(true)}
                   >
                     <Plus className="h-4 w-4" />
                     Transfer
                   </Button>
-                  {addTransferOpen && (
-                    <ProductTransferDialog
-                      products={productsData || []}
-                      open={addTransferOpen}
-                      onOpenChange={setAddTransferOpen}
-                      onSuccess={handleOnSuccess}
-                    />
-                  )}
+                  <ProductTransferDialog
+                    open={isTransferDialogOpen}
+                    onOpenChange={setIsTransferDialogOpen}
+                    products={productsData || []}
+                    branches={branches || []}
+                    onSuccess={handleOnSuccess}
+                  />
                 </>
               )}
             </div>
@@ -444,7 +449,9 @@ const Products = () => {
                   typeof obj[key] === "number" ? obj[key] : 0;
 
                 const salesCost =
-                  "total_cost" in product ? getNumber(product, "total_cost") : 0;
+                  "total_cost" in product
+                    ? getNumber(product, "total_cost")
+                    : 0;
                 const nSalesCost =
                   ("total_complimentary_cost" in product
                     ? getNumber(product, "total_complimentary_cost")
@@ -453,7 +460,9 @@ const Products = () => {
                     ? getNumber(product, "total_damage_cost")
                     : 0);
                 const sales =
-                  "total_sale" in product ? getNumber(product, "total_sale") : 0;
+                  "total_sale" in product
+                    ? getNumber(product, "total_sale")
+                    : 0;
 
                 const acrr = {
                   acrr: ((salesCost + nSalesCost) / (sales || 1)) * 100,
@@ -576,7 +585,8 @@ const Products = () => {
                     </TableCell>
                     <TableCell>
                       ₦
-                      {"total_cost" in product && typeof product.total_cost === "number"
+                      {"total_cost" in product &&
+                      typeof product.total_cost === "number"
                         ? product.total_cost.toFixed(2)
                         : "0.00"}
                     </TableCell>
@@ -584,7 +594,8 @@ const Products = () => {
                       <span className="text-yellow-600">
                         ₦
                         {"total_complimentary_cost" in product &&
-                        typeof (product as any).total_complimentary_cost === "number" &&
+                        typeof (product as any).total_complimentary_cost ===
+                          "number" &&
                         "total_damage_cost" in product &&
                         typeof (product as any).total_damage_cost === "number"
                           ? (
@@ -596,7 +607,8 @@ const Products = () => {
                     </TableCell>
                     <TableCell>
                       ₦
-                      {"total_sale" in product && typeof product.total_sale === "number"
+                      {"total_sale" in product &&
+                      typeof product.total_sale === "number"
                         ? product.total_sale.toFixed(2)
                         : "0.00"}
                     </TableCell>

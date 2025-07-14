@@ -1,5 +1,5 @@
-import { useEffect, useState } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import React, { useState, useEffect, useMemo } from "react";
+import { Product } from "@/types/products";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -11,18 +11,19 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
-import { Input } from "@/components/ui/input";
+import { Input as UIInput } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Textarea } from "@/components/ui/textarea";
-import { Product } from "@/types/products";
 import {
   Select,
-  SelectTrigger,
-  SelectValue,
   SelectContent,
   SelectItem,
-} from "../ui/select";
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
 
+// Schema for form validation
 const formSchema = z.object({
   product: z.string().min(1, "Please select a product"),
   quantity: z
@@ -33,7 +34,6 @@ const formSchema = z.object({
     }),
   reason: z.string().min(1, "Reason is required"),
   recipient: z.string().min(1, "Recipient is required"),
-  branch_id: z.string().optional(),
 });
 
 interface ExtendedProduct extends Product {
@@ -45,6 +45,7 @@ interface ComplimentaryProductFormProps {
   onSubmit: (values: z.infer<typeof formSchema>) => Promise<void>;
   isLoading?: boolean;
   onCancel: () => void;
+  branchId: string;
 }
 
 export const ComplimentaryProductForm = ({
@@ -52,53 +53,101 @@ export const ComplimentaryProductForm = ({
   onSubmit,
   isLoading,
   onCancel,
+  branchId,
 }: ComplimentaryProductFormProps) => {
+  const [productQuantities, setProductQuantities] = useState<Record<string, number>>({});
+  const [selectedProductId, setSelectedProductId] = useState<string | null>(null);
+
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
       product: "",
-      branch_id: "",
       quantity: "",
       reason: "",
       recipient: "",
     },
   });
 
-  const [productQuantities, setProductQuantities] = useState<
-  Record<string, number>
->({});
-  useEffect(() => {
-    // Fetch product quantities from the product_inventory table
-    const fetchQuantities = async () => {
+  // Fetch current product quantities
+  const { data: productQtyData } = useQuery({
+    queryKey: ["branch_product_today_view", branchId],
+    enabled: !!branchId,
+    queryFn: async () => {
       const { data, error } = await supabase
-        .from("product_inventory")
-        .select("product_id, quantity");
+        .from("branch_product_today_view")
+        .select("*")
+        .eq("branch_id", branchId);
+      if (error) throw error;
+      return data || [];
+    },
+    refetchInterval: 10000,
+  });
 
-      if (error) {
-        console.error("Error fetching product quantities:", error);
-        return;
-      }
+  // Build product quantity map
+  const productQtyMap = useMemo(() => {
+    const map: Record<string, number> = {};
+    (productQtyData || []).forEach((row: any) => {
+      map[row.product_id] =
+        (row.total_quantity ?? 0) +
+        (row.opening_stock ?? 0) +
+        (row.total_production_quantity ?? 0) +
+        (row.total_transfer_in_quantity ?? 0) -
+        (row.total_transfer_out_quantity ?? 0) -
+        (row.total_usage_quantity ?? 0) -
+        (row.total_damage_quantity ?? 0) -
+        (row.total_sales_quantity ?? 0) -
+        (row.total_complimentary_quantity ?? 0);
+    });
+    return map;
+  }, [productQtyData]);
 
-      // Map quantities to product IDs
-      const quantities = data.reduce((acc, item) => {
-        acc[item.product_id] = item.quantity;
-        return acc;
-      }, {} as Record<string, number>);
+  // Update max value when product changes
+  useEffect(() => {
+    if (selectedProductId) {
+      const available = productQtyMap[selectedProductId] ?? 0;
+      form.setValue("quantity", "");
+      form.unregister("quantity");
+      form.register("quantity", {
+        required: "Quantity is required",
+        validate: (value) =>
+          Number(value) <= available || "Not enough stock",
+      });
+    }
+  }, [selectedProductId, productQtyMap]);
 
-      setProductQuantities(quantities);
-    };
+  const handleProductChange = (productId: string) => {
+    const selectedProduct = products.find((p) => p.id === productId);
+    const available = productQtyMap[productId] ?? 0;
 
-    fetchQuantities();
-  }, []);
+    form.setValue("product", productId);
+    form.setValue("quantity", ""); // Clear previous value
+    setSelectedProductId(productId);
+
+    // Re-validate and restrict input based on available stock
+    form.unregister("quantity");
+    form.register("quantity", {
+      required: "Quantity is required",
+      validate: (value) =>
+        Number(value) <= available || "Cannot exceed available stock",
+    });
+  };
+
+  const filteredProducts = useMemo(() => {
+    return products.map((product) => ({
+      ...product,
+      currentStock: productQtyMap[product.id] ?? 0,
+    }));
+  }, [products, productQtyMap]);
 
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+        {/* Product Selection */}
         <FormField
           control={form.control}
           name="product"
           render={({ field }) => (
-            <FormItem ref={field.ref}>
+            <FormItem>
               <FormLabel htmlFor="product" withAsterisk>
                 Product
               </FormLabel>
@@ -106,11 +155,7 @@ export const ComplimentaryProductForm = ({
                 <Select
                   {...field}
                   onValueChange={(e) => {
-                    const product = products?.find(
-                      (product) => product?.id === e
-                    );
-                    form.setValue("product", e);
-                    form.setValue("branch_id", product?.branch_id);
+                    handleProductChange(e);
                     field.onChange(e);
                   }}
                 >
@@ -118,18 +163,13 @@ export const ComplimentaryProductForm = ({
                     <SelectValue placeholder="Select a product" />
                   </SelectTrigger>
                   <SelectContent>
-        {products?.map((product) => {
-          const quantity = productQuantities[product.id] || 0;
-          return (
-            <SelectItem
-              key={product.id}
-              value={product.id}
-              // disabled={quantity <= 0}
-            >
-              {product.name} - ₦{product.price} ({quantity > 5 ? `${quantity}` : quantity > 0 ? `${quantity} low stock` : "Out of stock"})
-            </SelectItem>
-          );
-        })}
+                    {filteredProducts.map((product) => {
+                      return (
+                        <SelectItem key={product.id} value={product.id}>
+                          {product.name} - ₦{product.price}
+                        </SelectItem>
+                      );
+                    })}
                   </SelectContent>
                 </Select>
               </FormControl>
@@ -137,6 +177,8 @@ export const ComplimentaryProductForm = ({
             </FormItem>
           )}
         />
+
+        {/* Quantity Input with Max Restriction */}
         <FormField
           control={form.control}
           name="quantity"
@@ -144,11 +186,27 @@ export const ComplimentaryProductForm = ({
             <FormItem>
               <FormLabel withAsterisk>Quantity</FormLabel>
               <FormControl>
-                <Input
+                <UIInput
                   type="number"
                   min="1"
-                  {...field}
+                  max={selectedProductId ? productQtyMap[selectedProductId] : undefined}
                   placeholder="Enter quantity"
+                  {...field}
+                  onChange={(e) => {
+                    const value = e.target.value;
+                    if (selectedProductId) {
+                      const available = productQtyMap[selectedProductId];
+                      if (Number(value) > available) {
+                        form.setError("quantity", {
+                          type: "manual",
+                          message: `Not Allowed! Current stock = ${available.toFixed(2)}`,
+                        });
+                      } else {
+                        form.clearErrors("quantity");
+                      }
+                    }
+                    field.onChange(e);
+                  }}
                 />
               </FormControl>
               <FormMessage />
@@ -156,6 +214,7 @@ export const ComplimentaryProductForm = ({
           )}
         />
 
+        {/* Reason Input */}
         <FormField
           control={form.control}
           name="reason"
@@ -163,13 +222,14 @@ export const ComplimentaryProductForm = ({
             <FormItem>
               <FormLabel withAsterisk>Reason</FormLabel>
               <FormControl>
-                <Textarea {...field} />
+                <UIInput {...field} />
               </FormControl>
               <FormMessage />
             </FormItem>
           )}
         />
 
+        {/* Recipient Input */}
         <FormField
           control={form.control}
           name="recipient"
@@ -177,21 +237,27 @@ export const ComplimentaryProductForm = ({
             <FormItem>
               <FormLabel withAsterisk>Recipient</FormLabel>
               <FormControl>
-                <Input {...field} />
+                <UIInput {...field} />
               </FormControl>
               <FormMessage />
             </FormItem>
           )}
         />
 
+        {/* Action Buttons */}
         <div className="flex justify-end gap-2">
           <Button type="button" variant="outline" onClick={onCancel}>
             Cancel
           </Button>
           <Button type="submit" disabled={isLoading}>
-            {isLoading ? <div className="flex justify-center items-center">Recording...
-      <div className="animate-spin rounded-full text-green-500 h-8 w-8 border-t-2 border-b-2  border-white"></div>
-    </div> : "Record Complimentary"}
+            {isLoading ? (
+              <div className="flex items-center">
+                Recording...
+                <div className="ml-2 animate-spin rounded-full h-5 w-5 border-t-2 border-b-2 border-white"></div>
+              </div>
+            ) : (
+              "Record Complimentary"
+            )}
           </Button>
         </div>
       </form>

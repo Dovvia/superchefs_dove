@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import {
   Dialog,
   DialogActions,
@@ -6,6 +6,7 @@ import {
   DialogTitle,
   DialogContentText,
 } from "@mui/material";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { toast } from "@/hooks/use-toast";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -67,6 +68,69 @@ const Production = () => {
   const { data: userBranch } = useUserBranch();
   const { addProductionRecord } = useProductionContext();
 
+  // Fetch current material quantities
+  const { data: materialQtyData, isLoading: isMaterialQtyLoading } = useQuery({
+    queryKey: ["branch_material_today_view", userBranch?.id],
+    enabled: !!userBranch?.id,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("branch_material_today_view")
+        .select("*")
+        .eq("branch_id", userBranch?.id);
+      if (error) throw error;
+      return data || [];
+    },
+    refetchInterval: 10000,
+  });
+
+  // Fetch current product quantities
+  const { data: productQtyData, isLoading: isProductQtyLoading } = useQuery({
+    queryKey: ["branch_product_today_view", userBranch?.id],
+    enabled: !!userBranch?.id,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("branch_product_today_view")
+        .select("*")
+        .eq("branch_id", userBranch?.id);
+      if (error) throw error;
+      return data || [];
+    },
+    refetchInterval: 10000,
+  });
+
+  // Map material and product quantities for fast lookup
+  const materialQtyMap = useMemo(() => {
+    const map: Record<string, number> = {};
+    (materialQtyData || []).forEach((row: any) => {
+      map[row.material_id] =
+        (row.total_quantity ?? 0) +
+        (row.opening_stock ?? 0) +
+        (row.total_procurement_quantity ?? 0) +
+        (row.total_transfer_in_quantity ?? 0) -
+        (row.total_transfer_out_quantity ?? 0) -
+        (row.total_usage ?? 0) -
+        (row.total_damage_quantity ?? 0);
+    });
+    return map;
+  }, [materialQtyData]);
+
+  const productQtyMap = useMemo(() => {
+    const map: Record<string, number> = {};
+    (productQtyData || []).forEach((row: any) => {
+      map[row.product_id] =
+        (row.total_quantity ?? 0) +
+        (row.opening_stock ?? 0) +
+        (row.total_production_quantity ?? 0) +
+        (row.total_transfer_in_quantity ?? 0) -
+        (row.total_transfer_out_quantity ?? 0) -
+        (row.total_usage_quantity ?? 0) -
+        (row.total_damage_quantity ?? 0) -
+        (row.total_sales_quantity ?? 0) -
+        (row.total_complimentary_quantity ?? 0);
+    });
+    return map;
+  }, [productQtyData]);
+
   const { data: fetchedRecipes } = useQuery<Recipe[], Error>({
     queryKey: ["recipes"],
     queryFn: async () => {
@@ -82,7 +146,6 @@ const Production = () => {
           product:products(name)
         )
       `);
-
       if (error) {
         console.error("Error fetching recipes:", error);
         throw error;
@@ -95,7 +158,11 @@ const Production = () => {
   });
 
   const [recipes, setRecipes] = useState<Recipe[]>([]);
-  const [search, setSearch] = useState(""); // <-- Add this
+  const [search, setSearch] = useState("");
+  const [insufficientItems, setInsufficientItems] = useState<
+    Array<{ type: string; name: string; needed: number; available: number }>
+  >([]);
+  const [showInsufficientDialog, setShowInsufficientDialog] = useState(false);
 
   useEffect(() => {
     const fetchProductionData = async () => {
@@ -119,7 +186,6 @@ const Production = () => {
         );
       }
     };
-
     fetchProductionData();
   }, [fetchedRecipes, userBranch]);
 
@@ -128,56 +194,34 @@ const Production = () => {
       try {
         const timestamp = new Date().toISOString();
 
-        // Insert material usage for each material used
         for (const material of recipe.recipe_materials) {
           if (material.material_id && material.material) {
-            // Insert into material_usage
             const { error: usageInsertError } = await supabase
               .from("material_usage")
               .insert({
                 material_id: material.material_id,
                 branch_id:
-                  userBranch &&
-                  typeof userBranch === "object" &&
-                  "id" in userBranch
+                  userBranch && typeof userBranch === "object" && "id" in userBranch
                     ? (userBranch as { id: string }).id
                     : "Unknown Branch",
                 quantity: material.quantity,
               });
-
-            if (usageInsertError) {
-              console.error(
-                `Error inserting material usage for ${material.material.name}:`,
-                usageInsertError
-              );
-              throw usageInsertError;
-            }
+            if (usageInsertError) throw usageInsertError;
           } else if (material.product_id && material.product) {
-            // Insert into product_usage
             const { error: productUsageInsertError } = await supabase
               .from("product_usage")
               .insert({
                 product_id: material.product_id,
                 branch_id:
-                  userBranch &&
-                  typeof userBranch === "object" &&
-                  "id" in userBranch
+                  userBranch && typeof userBranch === "object" && "id" in userBranch
                     ? (userBranch as { id: string }).id
                     : "Unknown Branch",
                 quantity: material.quantity,
               });
-
-            if (productUsageInsertError) {
-              console.error(
-                `Error inserting product usage for ${material.product.name}:`,
-                productUsageInsertError
-              );
-              throw productUsageInsertError;
-            }
+            if (productUsageInsertError) throw productUsageInsertError;
           }
         }
 
-        // Insert a new record into the production table
         const { error: productionInsertError } = await supabase
           .from("production")
           .insert({
@@ -194,18 +238,14 @@ const Production = () => {
             product_id: recipe.product.id,
             product_name: recipe.product.name,
             yield: recipe.yield,
-            timestamp,
+            timestamp: new Date().toISOString(),
           });
 
         if (productionInsertError) {
-          console.error(
-            "Error inserting into production table:",
-            productionInsertError
-          );
+          console.error("Error inserting into production table:", productionInsertError);
           throw productionInsertError;
         }
 
-        console.log("Production process completed successfully");
         return recipe;
       } catch (error) {
         console.error("Production process failed:", error);
@@ -221,18 +261,71 @@ const Production = () => {
       });
       queryClient.invalidateQueries({ queryKey: ["material_usage"] });
       queryClient.invalidateQueries({ queryKey: ["production"] });
+      queryClient.invalidateQueries({ queryKey: ["branch_material_today_view", userBranch?.id] });
+      queryClient.invalidateQueries({ queryKey: ["branch_product_today_view", userBranch?.id] });
     },
     onError: (error: any) => {
-      console.error("Production error", error);
       toast({
         title: "Production Error",
-        description: `Failed to produce ${error?.message || "unknown error"}`,
+        description: `Failed to produce: ${error?.message || "Unknown error"}`,
         variant: "destructive",
       });
     },
   });
 
+  // Helper to check sufficiency for all recipe ingredients
+  const checkSufficiency = (recipe: Recipe) => {
+    const insufficient: {
+      type: string;
+      name: string;
+      needed: number;
+      available: number;
+    }[] = [];
+
+    recipe.recipe_materials.forEach((item) => {
+      if (item.material_id && item.material) {
+        const available = materialQtyMap[item.material_id] ?? 0;
+        if (item.quantity > available) {
+          insufficient.push({
+            type: "Material",
+            name: item.material.name,
+            needed: item.quantity,
+            available,
+          });
+        }
+      } else if (item.product_id && item.product) {
+        const available = productQtyMap[item.product_id] ?? 0;
+        if (item.quantity > available) {
+          insufficient.push({
+            type: "Product",
+            name: item.product.name,
+            needed: item.quantity,
+            available,
+          });
+        }
+      }
+    });
+
+    return insufficient;
+  };
+
   const handleProduce = (recipe: Recipe) => {
+    if (isMaterialQtyLoading || isProductQtyLoading) {
+      toast({
+        title: "Please wait",
+        description: "Checking inventory...",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const insufficient = checkSufficiency(recipe);
+    if (insufficient.length > 0) {
+      setInsufficientItems(insufficient);
+      setShowInsufficientDialog(true);
+      return;
+    }
+
     produceMutation.mutate(recipe);
     handleClose();
   };
@@ -251,9 +344,8 @@ const Production = () => {
   };
 
   const handleYieldChange = (recipeId: string, newYield: number) => {
-    if (newYield < 1) {
-      return;
-    }
+    if (newYield < 1) return;
+
     setRecipes((prevRecipes) =>
       prevRecipes.map((recipe) => {
         if (recipe.id === recipeId) {
@@ -278,13 +370,12 @@ const Production = () => {
   );
 
   return (
-    <div className="space-y-6 p-3 bg-white rounded-lg shadow-md w-full mx-auto margin-100">
+    <div className="space-y-6 p-3 bg-white rounded-lg shadow-md w-full mx-auto">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
           <Utensils className="h-6 w-6" />
           <h1 className="text-3xl font-bold">Production</h1>
         </div>
-        {/* Search input */}
         <div>
           <Input
             type="text"
@@ -306,7 +397,7 @@ const Production = () => {
               </div>
               <CardDescription>
                 {recipe.description && <p>{recipe.description}</p>}
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 mt-2">
                   Yield:
                   <input
                     type="number"
@@ -314,21 +405,20 @@ const Production = () => {
                     onChange={(e) =>
                       handleYieldChange(recipe.id, Number(e.target.value))
                     }
-                    className="w-14 border rounded px-1 text-center"
+                    className="w-full border rounded px-1 text-center"
                   />
                 </div>
               </CardDescription>
             </CardHeader>
             <CardContent>
               <details>
-                <summary className="w-full cursor-pointer hover:text-green-700">
-                  <span>Materials Required</span>
+                <summary className="w-full bg-gray-200 rounded shadow-md pl-4 cursor-pointer hover:bg-green-50 hover:text-green-700">
+                  Ingredients
                 </summary>
-                <div className="space-y-2">
+                <div className="space-y-2 mt-2">
                   {recipe.recipe_materials.map((material) => {
                     let name = "";
                     let unit = "";
-
                     if (material.material_id && material.material) {
                       name = material.material.name;
                       unit = material.material.unit;
@@ -339,7 +429,6 @@ const Production = () => {
                       name = "Unknown";
                       unit = "";
                     }
-
                     return (
                       <div
                         key={material.id}
@@ -356,14 +445,9 @@ const Production = () => {
                 <div className="flex justify-end mt-2">
                   <Button
                     onClick={() => createDialog(recipe)}
-                    style={{
-                      position: "relative",
-                      bottom: "-1rem",
-                      right: "1rem",
-                    }}
                     variant="outline"
                   >
-                    produce
+                    Produce
                   </Button>
                 </div>
               </details>
@@ -371,13 +455,16 @@ const Production = () => {
           </Card>
         ))}
       </div>
+
+      {/* Dialog for confirming production */}
       <Dialog open={openDialog} onClose={handleClose}>
         <DialogTitle className="text-red-700">
           This action cannot be undone!
         </DialogTitle>
         <DialogContent>
           <DialogContentText>
-            Produce <span className="font-bold">{selectedProduct?.yield}</span>{" "}
+            Produce{" "}
+            <span className="font-bold">{selectedProduct?.yield}</span> units of{" "}
             {selectedProduct?.product.name}?
           </DialogContentText>
         </DialogContent>
@@ -388,18 +475,45 @@ const Production = () => {
           <Button
             onClick={() => handleProduce(selectedProduct!)}
             variant="default"
-            disabled={
-              produceMutation.isPending &&
-              produceMutation.variables?.id === selectedProduct?.id
-            }
+            disabled={produceMutation.isPending}
           >
-            {produceMutation.isPending &&
-            produceMutation.variables?.id === selectedProduct?.id
-              ? "Processing"
-              : "Produce"}
+            {produceMutation.isPending ? "Processing..." : "Produce"}
           </Button>
         </DialogActions>
       </Dialog>
+
+      {/* Dialog for insufficient inventory */}
+      
+      <AlertDialog open={showInsufficientDialog} onOpenChange={setShowInsufficientDialog}>
+        <AlertDialogContent className="z-[2000]">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="text-destructive">
+              ⚠️ INSUFFICIENT INVENTORY
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+          
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <div className="space-y-2">
+            {insufficientItems.map((item, idx) => (
+              <div key={idx} className="flex justify-between text-sm">
+                <span className="font-medium">
+                  {item.type}: {item.name}
+                </span>
+                <span>
+                  Need:{" "}
+                  <span className="text-green-600">{item.needed.toFixed(2)}</span>{" "}
+                  | Stock:{" "}
+                  <span className="text-red-600">{item.available.toFixed(2)}</span>
+                </span>
+              </div>
+            ))}
+          </div>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Close</AlertDialogCancel>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };

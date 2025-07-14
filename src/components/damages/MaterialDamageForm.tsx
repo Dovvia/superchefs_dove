@@ -23,7 +23,7 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/auth";
 import { Unit } from "../ui/unit";
-import { useEffect } from "react"; // Import useEffect
+import { useEffect, useState, useMemo } from "react"; // Import useEffect
 
 const formSchema = z.object({
   material: z.string().min(1, "Please select a material"),
@@ -63,6 +63,7 @@ const MaterialDamageForm = ({
   });
 
   const { user } = useAuth();
+  const [selectedMaterialId, setSelectedMaterialId] = useState<string>("");
 
   // Fetch the branch_id of the current user
   useEffect(() => {
@@ -95,9 +96,59 @@ const MaterialDamageForm = ({
     },
   });
 
+  // Fetch current quantity for selected material and branch
+  const branchId = form.watch("branch");
+  const { data: materialQtyData } = useQuery({
+    queryKey: ["branch_material_today_view", branchId],
+    enabled: !!branchId,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("branch_material_today_view")
+        .select("*")
+        .eq("branch_id", branchId);
+      if (error) throw error;
+      return data || [];
+    },
+    refetchInterval: 10000,
+  });
+
+  // Map material_id to current quantity
+  const materialQtyMap = useMemo(() => {
+    const map: Record<string, number> = {};
+    (materialQtyData || []).forEach((row: any) => {
+      map[row.material_id] =
+        (row.total_quantity ?? 0) +
+        (row.opening_stock ?? 0) +
+        (row.total_procurement_quantity ?? 0) +
+        (row.total_transfer_in_quantity ?? 0) -
+        (row.total_transfer_out_quantity ?? 0) -
+        (row.total_usage ?? 0) -
+        (row.total_damage_quantity ?? 0);
+    });
+    return map;
+  }, [materialQtyData]);
+
+  // Get max quantity for selected material
+  const maxQty = selectedMaterialId
+    ? materialQtyMap[selectedMaterialId] ?? 0
+    : 0;
+
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+      <form
+        onSubmit={form.handleSubmit(async (values) => {
+          const qty = Number(values.quantity);
+          if (qty > maxQty) {
+            form.setError("quantity", {
+              type: "manual",
+              message: `Cannot record more than: (${maxQty})`,
+            });
+            return;
+          }
+          await onSubmit(values);
+        })}
+        className="space-y-4"
+      >
         <FormField
           control={form.control}
           name="material"
@@ -108,7 +159,8 @@ const MaterialDamageForm = ({
                 <Select
                   {...field}
                   onValueChange={(e) => {
-                    field.onChange(e); // Only update the material field
+                    field.onChange(e); // update form value
+                    setSelectedMaterialId(e); // update selectedMaterialId for maxQty
                     form.setValue("user", user?.id); // Set the user ID
                   }}
                 >
@@ -133,12 +185,18 @@ const MaterialDamageForm = ({
           name="quantity"
           render={({ field }) => (
             <FormItem ref={field.ref}>
-              <FormLabel htmlFor="quantity">Quantity</FormLabel>
+              <FormLabel htmlFor="quantity">
+                Quantity (Max: {maxQty.toFixed(2)})
+              </FormLabel>
               <FormControl id="quantity">
                 <Input
                   placeholder="Quantity of material damages"
                   {...field}
                   type="number"
+                  min={1}
+                  max={maxQty}
+                  step="any"
+                  disabled={!selectedMaterialId}
                 />
               </FormControl>
               <FormMessage />
@@ -166,9 +224,14 @@ const MaterialDamageForm = ({
             Cancel
           </Button>
           <Button type="submit" disabled={isLoading}>
-            {isLoading ? <div className="flex justify-center items-center">Adding...
-      <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2  border-white"></div>
-    </div> : "Add Damaged Material"}
+            {isLoading ? (
+              <div className="flex justify-center items-center">
+                Adding...
+                <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2  border-white"></div>
+              </div>
+            ) : (
+              "Add Damaged Material"
+            )}
           </Button>
         </div>
       </form>

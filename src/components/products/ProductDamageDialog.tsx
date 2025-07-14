@@ -9,12 +9,14 @@ import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { Product } from "@/types/products";
-import { useUserBranch } from "@/hooks/user-branch"; // Import the hook to get user branch info
+import { useUserBranch } from "@/hooks/user-branch";
 import { useQuery } from "@tanstack/react-query";
+import { useQueryClient } from "@tanstack/react-query";
 
 interface ExtendedProduct extends Product {
   product_damage?: { quantity: number }[];
 }
+
 interface ProductDamageDialogProps {
   products: ExtendedProduct[];
   open: boolean;
@@ -30,6 +32,7 @@ export const ProductDamageDialog = ({
 }: ProductDamageDialogProps) => {
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
+  const queryClient = useQueryClient();
 
   // Get the logged-in user's branch information
   const { data: userBranch } = useUserBranch() as {
@@ -48,19 +51,23 @@ export const ProductDamageDialog = ({
     },
   });
 
+  // Determine which branch to use
+  const branchToUse = userBranch?.role === "HEAD OFFICE" 
+    ? undefined // HEAD OFFICE might allow selecting a branch elsewhere
+    : userBranch?.id;
+
   const handleSubmit = async (values: {
     product: string;
     quantity: string;
     reason: string;
-    branch: string; // This will no longer be used for branch users
+    branch?: string;
   }) => {
     try {
       setIsLoading(true);
 
-      // Use the branch_id from the logged-in user for branch users
-      const branchId = userBranch?.id;
+      const selectedBranchId = values.branch || branchToUse;
 
-      if (!branchId) {
+      if (!selectedBranchId) {
         throw new Error("Branch ID is missing. Please log in again.");
       }
 
@@ -72,13 +79,13 @@ export const ProductDamageDialog = ({
       const unit_price = selectedProduct?.price ?? 0;
       const unit_cost = recipe?.unit_cost ?? 0;
 
-      // Insert a new record into the product_damages table
+      // Insert into product_damages table
       const { error } = await supabase.from("product_damages").insert([
         {
-          branch_id: branchId, // Use the branch_id from the logged-in user
-          product_id: values?.product,
-          quantity: Number(values?.quantity),
-          reason: values?.reason,
+          branch_id: selectedBranchId,
+          product_id: values.product,
+          quantity: Number(values.quantity),
+          reason: values.reason,
           unit_price,
           unit_cost,
         },
@@ -89,6 +96,11 @@ export const ProductDamageDialog = ({
       toast({
         title: "Success",
         description: "Product damage recorded successfully",
+      });
+
+      // Invalidate product quantity view to reflect the change
+      queryClient.invalidateQueries({
+        queryKey: ["branch_product_today_view", selectedBranchId],
       });
 
       onSuccess?.();
@@ -114,6 +126,7 @@ export const ProductDamageDialog = ({
         <ProductDamageForm
           products={products}
           onSubmit={handleSubmit}
+          branchId={branchToUse ?? ""}
           isLoading={isLoading}
           onCancel={() => onOpenChange(false)}
         />

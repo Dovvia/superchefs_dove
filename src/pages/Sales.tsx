@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Product } from "@/types/products";
 import { Sale } from "@/types/sales";
@@ -50,9 +50,10 @@ const Sales = () => {
   const [timePeriod, setTimePeriod] = useState("day");
   const [selectedBranchId, setSelectedBranchId] = useState<string | null>(null);
   const { toast } = useToast();
-  const {
-    data: { id },
-  } = useUserBranch();
+  const { data: userBranchData } = useUserBranch();
+  const id = userBranchData?.id;
+
+  const queryClient = useQueryClient();
 
   const { data: products } = useQuery({
     queryKey: ["products"],
@@ -80,7 +81,7 @@ const Sales = () => {
   });
 
   // Determine which branch to use for sales query
-  const branchToUse = id === "HEAD OFFICE" ? selectedBranchId : id;
+  const branchToUse = id === "HEAD OFFICE" ? selectedBranchId : id ?? null;
 
   // Fetch sales for the selected branch
   const { data: sales, refetch: refetchSales } = useQuery({
@@ -170,6 +171,10 @@ const Sales = () => {
       });
       setIsAddDialogOpen(false);
       await refetchSales();
+
+queryClient.invalidateQueries({ 
+  queryKey: ["branch_product_today_view", branchToUse] 
+});
     } catch (error) {
       console.error("Error creating sale:", error);
       toast({

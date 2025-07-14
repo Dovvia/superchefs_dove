@@ -93,6 +93,7 @@ const Inventory = () => {
   >({}); // material.id -> loading
 
   const { toast } = useToast();
+  const queryClient = useQueryClient();
   const { data: userBranch, isLoading: isLoadingBranch } = useUserBranch();
 
   const { data: branches } = useQuery({
@@ -167,16 +168,17 @@ const Inventory = () => {
   // Filter materials by name search
   const filteredMaterials = useMemo(
     () =>
-      allMaterials?.filter(
-        (mat) =>
-          mat.description?.toLowerCase() !== "indirect" &&
-          (!filterName ||
-            mat.name.toLowerCase().includes(filterName.toLowerCase()))
-      )
-      .map((material) => ({
-        ...material,
-        summary: summaryByMaterialId[material.id] || {},
-      })),
+      allMaterials
+        ?.filter(
+          (mat) =>
+            mat.description?.toLowerCase() !== "indirect" &&
+            (!filterName ||
+              mat.name.toLowerCase().includes(filterName.toLowerCase()))
+        )
+        .map((material) => ({
+          ...material,
+          summary: summaryByMaterialId[material.id] || {},
+        })),
     [allMaterials, filterName, summaryByMaterialId]
   );
 
@@ -202,11 +204,29 @@ const Inventory = () => {
   };
 
   const handleAddUsage = async (materialId: string) => {
+    const item = summaryByMaterialId[materialId] || {};
+    const currentQuantity =
+      (item.total_quantity ?? 0) +
+      (item.opening_stock ?? 0) +
+      (item.total_procurement_quantity ?? 0) +
+      (item.total_transfer_in_quantity ?? 0) -
+      (item.total_transfer_out_quantity ?? 0) -
+      (item.total_usage ?? 0) -
+      (item.total_damage_quantity ?? 0);
+
     const quantity = parseFloat(usageInputs[materialId]);
     if (isNaN(quantity) || quantity <= 0) {
       toast({
         title: "Invalid quantity",
         description: "Enter a valid number",
+        variant: "destructive",
+      });
+      return;
+    }
+    if (quantity > currentQuantity) {
+      toast({
+        title: "Insufficient Quantity",
+        description: `Cannot use more than available (${currentQuantity})`,
         variant: "destructive",
       });
       return;
@@ -223,7 +243,7 @@ const Inventory = () => {
         material_id: materialId,
         quantity,
         branch_id: userBranch.id,
-        cost, 
+        cost,
         // add other fields as needed, e.g. user_id, timestamp
       },
     ]);
@@ -238,16 +258,20 @@ const Inventory = () => {
       toast({ title: "Usage added", description: "Usage record inserted" });
       setUsageInputs((prev) => ({ ...prev, [materialId]: "" }));
       refetch();
+      queryClient.invalidateQueries({
+        queryKey: ["branch_material_today_view"],
+      });
+      queryClient.invalidateQueries({ queryKey: ["material_usage"] });
     }
   };
-
 
   if (isLoadingBranch) {
     return (
       <div className="text-center">
-        <div className="flex justify-center items-center">Loading branch information
-      <div className="animate-spin rounded-full text-green-500 h-8 w-8 border-t-2 border-b-2  border-green-500"></div>
-    </div>
+        <div className="flex justify-center items-center">
+          Loading branch information
+          <div className="animate-spin rounded-full text-green-500 h-8 w-8 border-t-2 border-b-2  border-green-500"></div>
+        </div>
       </div>
     );
   }
@@ -341,151 +365,163 @@ const Inventory = () => {
                   sum + (material.unit_price ?? 0) * (currentQuantity ?? 0)
                 );
               }, 0) ?? 0
-            )} 
+            )}
           </span>
         </h3>
         <div className="max-h-[70vh] overflow-auto mb-4">
-        <Table >
-          <TableHeader className="sticky bg-gray-200 top-0 bg-white z-10">
-            <TableRow className="bg-gray-200">
-              <TableHead
-          className="sticky left-0 z-20 bg-gray-200"
-          style={{ minWidth: 180, background: "#e5e7eb" }}
-            >Material</TableHead>
-              <TableHead>Unit</TableHead>
-              <TableHead>QTY</TableHead>
-              <TableHead>Open</TableHead>
-              <TableHead>QC</TableHead>
-              <TableHead>PROC.</TableHead>
-              <TableHead>TRF IN</TableHead>
-              <TableHead>TRF OUT</TableHead>
-              <TableHead>Usage</TableHead>
-              <TableHead>DMG</TableHead>
-              <TableHead>Reorder</TableHead>
-              <TableHead>Unit Cost</TableHead>
-              <TableHead>Value</TableHead>
-              <TableHead>
-                <Settings className="h-4 w-4 text-gray-800 ml-2" />
-              </TableHead>
-            </TableRow>
-          </TableHeader>
-          {filteredMaterials?.length && !isLoadingInventory ? (
-            <TableBody>
-              {filteredMaterials.map((material, index) => {
-                const item = summaryByMaterialId[material.id] || {};
-                const currentQuantity =
-                  (item.total_quantity ?? 0) +
-                  (item.opening_stock ?? 0) +
-                  (item.total_procurement_quantity ?? 0) +
-                  (item.total_transfer_in_quantity ?? 0) -
-                  (item.total_transfer_out_quantity ?? 0) -
-                  (item.total_usage ?? 0) -
-                  (item.total_damage_quantity ?? 0);
-                return (
-                  <TableRow
-                    key={material.id}
-                    className={
-                      index % 2 === 0
-                        ? "bg-white hover:bg-gray-50"
-                        : "bg-gray-100 hover:bg-gray-50"
-                    }
-                  >
-                    <TableCell className="sticky left-0 z-10 bg-white"
-            style={{ minWidth: 180, background: index % 2 === 0 ? "#fff" : "#f3f4f6" }}>
-                      <strong>{material.name}</strong>
-                    </TableCell>
-                    <TableCell>{material.unit}</TableCell>
-                    <TableCell
-                      style={{
-                        color:
-                          (currentQuantity ?? 0) <= (material.minimum_stock ?? 0)
-                            ? "red"
-                            : "green",
-                      }}
+          <Table>
+            <TableHeader className="sticky bg-gray-200 top-0 bg-white z-10">
+              <TableRow className="bg-gray-200">
+                <TableHead
+                  className="sticky left-0 z-20 bg-gray-200"
+                  style={{ minWidth: 180, background: "#e5e7eb" }}
+                >
+                  Material
+                </TableHead>
+                <TableHead>Unit</TableHead>
+                <TableHead>QTY</TableHead>
+                <TableHead>Open</TableHead>
+                <TableHead>QC</TableHead>
+                <TableHead>PROC.</TableHead>
+                <TableHead>TRF IN</TableHead>
+                <TableHead>TRF OUT</TableHead>
+                <TableHead>Usage</TableHead>
+                <TableHead>DMG</TableHead>
+                <TableHead>Reorder</TableHead>
+                <TableHead>Unit Cost</TableHead>
+                <TableHead>Value</TableHead>
+                <TableHead>
+                  <Settings className="h-4 w-4 text-gray-800 ml-2" />
+                </TableHead>
+              </TableRow>
+            </TableHeader>
+            {filteredMaterials?.length && !isLoadingInventory ? (
+              <TableBody>
+                {filteredMaterials.map((material, index) => {
+                  const item = summaryByMaterialId[material.id] || {};
+                  const currentQuantity =
+                    (item.total_quantity ?? 0) +
+                    (item.opening_stock ?? 0) +
+                    (item.total_procurement_quantity ?? 0) +
+                    (item.total_transfer_in_quantity ?? 0) -
+                    (item.total_transfer_out_quantity ?? 0) -
+                    (item.total_usage ?? 0) -
+                    (item.total_damage_quantity ?? 0);
+                  return (
+                    <TableRow
+                      key={material.id}
+                      className={
+                        index % 2 === 0
+                          ? "bg-white hover:bg-gray-50"
+                          : "bg-gray-100 hover:bg-gray-50"
+                      }
                     >
-                      <span className="font-bold text-lg">
-                        {currentQuantity.toFixed(2)}
-                      </span>
-                    </TableCell>
-                    <TableCell>{(item.opening_stock ?? 0).toFixed(2)}</TableCell>
-                    <TableCell>{item.total_quantity ?? 0}</TableCell>
-                    <TableCell>
-                      {item.total_procurement_quantity ?? 0}
-                    </TableCell>
-                    <TableCell>
-                      {item.total_transfer_in_quantity ?? 0}
-                    </TableCell>
-                    <TableCell>
-                      {item.total_transfer_out_quantity ?? 0}
-                    </TableCell>
-                    <TableCell>{(item.total_usage ?? 0).toFixed(2)}</TableCell>
-                    <TableCell>{item.total_damage_quantity ?? 0}</TableCell>
-                    <TableCell>{material.minimum_stock}</TableCell>
-                    <TableCell>{naira(material.unit_price)}</TableCell>
-                    <TableCell>
-                      {naira(
-                        (material.unit_price ?? 0) * (currentQuantity ?? 0)
-                      )}
-                    </TableCell>
-                    <TableCell>
-                      <Select
-                        onValueChange={(value) => {
-                          if (value === "transfer") {
-                            setSelectedMaterial(material);
-                            setIsTransferDialogOpen(true);
-                          } else if (
-                            value === "update_cost" &&
-                            userBranch.name === "HEAD OFFICE"
-                          ) {
-                            handleOpenCostDialog(material);
-                          }
+                      <TableCell
+                        className="sticky left-0 z-10 bg-white"
+                        style={{
+                          background: index % 2 === 0 ? "#fff" : "#f3f4f6",
                         }}
                       >
-                        <SelectTrigger className="w-3 justify-end appearance-none [&>svg]:hidden p-0 bg-transparent border-0 text-green-500 hover:text-green-900 text-xl font-bold">
-                          <SelectValue placeholder="⋮" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="transfer">
-                            <span className="pl-1">⋮</span> Transfer
-                          </SelectItem>
-                          <SelectItem
-                            value="update_cost"
-                            disabled={userBranch.name !== "HEAD OFFICE"}
-                            className={`${
-                              userBranch.name !== "HEAD OFFICE"
-                                ? "text-gray-400 cursor-not-allowed"
-                                : ""
-                            }`}
-                          >
-                            <span className="pl-1">⋮</span> Update Cost
-                          </SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </TableCell>
-                  </TableRow>
-                );
-              })}
-            </TableBody>
-          ) : !filteredMaterials?.length && !isLoadingInventory ? (
-            <TableBody>
-              <TableRow>
-                <TableCell colSpan={13} className="text-center">
-                  No recent inventory record found
-                </TableCell>
-              </TableRow>
-            </TableBody>
-          ) : (
-            <TableBody>
-              <TableRow>
-                <TableCell colSpan={13} className="text-center">
-                  <div className="flex justify-center items-center">Loading... Please wait
-      <div className="animate-spin rounded-full text-green-500 h-8 w-8 border-t-2 border-b-2  border-green-500"></div>
-    </div>
-                </TableCell>
-              </TableRow>
-            </TableBody>
-          )}
-        </Table>
+                        <strong>{material.name}</strong>
+                      </TableCell>
+                      <TableCell>{material.unit}</TableCell>
+                      <TableCell
+                        style={{
+                          color:
+                            (currentQuantity ?? 0) <=
+                            (material.minimum_stock ?? 0)
+                              ? "red"
+                              : "green",
+                        }}
+                      >
+                        <span className="font-bold text-lg">
+                          {currentQuantity.toFixed(2)}
+                        </span>
+                      </TableCell>
+                      <TableCell>
+                        {(item.opening_stock ?? 0).toFixed(2)}
+                      </TableCell>
+                      <TableCell>{item.total_quantity ?? 0}</TableCell>
+                      <TableCell>
+                        {item.total_procurement_quantity ?? 0}
+                      </TableCell>
+                      <TableCell>
+                        {item.total_transfer_in_quantity ?? 0}
+                      </TableCell>
+                      <TableCell>
+                        {item.total_transfer_out_quantity ?? 0}
+                      </TableCell>
+                      <TableCell>
+                        {(item.total_usage ?? 0).toFixed(2)}
+                      </TableCell>
+                      <TableCell>{item.total_damage_quantity ?? 0}</TableCell>
+                      <TableCell>{material.minimum_stock}</TableCell>
+                      <TableCell>{naira(material.unit_price)}</TableCell>
+                      <TableCell>
+                        {naira(
+                          (material.unit_price ?? 0) * (currentQuantity ?? 0)
+                        )}
+                      </TableCell>
+                      <TableCell>
+                        <Select
+                          onValueChange={(value) => {
+                            if (value === "transfer") {
+                              setSelectedMaterial(material);
+                              setIsTransferDialogOpen(true);
+                            } else if (
+                              value === "update_cost" &&
+                              userBranch.name === "HEAD OFFICE"
+                            ) {
+                              handleOpenCostDialog(material);
+                            }
+                          }}
+                        >
+                          <SelectTrigger className="w-3 justify-end appearance-none [&>svg]:hidden p-0 bg-transparent border-0 text-green-500 hover:text-green-900 text-xl font-bold">
+                            <SelectValue placeholder="⋮" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="transfer">
+                              <span className="pl-1">⋮</span> Transfer
+                            </SelectItem>
+                            <SelectItem
+                              value="update_cost"
+                              disabled={userBranch.name !== "HEAD OFFICE"}
+                              className={`${
+                                userBranch.name !== "HEAD OFFICE"
+                                  ? "text-gray-400 cursor-not-allowed"
+                                  : ""
+                              }`}
+                            >
+                              <span className="pl-1">⋮</span> Update Cost
+                            </SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
+              </TableBody>
+            ) : !filteredMaterials?.length && !isLoadingInventory ? (
+              <TableBody>
+                <TableRow>
+                  <TableCell colSpan={13} className="text-center">
+                    No recent inventory record found
+                  </TableCell>
+                </TableRow>
+              </TableBody>
+            ) : (
+              <TableBody>
+                <TableRow>
+                  <TableCell colSpan={13} className="text-center">
+                    <div className="flex justify-center items-center">
+                      Loading... Please wait
+                      <div className="animate-spin rounded-full text-green-500 h-8 w-8 border-t-2 border-b-2  border-green-500"></div>
+                    </div>
+                  </TableCell>
+                </TableRow>
+              </TableBody>
+            )}
+          </Table>
         </div>
       </div>
 
@@ -500,7 +536,7 @@ const Inventory = () => {
                 const item = summaryByMaterialId[material.id] || {};
                 const currentQuantity =
                   (item.total_quantity ?? 0) +
-                   (item.opening_stock ?? 0) +
+                  (item.opening_stock ?? 0) +
                   (item.total_procurement_quantity ?? 0) +
                   (item.total_transfer_in_quantity ?? 0) -
                   (item.total_transfer_out_quantity ?? 0) -
@@ -514,172 +550,204 @@ const Inventory = () => {
           </span>
         </h3>
         <div className="max-h-[70vh] overflow-auto">
-        <Table>
-          <TableHeader className="sticky bg-gray-200 top-0 bg-white z-10">
-            <TableRow className="bg-gray-200">
-              <TableHead className="sticky left-0 z-20 bg-gray-200"
-          style={{ minWidth: 180, background: "#e5e7eb" }}
-           >Material</TableHead>
-              <TableHead>Unit</TableHead>
-              <TableHead>QTY</TableHead>
-              <TableHead>Open</TableHead>
-              <TableHead>QC</TableHead>
-              <TableHead>PROC.</TableHead>
-              <TableHead>TRF IN</TableHead>
-              <TableHead>TRF OUT</TableHead>
-              <TableHead>Usage</TableHead>
-              <TableHead>Add Usage</TableHead>
-              <TableHead>DMG</TableHead>
-              <TableHead>Reorder</TableHead>
-              <TableHead>Unit Cost</TableHead>
-              <TableHead>Value</TableHead>
-              <TableHead>
-                <Settings className="h-4 w-4 text-gray-800 ml-2" />
-              </TableHead>
-            </TableRow>
-          </TableHeader>
-          {indirectMaterials?.length && !isLoadingInventory ? (
-            <TableBody>
-              {indirectMaterials.map((material, index) => {
-                const item = summaryByMaterialId[material.id] || {};
-                const currentQuantity =
-                  (item.total_quantity ?? 0) +
-                   (item.opening_stock ?? 0) +
-                  (item.total_procurement_quantity ?? 0) +
-                  (item.total_transfer_in_quantity ?? 0) -
-                  (item.total_transfer_out_quantity ?? 0) -
-                  (item.total_usage ?? 0) -
-                  (item.total_damage_quantity ?? 0);
-                return (
-                  <TableRow
-                    key={material.id}
-                    className={
-                      index % 2 === 0
-                        ? "bg-white hover:bg-gray-50"
-                        : "bg-gray-100 hover:bg-gray-50"
-                    }
-                  >
-                    <TableCell className="sticky left-0 z-10 bg-white"
-            style={{ minWidth: 180, background: index % 2 === 0 ? "#fff" : "#f3f4f6" }}>
-                      <strong>{material.name}</strong>
-                    </TableCell>
-                    <TableCell>{material.unit}</TableCell>
-                    <TableCell
-                      style={{
-                        color:
-                          (currentQuantity ?? 0) < (material.minimum_stock ?? 0)
-                            ? "red"
-                            : "green",
-                      }}
+          <Table>
+            <TableHeader className="sticky bg-gray-200 top-0 bg-white z-10">
+              <TableRow className="bg-gray-200">
+                <TableHead
+                  className="sticky left-0 z-20 bg-gray-200"
+                  style={{ background: "#e5e7eb" }}
+                >
+                  Material
+                </TableHead>
+                <TableHead>Unit</TableHead>
+                <TableHead>QTY</TableHead>
+                <TableHead>Open</TableHead>
+                <TableHead>QC</TableHead>
+                <TableHead>PROC.</TableHead>
+                <TableHead>TRF IN</TableHead>
+                <TableHead>TRF OUT</TableHead>
+                <TableHead>Usage</TableHead>
+                <TableHead>Add Usage</TableHead>
+                <TableHead>DMG</TableHead>
+                <TableHead>Reorder</TableHead>
+                <TableHead>Unit Cost</TableHead>
+                <TableHead>Value</TableHead>
+                <TableHead>
+                  <Settings className="h-4 w-4 text-gray-800 ml-2" />
+                </TableHead>
+              </TableRow>
+            </TableHeader>
+            {indirectMaterials?.length && !isLoadingInventory ? (
+              <TableBody>
+                {indirectMaterials.map((material, index) => {
+                  const item = summaryByMaterialId[material.id] || {};
+                  const currentQuantity =
+                    (item.total_quantity ?? 0) +
+                    (item.opening_stock ?? 0) +
+                    (item.total_procurement_quantity ?? 0) +
+                    (item.total_transfer_in_quantity ?? 0) -
+                    (item.total_transfer_out_quantity ?? 0) -
+                    (item.total_usage ?? 0) -
+                    (item.total_damage_quantity ?? 0);
+                  return (
+                    <TableRow
+                      key={material.id}
+                      className={
+                        index % 2 === 0
+                          ? "bg-white hover:bg-gray-50"
+                          : "bg-gray-100 hover:bg-gray-50"
+                      }
                     >
-                      <span className="font-bold text-lg">
-                        {currentQuantity}
-                      </span>
-                    </TableCell>
-                    <TableCell>{item.opening_stock ?? 0}</TableCell>
-                    <TableCell>{item.total_quantity ?? 0}</TableCell>
-                    <TableCell>
-                      {item.total_procurement_quantity ?? 0}
-                    </TableCell>
-                    <TableCell>
-                      {item.total_transfer_in_quantity ?? 0}
-                    </TableCell>
-                    <TableCell>
-                      {item.total_transfer_out_quantity ?? 0}
-                    </TableCell>
-                    <TableCell>{(item.total_usage ?? 0).toFixed(2)}</TableCell>
-
-                    <TableCell>
-                      <div className="flex items-center space-x-1">
-                        <input
-                          type="number"
-                          min="0"
-                          step="any"
-                          value={usageInputs[material.id] || ""}
-                          onChange={(e) =>
-                            handleUsageInputChange(material.id, e.target.value)
-                          }
-                          className="w-12 border rounded px-1 py-0.5 text-sm"
-                          placeholder="1"
-                          disabled={isSubmittingUsage[material.id]}
-                        />
-                        <Button
-                          size="default"
-                          // variant="outline"
-                          onClick={() => handleAddUsage(material.id)}
-                          disabled={
-                            isSubmittingUsage[material.id] ||
-                            !usageInputs[material.id]
-                          }
-                          className=" px-0 text-xl font-bold h-6 bg-transparent text-green-700 hover:bg-green-600 hover:text-white"
-                        >
-                          {isSubmittingUsage[material.id] ? "..." : "+"}
-                        </Button>
-                      </div>
-                    </TableCell>
-
-                    <TableCell>{item.total_damage_quantity ?? 0}</TableCell>
-                    <TableCell>{material.minimum_stock}</TableCell>
-                    <TableCell>{naira(material.unit_price)}</TableCell>
-                    <TableCell>
-                      {naira(
-                        (material.unit_price ?? 0) * (currentQuantity ?? 0)
-                      )}
-                    </TableCell>
-                    <TableCell>
-                      <Select
-                        onValueChange={(value) => {
-                          if (value === "transfer") {
-                            setSelectedMaterial(material);
-                            setIsTransferDialogOpen(true);
-                          } else if (
-                            value === "update_cost" &&
-                            userBranch.name === "HEAD OFFICE"
-                          ) {
-                            handleOpenCostDialog(material);
-                          }
+                      <TableCell
+                        className="sticky left-0 z-10 bg-white"
+                        style={{
+                          minWidth: 180,
+                          background: index % 2 === 0 ? "#fff" : "#f3f4f6",
                         }}
                       >
-                        <SelectTrigger className="w-3 justify-end appearance-none [&>svg]:hidden p-0 bg-transparent border-0 text-green-500 hover:text-green-900 text-xl font-bold">
-                          <SelectValue placeholder="⋮" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="transfer">
-                            <span className="pl-1">⋮</span> Transfer
-                          </SelectItem>
-                          <SelectItem
-                            value="update_cost"
-                            disabled={userBranch.name !== "HEAD OFFICE"}
-                            className={`${
-                              userBranch.name !== "HEAD OFFICE"
-                                ? "text-gray-400 cursor-not-allowed"
-                                : ""
-                            }`}
+                        <strong>{material.name}</strong>
+                      </TableCell>
+                      <TableCell>{material.unit}</TableCell>
+                      <TableCell
+                        style={{
+                          color:
+                            (currentQuantity ?? 0) <
+                            (material.minimum_stock ?? 0)
+                              ? "red"
+                              : "green",
+                        }}
+                      >
+                        <span className="font-bold text-lg">
+                          {currentQuantity.toFixed(2)}
+                        </span>
+                      </TableCell>
+                      <TableCell>
+                        {(item.opening_stock ?? 0).toFixed(2)}
+                      </TableCell>
+                      <TableCell>{item.total_quantity ?? 0}</TableCell>
+                      <TableCell>
+                        {item.total_procurement_quantity ?? 0}
+                      </TableCell>
+                      <TableCell>
+                        {item.total_transfer_in_quantity ?? 0}
+                      </TableCell>
+                      <TableCell>
+                        {item.total_transfer_out_quantity ?? 0}
+                      </TableCell>
+                      <TableCell>
+                        {(item.total_usage ?? 0).toFixed(2)}
+                      </TableCell>
+
+                      <TableCell>
+                        <div className="flex items-center space-x-1">
+                          <input
+                            type="number"
+                            min="0"
+                            max={(() => {
+                              const item =
+                                summaryByMaterialId[material.id] || {};
+                              return (
+                                (item.total_quantity ?? 0) +
+                                (item.opening_stock ?? 0) +
+                                (item.total_procurement_quantity ?? 0) +
+                                (item.total_transfer_in_quantity ?? 0) -
+                                (item.total_transfer_out_quantity ?? 0) -
+                                (item.total_usage ?? 0) -
+                                (item.total_damage_quantity ?? 0)
+                              );
+                            })()}
+                            step="any"
+                            value={usageInputs[material.id] || ""}
+                            onChange={(e) =>
+                              handleUsageInputChange(
+                                material.id,
+                                e.target.value
+                              )
+                            }
+                            className="w-12 border rounded px-1 py-0.5 text-sm"
+                            placeholder="1"
+                            disabled={isSubmittingUsage[material.id]}
+                          />
+                          <Button
+                            size="default"
+                            // variant="outline"
+                            onClick={() => handleAddUsage(material.id)}
+                            disabled={
+                              isSubmittingUsage[material.id] ||
+                              !usageInputs[material.id]
+                            }
+                            className=" px-0 text-xl font-bold h-6 bg-transparent text-green-700 hover:bg-green-600 hover:text-white"
                           >
-                            <span className="pl-1">⋮</span> Update Cost
-                          </SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </TableCell>
-                  </TableRow>
-                );
-              })}
-            </TableBody>
-          ) : (
-            <TableBody>
-              <TableRow>
-                <TableCell colSpan={13} className="text-center">
-                  {isLoadingInventory
-                    ? <div className="flex justify-center items-center">Loading... Please wait
-      <div className="animate-spin rounded-full text-green-500 h-8 w-8 border-t-2 border-b-2  border-green-500"></div>
-    </div>
-                    : "No indirect materials found."}
-                </TableCell>
-              </TableRow>
-            </TableBody>
-          )}
-        </Table>
-      </div>
+                            {isSubmittingUsage[material.id] ? "..." : "+"}
+                          </Button>
+                        </div>
+                      </TableCell>
+
+                      <TableCell>{item.total_damage_quantity ?? 0}</TableCell>
+                      <TableCell>{material.minimum_stock}</TableCell>
+                      <TableCell>{naira(material.unit_price)}</TableCell>
+                      <TableCell>
+                        {naira(
+                          (material.unit_price ?? 0) * (currentQuantity ?? 0)
+                        )}
+                      </TableCell>
+                      <TableCell>
+                        <Select
+                          onValueChange={(value) => {
+                            if (value === "transfer") {
+                              setSelectedMaterial(material);
+                              setIsTransferDialogOpen(true);
+                            } else if (
+                              value === "update_cost" &&
+                              userBranch.name === "HEAD OFFICE"
+                            ) {
+                              handleOpenCostDialog(material);
+                            }
+                          }}
+                        >
+                          <SelectTrigger className="w-3 justify-end appearance-none [&>svg]:hidden p-0 bg-transparent border-0 text-green-500 hover:text-green-900 text-xl font-bold">
+                            <SelectValue placeholder="⋮" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="transfer">
+                              <span className="pl-1">⋮</span> Transfer
+                            </SelectItem>
+                            <SelectItem
+                              value="update_cost"
+                              disabled={userBranch.name !== "HEAD OFFICE"}
+                              className={`${
+                                userBranch.name !== "HEAD OFFICE"
+                                  ? "text-gray-400 cursor-not-allowed"
+                                  : ""
+                              }`}
+                            >
+                              <span className="pl-1">⋮</span> Update Cost
+                            </SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
+              </TableBody>
+            ) : (
+              <TableBody>
+                <TableRow>
+                  <TableCell colSpan={13} className="text-center">
+                    {isLoadingInventory ? (
+                      <div className="flex justify-center items-center">
+                        Loading... Please wait
+                        <div className="animate-spin rounded-full text-green-500 h-8 w-8 border-t-2 border-b-2  border-green-500"></div>
+                      </div>
+                    ) : (
+                      "No indirect materials found."
+                    )}
+                  </TableCell>
+                </TableRow>
+              </TableBody>
+            )}
+          </Table>
+        </div>
       </div>
 
       <AddMaterialDialog

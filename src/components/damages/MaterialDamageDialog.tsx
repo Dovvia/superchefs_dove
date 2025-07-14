@@ -1,4 +1,4 @@
-import { RefetchOptions, QueryObserverResult } from "@tanstack/react-query";
+import { RefetchOptions, QueryObserverResult, useQueryClient } from "@tanstack/react-query";
 import {
   DialogContent,
   DialogHeader,
@@ -22,6 +22,7 @@ export const MaterialDamageDialog = ({
 }: MaterialDamageDialogProps) => {
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
+  const queryClient = useQueryClient();
 
   const handleSubmit = async (values: {
     material: string;
@@ -75,6 +76,8 @@ export const MaterialDamageDialog = ({
         description: "Material damage recorded successfully",
       });
       await refetch();
+      queryClient.invalidateQueries({ queryKey: ["branch_material_today_view"] });
+      queryClient.invalidateQueries({ queryKey: ["damaged_materials"] });
       onOpenChange(false);
     } catch (error) {
       console.error("Error recording material damage:", error);
@@ -85,7 +88,7 @@ export const MaterialDamageDialog = ({
       });
     } finally {
       setIsLoading(false);
-    }
+    } 
   };
 
   return (

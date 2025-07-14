@@ -1,3 +1,4 @@
+import React, { useState } from "react";
 import {
   Dialog,
   DialogContent,
@@ -5,12 +6,11 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { ComplimentaryProductForm } from "./ComplimentaryProductForm";
-import { useState } from "react";
-import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { Product } from "@/types/products";
 import { useUserBranch } from "@/hooks/user-branch";
-import { useQuery } from "@tanstack/react-query";
+import { useQueryClient } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
 
 interface ComplimentaryProductDialogProps {
   open: boolean;
@@ -19,86 +19,62 @@ interface ComplimentaryProductDialogProps {
   onSuccess?: () => void;
 }
 
-export const ComplimentaryProductDialog = ({
+export const ComplimentaryProductDialog: React.FC<ComplimentaryProductDialogProps> = ({
   open,
   onOpenChange,
   products,
   onSuccess,
-}: ComplimentaryProductDialogProps) => {
+}) => {
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
+  const queryClient = useQueryClient();
 
   // Get the logged-in user's branch information
-  const { data: userBranch } = useUserBranch() as {
-    data: { id: string; name: string; role: string } | null;
-  };
-
-  // Fetch product_recipes for unit_cost
-  const { data: productRecipes } = useQuery({
-    queryKey: ["product_recipes"],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("product_recipes")
-        .select("*");
-      if (error) throw error;
-      return data;
-    },
-  });
+  const { data: userBranch } = useUserBranch();
+  const branchId = userBranch?.id;
 
   const handleSubmit = async (values: {
     product: string;
-    branch_id: string;
     quantity: string;
     reason: string;
     recipient: string;
   }) => {
     try {
-      setIsLoading(true);
-
-      const branchId = userBranch?.id;
       if (!branchId) {
         throw new Error("Branch ID is missing. Please log in again.");
       }
 
-      // Get unit_price from products and unit_cost from product_recipes
-      const selectedProduct = products.find((p) => p.id === values.product);
-      const recipe = productRecipes?.find(
-        (r) => r.product_id === values.product
-      );
-      const unit_price = selectedProduct?.price ?? 0;
-      const unit_cost = recipe?.unit_cost ?? 0;
+      setIsLoading(true);
 
-      // Insert a new record into the complimentary_products table
-      const { error: insertError } = await supabase
-        .from("complimentary_products")
-        .insert([
-          {
-            product_id: values.product,
-            branch_id: branchId,
-            quantity: Number(values.quantity),
-            reason: values.reason,
-            recipient: values.recipient,
-            created_at: new Date().toISOString(),
-            unit_price,
-            unit_cost,
-          },
-        ]);
+      // Insert into complimentary_products table
+      const { error } = await supabase.from("complimentary_products").insert([
+        {
+          product_id: values.product,
+          branch_id: branchId,
+          quantity: Number(values.quantity),
+          reason: values.reason,
+          recipient: values.recipient,
+        },
+      ]);
 
-      if (insertError) {
-        console.error("Error inserting complimentary product:", insertError);
-        throw insertError;
-      }
+      if (error) throw error;
 
       toast({
         title: "Success",
         description: "Complimentary product recorded successfully",
       });
+
+      // Invalidate queries to update UI
+      queryClient.invalidateQueries({
+        queryKey: ["branch_product_today_view", branchId],
+      });
+
       onSuccess?.();
       onOpenChange(false);
     } catch (error: any) {
       console.error(
         "Error recording complimentary product:",
-        JSON.stringify(error, null, 2)
+        error.message || error
       );
       toast({
         title: "Error",
@@ -116,12 +92,15 @@ export const ComplimentaryProductDialog = ({
         <DialogHeader>
           <DialogTitle>Record Complimentary Product</DialogTitle>
         </DialogHeader>
-        <ComplimentaryProductForm
-          products={products}
-          onSubmit={handleSubmit}
-          isLoading={isLoading}
-          onCancel={() => onOpenChange(false)}
-        />
+        {branchId && (
+          <ComplimentaryProductForm
+            products={products}
+            onSubmit={handleSubmit}
+            isLoading={isLoading}
+            onCancel={() => onOpenChange(false)}
+            branchId={branchId}
+          />
+        )}
       </DialogContent>
     </Dialog>
   );

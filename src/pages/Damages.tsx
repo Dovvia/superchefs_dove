@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Damage } from "@/types/damages";
@@ -70,6 +70,13 @@ const Damages = () => {
   const [selectedPeriod, setSelectedPeriod] = useState("today");
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
 
+  // Ensure selectedBranch is always set for branch users
+  useEffect(() => {
+    if (!isHeadOffice && branch?.id) {
+      setSelectedBranch(branch.id);
+    }
+  }, [branch, isHeadOffice]);
+
   const periodStart = useMemo(
     () => getPeriodStart(selectedPeriod),
     [selectedPeriod]
@@ -103,8 +110,8 @@ const Damages = () => {
         .order("created_at", { ascending: false });
 
       // Branch filter
-      if (!isHeadOffice && branch?.id) {
-        query = query.eq("branch_id", branch.id);
+      if (!isHeadOffice && selectedBranch) {
+        query = query.eq("branch_id", selectedBranch);
       } else if (isHeadOffice && selectedBranch) {
         query = query.eq("branch_id", selectedBranch);
       }
@@ -113,7 +120,6 @@ const Damages = () => {
       if (periodStart) {
         query = query.gte("created_at", periodStart.toISOString());
       }
-
       const { data, error } = await query;
       if (error) {
         console.error("Error fetching damages:", error);
@@ -121,6 +127,7 @@ const Damages = () => {
       }
       return data as unknown as Damage[];
     },
+    enabled: !!selectedBranch || isHeadOffice,
   });
 
   const calculateTotalCost = (quantity: number, unitPrice: number) =>
