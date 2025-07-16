@@ -1,4 +1,3 @@
-import { useState, useEffect } from "react";
 import {
   Dialog,
   DialogContent,
@@ -17,35 +16,37 @@ import { Input } from "@/components/ui/input";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/components/ui/use-toast";
 import { Trash2 } from "lucide-react";
+import { useState, useEffect } from "react";
+import { useUserBranch } from "@/hooks/user-branch";
 
 interface UpdateQuantityDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onSuccess: () => void;
+  branches?: Array<{ id: string; name: string }>;
 }
 
 interface MaterialField {
   material_id: string;
-  current_quantity: number | null;
-  new_quantity: number | "";
+  quantity: number | "";
 }
 
-const UpdateQuantityDialog = ({
+export default function UpdateQuantityDialog({
   open,
   onOpenChange,
   onSuccess,
-}: UpdateQuantityDialogProps) => {
+}: UpdateQuantityDialogProps) {
+  const { data: userBranch } = useUserBranch() as {
+     data: { id: string; name: string } | null;
+  };
+  const isHeadOffice = userBranch?.name === "HEAD OFFICE";
   const [branches, setBranches] = useState<{ id: string; name: string }[]>([]);
-  const [materials, setMaterials] = useState<{ id: string; name: string }[]>(
-    []
+  const [materials, setMaterials] = useState<{ id: string; name: string }[]>([]);
+  const [selectedBranch, setSelectedBranch] = useState<string>(
+    isHeadOffice ? "" : userBranch?.id || ""
   );
-  const [selectedBranch, setSelectedBranch] = useState<string>(""); // Single branch selection
   const [materialFields, setMaterialFields] = useState<MaterialField[]>([
-    {
-      material_id: "",
-      current_quantity: null,
-      new_quantity: "",
-    },
+    { material_id: "", quantity: "" },
   ]);
   const { toast } = useToast();
 
@@ -75,7 +76,7 @@ const UpdateQuantityDialog = ({
     fetchBranchesAndMaterials();
   }, []);
 
-  // Fetch current quantity for a specific branch and material
+  // Fetch current quantity
   const fetchCurrentQuantity = async (
     branch_id: string,
     material_id: string
@@ -101,26 +102,17 @@ const UpdateQuantityDialog = ({
     return data?.quantity || 0;
   };
 
-  // Handle adding a new material field
+  // Handle adding new field
   const addMaterialField = () => {
-    setMaterialFields([
-      ...materialFields,
-      {
-        material_id: "",
-        current_quantity: null,
-        new_quantity: "",
-      },
-    ]);
+    setMaterialFields([...materialFields, { material_id: "", quantity: "" }]);
   };
 
-  // Handle removing a material field
+  // Handle removing a field
   const removeMaterialField = (index: number) => {
-    if (index < 0 || index >= materialFields.length) return;
-    const updatedFields = materialFields.filter((_, i) => i !== index);
-    setMaterialFields(updatedFields);
+    setMaterialFields(materialFields.filter((_, i) => i !== index));
   };
 
-  // Handle updating a specific field
+  // Handle field change
   const handleFieldChange = async (
     index: number,
     field: keyof MaterialField,
@@ -137,14 +129,14 @@ const UpdateQuantityDialog = ({
           selectedBranch,
           material_id
         );
-        updatedFields[index].current_quantity = currentQuantity;
+        updatedFields[index].quantity = currentQuantity;
       }
     }
 
     setMaterialFields(updatedFields);
   };
 
-  // Handle form submission
+  // Submit handler
   const handleSubmit = async () => {
     if (!selectedBranch) {
       toast({
@@ -159,8 +151,8 @@ const UpdateQuantityDialog = ({
       materialFields.some(
         (field) =>
           !field.material_id ||
-          field.new_quantity === "" ||
-          field.new_quantity < 0
+          field.quantity === "" ||
+          field.quantity < 0
       )
     ) {
       toast({
@@ -174,12 +166,10 @@ const UpdateQuantityDialog = ({
     const updates = materialFields.map((field) => ({
       branch_id: selectedBranch,
       material_id: field.material_id,
-      quantity: field.new_quantity,
+      quantity: field.quantity,
     }));
 
-    const { error } = await supabase
-      .from("inventory")
-      .insert(updates);
+    const { error } = await supabase.from("inventory").insert(updates);
 
     if (error) {
       toast({
@@ -195,6 +185,7 @@ const UpdateQuantityDialog = ({
       description: "Quantities updated successfully",
       variant: "default",
     });
+
     onSuccess();
     onOpenChange(false);
   };
@@ -203,15 +194,12 @@ const UpdateQuantityDialog = ({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent>
         <DialogHeader>
-          <h2 className="text-xl font-bold">Update Material Quantities</h2>
+          <h2 className="text-xl font-bold">Add New Material Quantities</h2>
         </DialogHeader>
 
         {/* Branch Selection */}
-        <div className="mb-4">
-          <Select
-            value={selectedBranch}
-            onValueChange={(value) => setSelectedBranch(value)}
-          >
+        {isHeadOffice ? (
+          <Select value={selectedBranch} onValueChange={setSelectedBranch}>
             <SelectTrigger className="w-full">
               <SelectValue placeholder="Select Branch" />
             </SelectTrigger>
@@ -223,83 +211,76 @@ const UpdateQuantityDialog = ({
               ))}
             </SelectContent>
           </Select>
-        </div>
+        ) : (
+          <div className="text-sm text-muted-foreground">
+            <strong>Branch:</strong> {userBranch?.name}
+          </div>
+        )}
 
         {/* Material Fields */}
-        <div className="space-y-4">
-          {materialFields.map((field, index) => (
-            <div key={index} className="flex gap-4 items-center">
-              <Select
-                value={field.material_id}
-                onValueChange={(value) =>
-                  handleFieldChange(index, "material_id", value)
-                }
+        {materialFields.map((field, index) => (
+          <div key={index} className="flex gap-4 items-center relative">
+            <Select
+              value={field.material_id}
+              onValueChange={(value) =>
+                handleFieldChange(index, "material_id", value)
+              }
+            >
+              <SelectTrigger className="w-full">
+                <SelectValue placeholder="Select Material" />
+              </SelectTrigger>
+              <SelectContent className="max-h-60 overflow-y-auto">
+                {materials.map((material) => (
+                  <SelectItem key={material.id} value={material.id}>
+                    {material.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+
+            <Input
+              type="number"
+              min="0.01"
+              step="0.01"
+              value={field.quantity}
+              onChange={(e) =>
+                handleFieldChange(index, "quantity", Number(e.target.value))
+              }
+              placeholder="New Qty"
+            />
+
+            {index > 0 && (
+              <Button
+                type="button"
+                variant="ghost"
+                onClick={() => removeMaterialField(index)}
+                className="absolute right-0 text-red-500 hover:text-red-700 p-1"
               >
-                <SelectTrigger className="w-full">
-                  <SelectValue placeholder="Select Material" />
-                </SelectTrigger>
-                <SelectContent>
-                  {materials.map((material) => (
-                    <SelectItem key={material.id} value={material.id}>
-                      {material.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+                <Trash2 className="h-4 w-4" />
+              </Button>
+            )}
+          </div>
+        ))}
 
-              <Input
-                type="number"
-                value={field.new_quantity}
-                onChange={(e) =>
-                  handleFieldChange(
-                    index,
-                    "new_quantity",
-                    Number(e.target.value)
-                  )
-                }
-                placeholder="New Qty"
-              />
-
-              <Input
-                placeholder="Current Quantity"
-                type="text"
-                value={
-                  field.current_quantity !== null
-                    ? field.current_quantity
-                    : "N/A"
-                }
-                readOnly
-              />
-
-              {index > 0 && (
-                <Button
-                  type="button"
-                  onClick={() => removeMaterialField(index)}
-                  style={{ color: "red", backgroundColor: "transparent", position: "absolute", right: "20px" }}
-                >
-                  <Trash2 className="h-4 w-4" />
-                </Button>
-              )}
-            </div>
-          ))}
-        </div>
         <Button
           type="button"
-          style={{ height: "25px", backgroundColor: "transparent", width: "fit-content", color:"#4CAF50" }}
+          variant="outline"
+          className="w-fit px-3 py-1 text-green-600 hover:bg-green-500"
           onClick={addMaterialField}
         >
           + Add Material
         </Button>
 
         <DialogFooter>
-          <Button variant="destructive" onClick={() => onOpenChange(false)}>
+          <Button
+            variant="destructive"
+            onClick={() => onOpenChange(false)}
+          >
             Cancel
           </Button>
-          <Button onClick={handleSubmit}>Update</Button>
+          <Button onClick={handleSubmit}>Insert</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
   );
-};
-
-export default UpdateQuantityDialog;
+}

@@ -17,6 +17,7 @@ import { Input } from "@/components/ui/input";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/components/ui/use-toast";
 import { Trash2 } from "lucide-react";
+import { useUserBranch } from "@/hooks/user-branch";
 
 interface InsertProductQuantityDialogProps {
   open: boolean;
@@ -38,7 +39,13 @@ const InsertProductQuantityDialog = ({
   products,
   onSuccess,
 }: InsertProductQuantityDialogProps) => {
-  const [selectedBranch, setSelectedBranch] = useState<string>("");
+  const { data: userBranch } = useUserBranch() as {
+    data: { id: string; name: string } | null;
+  };
+  const isHeadOffice = userBranch?.name === "HEAD OFFICE";
+  const [selectedBranch, setSelectedBranch] = useState<string>(
+    isHeadOffice ? "" : userBranch?.id || ""
+  );
   const [productFields, setProductFields] = useState<ProductField[]>([
     { product_id: "", quantity: "" },
   ]);
@@ -131,24 +138,32 @@ const InsertProductQuantityDialog = ({
         </DialogHeader>
 
         <div className="space-y-4">
-          <Select
-            value={selectedBranch}
-            onValueChange={(value) => setSelectedBranch(value)}
-          >
-            <SelectTrigger className="w-full">
-              <SelectValue placeholder="Select Branch" />
-            </SelectTrigger>
-            <SelectContent>
-              {branches.map((branch) => (
-                <SelectItem key={branch.id} value={branch.id}>
-                  {branch.name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          {/* Branch Selection - Conditional rendering based on role */}
+          {isHeadOffice ? (
+            <Select
+              value={selectedBranch}
+              onValueChange={(value) => setSelectedBranch(value)}
+            >
+              <SelectTrigger className="w-full">
+                <SelectValue placeholder="Select Branch" />
+              </SelectTrigger>
+              <SelectContent>
+                {branches.map((branch) => (
+                  <SelectItem key={branch.id} value={branch.id}>
+                    {branch.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          ) : (
+            <div className="text-sm text-muted-foreground">
+              <strong>Branch:</strong> {userBranch?.name}
+            </div>
+          )}
 
+          {/* Product and Quantity Fields */}
           {productFields.map((field, index) => (
-            <div key={index} className="flex gap-4 items-center">
+            <div key={index} className="flex gap-4 items-center relative">
               <Select
                 value={field.product_id}
                 onValueChange={(value) =>
@@ -174,18 +189,15 @@ const InsertProductQuantityDialog = ({
                   handleFieldChange(index, "quantity", Number(e.target.value))
                 }
                 placeholder="Enter Quantity"
+                min="0"
               />
 
               {index > 0 && (
                 <Button
                   type="button"
+                  variant="ghost"
+                  className="text-red-500 hover:text-red-700 p-1 absolute right-0"
                   onClick={() => removeProductField(index)}
-                  style={{
-                    color: "red",
-                    backgroundColor: "transparent",
-                    position: "absolute",
-                    right: "20px",
-                  }}
                 >
                   <Trash2 className="h-4 w-4" />
                 </Button>
@@ -195,12 +207,8 @@ const InsertProductQuantityDialog = ({
 
           <Button
             type="button"
-            style={{
-              height: "25px",
-              backgroundColor: "transparent",
-              width: "fit-content",
-              color: "#4CAF50",
-            }}
+            variant="outline"
+            className="w-fit px-3 py-1 text-green-600 hover:bg-green-50"
             onClick={addProductField}
           >
             + Add Product
@@ -208,7 +216,10 @@ const InsertProductQuantityDialog = ({
         </div>
 
         <DialogFooter className="gap-4 mt-4">
-          <Button variant="destructive"  onClick={() => onOpenChange(false)}>
+          <Button
+            variant="destructive"
+            onClick={() => onOpenChange(false)}
+          >
             Cancel
           </Button>
           <Button onClick={handleSubmit}>Insert</Button>

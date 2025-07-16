@@ -264,7 +264,7 @@ const Products = () => {
       <div className="flex justify-between items-center">
         <h2 className="text-3xl font-bold tracking-tight">Products</h2>
 
-        <div className="absolute top-14 z-40 bg-transparent">
+        <div className="absolute top-16 z-40 bg-transparent">
           <Input
             type="text"
             placeholder="Search"
@@ -290,12 +290,12 @@ const Products = () => {
                     <DialogTrigger asChild>
                       <Button className="m-0.5 bg-green-800">
                         <Plus className="h-4 w-4" />
-                        Product
+                        Create Product
                       </Button>
                     </DialogTrigger>
                     <DialogContent>
                       <DialogHeader>
-                        <DialogTitle>Add New Product</DialogTitle>
+                        <DialogTitle>Create New Product</DialogTitle>
                       </DialogHeader>
                       <ProductForm onSubmit={handleAddProduct} />
                     </DialogContent>
@@ -306,7 +306,7 @@ const Products = () => {
                     onClick={() => setIsInsertQuantityDialogOpen(true)}
                   >
                     <Plus className="h-4 w-4" />
-                    Add Qty
+                    Add product
                   </Button>
                   {isInsertQuantityDialogOpen && (
                     <InsertProductQuantityDialog
@@ -323,6 +323,25 @@ const Products = () => {
               {/* Only branch users (not HEAD OFFICE) can add CMP, Damages, Transfer */}
               {userBranch?.name !== "HEAD OFFICE" && (
                 <>
+                  <Button
+                    className="m-0.5 bg-green-800"
+                    onClick={() => setIsInsertQuantityDialogOpen(true)}
+                  >
+                    <Plus className="h-4 w-4" />
+                    Add Product
+                  </Button>
+                  {isInsertQuantityDialogOpen && (
+                    <InsertProductQuantityDialog
+                      open={isInsertQuantityDialogOpen}
+                      onOpenChange={setIsInsertQuantityDialogOpen}
+                      products={productsData || []}
+                      branches={
+                        userBranch?.name === "HEAD OFFICE" ? branches || [] : []
+                      }
+                      onSuccess={handleOnSuccess}
+                    />
+                  )}
+
                   <Button
                     className="m-0.5"
                     onClick={() => setAddComplimentaryOpen(true)}
@@ -417,7 +436,7 @@ const Products = () => {
               </TableHead>
               <TableHead>QTY</TableHead>
               <TableHead>Open</TableHead>
-              <TableHead>QC</TableHead>
+              <TableHead>Add</TableHead>
               <TableHead>Prod. Stock</TableHead>
               <TableHead>Usage</TableHead>
               <TableHead>TRF (In)</TableHead>

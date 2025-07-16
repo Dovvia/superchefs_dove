@@ -25,6 +25,7 @@ import Branches from "./pages/Branches";
 import MaterialRequest from "./pages/MaterialRequest";
 import Imprest from "./pages/imprest";
 import Production from "./pages/Production";
+import Records from "./pages/Records"
 import Damages from "./pages/Damages";
 import Recipes from "./pages/Recipes";
 import Accounts from "./pages/Accounts";
@@ -97,6 +98,16 @@ function App() {
                     <RoleProtectedRoute allowedRoles={[
                       "baker", "cook", "manager","admin" ]}>
                       <Production />
+                    </RoleProtectedRoute>
+                  }
+                />
+
+                <Route
+                  path="Records"
+                  element={
+                    <RoleProtectedRoute allowedRoles={[
+                      "manager","admin" ]}>
+                      <Records />
                     </RoleProtectedRoute>
                   }
                 />

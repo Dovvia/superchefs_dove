@@ -184,6 +184,7 @@ function AddMaterialForm({
 
 const Recipes = () => {
   const queryClient = useQueryClient();
+  const [searchTerm, setSearchTerm] = useState("");
   const [isCreateRecipeOpen, setIsCreateRecipeOpen] = useState(false);
   const [editingRecipe, setEditingRecipe] = useState<Recipe | null>(null);
   const [isCreateRecipeLoading, setIsCreateRecipeLoading] = useState(false);
@@ -343,10 +344,26 @@ const Recipes = () => {
     return { name: "Unknown", unit: "" };
   };
 
+  const filteredRecipes = recipes?.filter((recipe) => {
+  return recipe.product.name.toLowerCase().includes(searchTerm.toLowerCase());
+});
+
   return (
     <div className="space-y-6 p-3 bg-white rounded-lg shadow-md w-full mx-auto margin-100">
       <div className="flex items-center justify-between">
         <h1 className="text-3xl font-bold">Recipes</h1>
+
+        <div className="absolute top-16 z-40 bg-transparent">
+                  <Input
+                    type="text"
+                    placeholder="Search"
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="w-32 bg-transparent h-8"
+                  />
+                </div>
+
+
         <Button
           onClick={() => setIsCreateRecipeOpen(true)}
           className="ml-auto bg-transparent text-green-600 hover:bg-green-50"
@@ -364,7 +381,7 @@ const Recipes = () => {
       {isError && <p>Error: {error.message}</p>}
       {recipes && recipes.length > 0 ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {recipes.map((recipe) => (
+          {(filteredRecipes || recipes).map((recipe) => (
             <Card key={recipe.id} className="shadow-md">
               <CardHeader>
                 <div className="flex items-center gap-2">

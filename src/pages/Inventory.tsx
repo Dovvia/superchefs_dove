@@ -299,10 +299,10 @@ const Inventory = () => {
               <div className="flex items-center space-x-2">
                 <Button onClick={() => setIsAddDialogOpen(true)}>
                   <Plus className="h-4 w-4" />
-                  Add Material
+                  Create Material
                 </Button>
                 <Button onClick={() => setIsUpdateDialogOpen(true)}>
-                  Post Qty
+                  Add Material
                 </Button>
               </div>
               <Select value={selectedBranch} onValueChange={setSelectedBranch}>
@@ -318,6 +318,17 @@ const Inventory = () => {
                   ))}
                 </SelectContent>
               </Select>
+            </div>
+          )}
+
+           {userBranch.name !== "HEAD OFFICE" && (
+            <div className="items-center space-y-2">
+              <div className="flex items-center space-x-2">
+                <Button onClick={() => setIsUpdateDialogOpen(true)}>
+                  <Plus className="h-4 w-4" />
+                  Add Material
+                </Button>
+              </div>
             </div>
           )}
         </div>
@@ -381,7 +392,7 @@ const Inventory = () => {
                 <TableHead>Unit</TableHead>
                 <TableHead>QTY</TableHead>
                 <TableHead>Open</TableHead>
-                <TableHead>QC</TableHead>
+                <TableHead>Add</TableHead>
                 <TableHead>PROC.</TableHead>
                 <TableHead>TRF IN</TableHead>
                 <TableHead>TRF OUT</TableHead>
@@ -562,7 +573,7 @@ const Inventory = () => {
                 <TableHead>Unit</TableHead>
                 <TableHead>QTY</TableHead>
                 <TableHead>Open</TableHead>
-                <TableHead>QC</TableHead>
+                <TableHead>Add</TableHead>
                 <TableHead>PROC.</TableHead>
                 <TableHead>TRF IN</TableHead>
                 <TableHead>TRF OUT</TableHead>
@@ -758,7 +769,6 @@ const Inventory = () => {
       <UpdateQuantityDialog
         open={isUpdateDialogOpen}
         onOpenChange={setIsUpdateDialogOpen}
-        // branches={branches}
         onSuccess={refetch}
       />
       {selectedInventory && (
