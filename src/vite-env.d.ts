@@ -1,14 +1,9 @@
-/// <reference types="vite/client" />
-
 declare module 'virtual:pwa-register' {
   export interface RegisterSWOptions {
     immediate?: boolean;
-    onNeedRefresh?: () => void;
-    onOfflineReady?: () => void;
-    onRegisteredSW?: (
-      swScriptUrl: string,
-      registration: ServiceWorkerRegistration
-    ) => void;
+    onNeedRefresh?: (registration: ServiceWorkerRegistration) => void;
+    onOfflineReady?: (registration: ServiceWorkerRegistration) => void;
+    onRegisteredSW?: (swScriptUrl: string, registration: ServiceWorkerRegistration) => void;
     onRegisterError?: (error: any) => void;
   }
 

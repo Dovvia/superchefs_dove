@@ -3,7 +3,7 @@ import react from "@vitejs/plugin-react-swc";
 import { VitePWA } from "vite-plugin-pwa";
 import path from "path";
 
-// https://vitejs.dev/config/
+// https://vitejs.dev/config/ 
 export default defineConfig({
   server: {
     host: "::",
@@ -12,12 +12,14 @@ export default defineConfig({
   plugins: [
     react(),
     VitePWA({
-      registerType: "prompt", // change to 'prompt' to notify users of updates
+      // ✅ Correct: Let SW wait, and control update via message
+      registerType: "autoUpdate", // New SW waits until we say SKIP_WAITING
+
+      // ✅ Remove skipWaiting: true so it doesn't auto-activate
       workbox: {
-        skipWaiting: true,
         clientsClaim: true,
-        maximumFileSizeToCacheInBytes: 5 * 1024 * 1024, // 5 MB
         cleanupOutdatedCaches: true,
+        maximumFileSizeToCacheInBytes: 5 * 1024 * 1024, // 5 MB
         runtimeCaching: [
           {
             urlPattern: /^https:\/\/ckkvnnphgceesuftupyj\.supabase\.co\//,
@@ -44,6 +46,8 @@ export default defineConfig({
           },
         ],
       },
+
+      // Assets to cache
       includeAssets: [
         "dovvia-logo.png",
         "superchefs-logo.png",
@@ -54,6 +58,8 @@ export default defineConfig({
         "favicon-16x16.png",
         "favicon-32x32.png",
       ],
+
+      // Manifest
       manifest: {
         name: "Dovvia",
         short_name: "Dovvia",
@@ -90,8 +96,10 @@ export default defineConfig({
           },
         ],
       },
+
+      // Enable during development if testing PWA behavior
       devOptions: {
-        enabled: process.env.NODE_ENV === "development",
+        enabled: false, // Set to true only if testing SW in dev
       },
     }),
   ],

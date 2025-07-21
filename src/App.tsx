@@ -1,8 +1,4 @@
-import {
-  BrowserRouter as Router,
-  Route,
-  Routes,
-} from "react-router-dom";
+import { BrowserRouter as Router, Route, Routes } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -33,27 +29,53 @@ import Settings from "./pages/Settings";
 import Admin from "./pages/Admin";
 import NotFound from "./pages/NotFound";
 import ImprestManagement from "./pages/ImprestManagement";
-import { registerSW } from 'virtual:pwa-register';
+import { registerSW } from "virtual:pwa-register";
 
 const queryClient = new QueryClient();
 
 function App() {
-  const [updateAvailable, setUpdateAvailable] = useState(false);
+  const [showRefresh, setShowRefresh] = useState(false);
+  const [waitingWorker, setWaitingWorker] = useState<ServiceWorker | null>(
+    null
+  );
 
+  // Register Service Worker and handle updates
   useEffect(() => {
-    const updateSW = registerSW({ 
-      onNeedRefresh() {
-        setUpdateAvailable(true);
+    const intervalMS = 60 * 60 * 1000; // Check every hour
+
+    const { update } = registerSW({
+      onNeedRefresh: (registration) => {
+        setWaitingWorker(registration.waiting);
+        setShowRefresh(true);
       },
-      onOfflineReady() {
+      onOfflineReady: () => {
         console.log("App ready for offline usage.");
       },
     });
-    // return () => updateSW?.unregister?.();
+
+    // Optional: Poll for updates periodically
+    const interval = setInterval(() => {
+      update();
+    }, intervalMS);
+
+    return () => clearInterval(interval);
   }, []);
 
   const refreshApp = () => {
-    window.location.reload();
+    if (!waitingWorker) return;
+
+    // Tell the waiting service worker to skip waiting and activate
+    waitingWorker.postMessage({ type: "SKIP_WAITING" });
+
+    // Reload once the new service worker takes control
+    navigator.serviceWorker.addEventListener("controllerchange", () => {
+      window.location.reload();
+    });
+  };
+
+  const dismissUpdate = () => {
+    setShowRefresh(false);
+    setWaitingWorker(null);
   };
 
   return (
@@ -63,6 +85,7 @@ function App() {
           <ProductionProvider>
             <PWAInstallButton />
             <IosInstallPrompt />
+
             <Routes>
               <Route path="/auth" element={<Auth />} />
               <Route
@@ -78,7 +101,9 @@ function App() {
                 <Route
                   path="inventory"
                   element={
-                    <RoleProtectedRoute allowedRoles={["manager", "admin", "quality_control"]}>
+                    <RoleProtectedRoute
+                      allowedRoles={["manager", "admin", "quality_control"]}
+                    >
                       <Inventory />
                     </RoleProtectedRoute>
                   }
@@ -86,7 +111,9 @@ function App() {
                 <Route
                   path="products"
                   element={
-                    <RoleProtectedRoute allowedRoles={["manager", "admin", "quality_control"]}>
+                    <RoleProtectedRoute
+                      allowedRoles={["manager", "admin", "quality_control"]}
+                    >
                       <Products />
                     </RoleProtectedRoute>
                   }
@@ -94,7 +121,9 @@ function App() {
                 <Route
                   path="sales"
                   element={
-                    <RoleProtectedRoute allowedRoles={["sales_rep", "manager", "admin"]}>
+                    <RoleProtectedRoute
+                      allowedRoles={["sales_rep", "manager", "admin"]}
+                    >
                       <Sales />
                     </RoleProtectedRoute>
                   }
@@ -102,7 +131,9 @@ function App() {
                 <Route
                   path="damages"
                   element={
-                    <RoleProtectedRoute allowedRoles={["baker", "cook", "manager", "admin"]}>
+                    <RoleProtectedRoute
+                      allowedRoles={["baker", "cook", "manager", "admin"]}
+                    >
                       <Damages />
                     </RoleProtectedRoute>
                   }
@@ -110,7 +141,9 @@ function App() {
                 <Route
                   path="production"
                   element={
-                    <RoleProtectedRoute allowedRoles={["baker", "cook", "manager", "admin"]}>
+                    <RoleProtectedRoute
+                      allowedRoles={["baker", "cook", "manager", "admin"]}
+                    >
                       <Production />
                     </RoleProtectedRoute>
                   }
@@ -158,7 +191,9 @@ function App() {
                 <Route
                   path="recipes"
                   element={
-                    <RoleProtectedRoute allowedRoles={["admin", "quality_control"]}>
+                    <RoleProtectedRoute
+                      allowedRoles={["admin", "quality_control"]}
+                    >
                       <Recipes />
                     </RoleProtectedRoute>
                   }
@@ -198,19 +233,33 @@ function App() {
               </Route>
               <Route path="*" element={<NotFound />} />
             </Routes>
-            {updateAvailable && (
-              <div className="fixed bottom-4 right-4 p-4 bg-blue-600 text-white rounded-lg shadow-lg z-50">
-                <p>🔄 A new version of Dovvia is available!</p>
-                <button
-                  onClick={refreshApp}
-                  className="mt-2 bg-white text-blue-600 px-4 py-1 rounded"
-                >
-                  Update Now
-                </button>
+
+            {/* Update Notification */}
+            {showRefresh && (
+              <div className="fixed bottom-4 right-4 p-4 bg-blue-600 text-white rounded-lg shadow-lg z-50 max-w-xs">
+                <p className="font-medium">🔄 A new version is available!</p>
+                <p className="text-sm opacity-90 mt-1">
+                  Refresh to get the latest features and fixes.
+                </p>
+                <div className="flex gap-2 mt-3 justify-end">
+                  <button
+                    onClick={dismissUpdate}
+                    className="text-sm px-3 py-1 bg-blue-500 hover:bg-blue-400 rounded transition"
+                  >
+                    Later
+                  </button>
+                  <button
+                    onClick={refreshApp}
+                    className="text-sm px-4 py-1 bg-white text-blue-600 font-medium rounded hover:bg-gray-100 transition"
+                  >
+                    Update Now
+                  </button>
+                </div>
               </div>
             )}
+
+            <Toaster />
           </ProductionProvider>
-          <Toaster />
         </TooltipProvider>
       </AuthProvider>
     </QueryClientProvider>
