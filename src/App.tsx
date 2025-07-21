@@ -41,7 +41,7 @@ function App() {
   const [updateAvailable, setUpdateAvailable] = useState(false);
 
   useEffect(() => {
-    const updateSW = registerSW({
+    const updateSW = registerSW({ 
       onNeedRefresh() {
         setUpdateAvailable(true);
       },
