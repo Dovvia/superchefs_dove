@@ -70,11 +70,13 @@ const Sidebar = ({ isOpen, onClose }: SidebarProps) => {
       name: "Material Request",
       href: "/material-request",
       icon: Truck,
+      managerOnly: true,
     },
     {
       name: "Imprest",
       href: "/imprest-request",
       icon: HandCoins,
+      managerOnly: true,
     },
     {
       name: "Procurement",
@@ -160,7 +162,10 @@ const Sidebar = ({ isOpen, onClose }: SidebarProps) => {
           <div className="space-y-3">
             {navigation.map((item) => {
               // Check if the user has the required role for the item
-              if (item.adminOnly && !isAdmin) {
+              if (
+                item.adminOnly && !isAdmin ||
+                item.managerOnly && !isManager
+              ) {
                 return null;
               }
               return (

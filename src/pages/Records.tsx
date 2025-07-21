@@ -30,7 +30,7 @@ const DATE_FILTERS = [
 ];
 
 const RECORD_TYPES = [
-  { label: "All", value: "all" },
+  { label: "All Types", value: "all" },
   { label: "Production", value: "production" },
   { label: "Sales", value: "sales" },
   { label: "Material Damages", value: "mat_damages" },
@@ -150,7 +150,7 @@ export default function Records() {
             {userBranch.data?.name === "HEAD OFFICE" && (
               <Select
                 onValueChange={setBranchFilter}
-                value={branchFilter || ""}
+                value={branchFilter || "all"}
               >
                 <SelectTrigger className="w-[180px]">
                   <SelectValue placeholder="Branch" />

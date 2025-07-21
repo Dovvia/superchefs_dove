@@ -298,10 +298,11 @@ const Inventory = () => {
             <div className="items-center space-y-2">
               <div className="flex items-center space-x-2">
                 <Button onClick={() => setIsAddDialogOpen(true)}>
-                  <Plus className="h-4 w-4" />
+                  
                   Create Material
                 </Button>
                 <Button onClick={() => setIsUpdateDialogOpen(true)}>
+                  <Plus className="h-4 w-4" />
                   Add Material
                 </Button>
               </div>

@@ -2,8 +2,8 @@ import {
   BrowserRouter as Router,
   Route,
   Routes,
-  Navigation,
 } from "react-router-dom";
+import { useEffect, useState } from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
@@ -25,7 +25,7 @@ import Branches from "./pages/Branches";
 import MaterialRequest from "./pages/MaterialRequest";
 import Imprest from "./pages/imprest";
 import Production from "./pages/Production";
-import Records from "./pages/Records"
+import Records from "./pages/Records";
 import Damages from "./pages/Damages";
 import Recipes from "./pages/Recipes";
 import Accounts from "./pages/Accounts";
@@ -33,16 +33,36 @@ import Settings from "./pages/Settings";
 import Admin from "./pages/Admin";
 import NotFound from "./pages/NotFound";
 import ImprestManagement from "./pages/ImprestManagement";
+import { registerSW } from 'virtual:pwa-register';
 
 const queryClient = new QueryClient();
+
 function App() {
+  const [updateAvailable, setUpdateAvailable] = useState(false);
+
+  useEffect(() => {
+    const updateSW = registerSW({
+      onNeedRefresh() {
+        setUpdateAvailable(true);
+      },
+      onOfflineReady() {
+        console.log("App ready for offline usage.");
+      },
+    });
+    // return () => updateSW?.unregister?.();
+  }, []);
+
+  const refreshApp = () => {
+    window.location.reload();
+  };
+
   return (
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
         <TooltipProvider>
           <ProductionProvider>
-          <PWAInstallButton />
-          <IosInstallPrompt />
+            <PWAInstallButton />
+            <IosInstallPrompt />
             <Routes>
               <Route path="/auth" element={<Auth />} />
               <Route
@@ -55,16 +75,14 @@ function App() {
               >
                 <Route index element={<Dashboard />} />
                 <Route path="settings" element={<Settings />} />
-
                 <Route
                   path="inventory"
                   element={
-                    <RoleProtectedRoute allowedRoles={["manager", "admin","quality_control"]}>
+                    <RoleProtectedRoute allowedRoles={["manager", "admin", "quality_control"]}>
                       <Inventory />
                     </RoleProtectedRoute>
                   }
                 />
-
                 <Route
                   path="products"
                   element={
@@ -73,7 +91,6 @@ function App() {
                     </RoleProtectedRoute>
                   }
                 />
-
                 <Route
                   path="sales"
                   element={
@@ -82,7 +99,6 @@ function App() {
                     </RoleProtectedRoute>
                   }
                 />
-
                 <Route
                   path="damages"
                   element={
@@ -91,27 +107,22 @@ function App() {
                     </RoleProtectedRoute>
                   }
                 />
-
                 <Route
                   path="production"
                   element={
-                    <RoleProtectedRoute allowedRoles={[
-                      "baker", "cook", "manager","admin" ]}>
+                    <RoleProtectedRoute allowedRoles={["baker", "cook", "manager", "admin"]}>
                       <Production />
                     </RoleProtectedRoute>
                   }
                 />
-
                 <Route
                   path="Records"
                   element={
-                    <RoleProtectedRoute allowedRoles={[
-                      "manager","admin" ]}>
+                    <RoleProtectedRoute allowedRoles={["manager", "admin"]}>
                       <Records />
                     </RoleProtectedRoute>
                   }
                 />
-
                 <Route
                   path="material-request"
                   element={
@@ -120,7 +131,6 @@ function App() {
                     </RoleProtectedRoute>
                   }
                 />
-
                 <Route
                   path="imprest-request"
                   element={
@@ -129,7 +139,6 @@ function App() {
                     </RoleProtectedRoute>
                   }
                 />
-
                 <Route
                   path="admin"
                   element={
@@ -138,7 +147,6 @@ function App() {
                     </RoleProtectedRoute>
                   }
                 />
-
                 <Route
                   path="manage-imprest"
                   element={
@@ -179,7 +187,6 @@ function App() {
                     </RoleProtectedRoute>
                   }
                 />
-
                 <Route
                   path="accounts"
                   element={
@@ -191,6 +198,17 @@ function App() {
               </Route>
               <Route path="*" element={<NotFound />} />
             </Routes>
+            {updateAvailable && (
+              <div className="fixed bottom-4 right-4 p-4 bg-blue-600 text-white rounded-lg shadow-lg z-50">
+                <p>🔄 A new version of Dovvia is available!</p>
+                <button
+                  onClick={refreshApp}
+                  className="mt-2 bg-white text-blue-600 px-4 py-1 rounded"
+                >
+                  Update Now
+                </button>
+              </div>
+            )}
           </ProductionProvider>
           <Toaster />
         </TooltipProvider>

@@ -137,58 +137,102 @@ export default function UpdateQuantityDialog({
   };
 
   // Submit handler
-  const handleSubmit = async () => {
-    if (!selectedBranch) {
-      toast({
-        title: "Error",
-        description: "Please select a branch",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    if (
-      materialFields.some(
-        (field) =>
-          !field.material_id ||
-          field.quantity === "" ||
-          field.quantity < 0
-      )
-    ) {
-      toast({
-        title: "Error",
-        description: "Please fill all fields correctly",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    const updates = materialFields.map((field) => ({
-      branch_id: selectedBranch,
-      material_id: field.material_id,
-      quantity: field.quantity,
-    }));
-
-    const { error } = await supabase.from("inventory").insert(updates);
-
-    if (error) {
-      toast({
-        title: "Error updating quantities",
-        description: error.message,
-        variant: "destructive",
-      });
-      return;
-    }
-
+ const handleSubmit = async () => {
+  if (!selectedBranch) {
     toast({
-      title: "Success",
-      description: "Quantities updated successfully",
-      variant: "default",
+      title: "Error",
+      description: "Please select a branch",
+      variant: "destructive",
     });
+    return;
+  }
 
-    onSuccess();
-    onOpenChange(false);
-  };
+  if (
+    materialFields.some(
+      (field) =>
+        !field.material_id ||
+        field.quantity === "" ||
+        field.quantity < 0
+    )
+  ) {
+    toast({
+      title: "Error",
+      description: "Please fill all fields correctly",
+      variant: "destructive",
+    });
+    return;
+  }
+
+  for (const field of materialFields) {
+    const { material_id, quantity } = field;
+
+    // Fetch current quantity from inventory
+    const { data, error: fetchError } = await supabase
+      .from("inventory")
+      .select("quantity")
+      .eq("branch_id", selectedBranch)
+      .eq("material_id", material_id)
+      .single();
+
+    if (fetchError && fetchError.code !== "PGRST116") {
+      // PGRST116 means "No rows found"
+      toast({
+        title: "Error fetching current quantity",
+        description: fetchError.message,
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const currentQuantity = data?.quantity || 0;
+    const newQuantity = currentQuantity + Number(quantity);
+
+    if (data) {
+      // Row exists → update it
+      const { error: updateError } = await supabase
+        .from("inventory")
+        .update({ quantity: newQuantity })
+        .eq("branch_id", selectedBranch)
+        .eq("material_id", material_id);
+
+      if (updateError) {
+        toast({
+          title: "Error updating quantity",
+          description: updateError.message,
+          variant: "destructive",
+        });
+        return;
+      }
+    } else {
+      // Row does NOT exist → insert new one
+      const { error: insertError } = await supabase
+        .from("inventory")
+        .insert({
+          branch_id: selectedBranch,
+          material_id,
+          quantity: newQuantity,
+        });
+
+      if (insertError) {
+        toast({
+          title: "Error inserting new inventory",
+          description: insertError.message,
+          variant: "destructive",
+        });
+        return;
+      }
+    }
+  }
+
+  toast({
+    title: "Success",
+    description: "Quantities updated successfully",
+    variant: "default",
+  });
+
+  onSuccess();
+  onOpenChange(false);
+};
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>

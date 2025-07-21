@@ -70,65 +70,99 @@ const InsertProductQuantityDialog = ({
   };
 
   const handleSubmit = async () => {
-    if (!selectedBranch) {
+  if (!selectedBranch) {
+    toast({
+      title: "Error",
+      description: "Please select a branch",
+      variant: "destructive",
+    });
+    return;
+  }
+
+  if (
+    productFields.some(
+      (field) =>
+        !field.product_id || field.quantity === "" || field.quantity < 0
+    )
+  ) {
+    toast({
+      title: "Error",
+      description: "Please fill all fields correctly",
+      variant: "destructive",
+    });
+    return;
+  }
+
+  for (const field of productFields) {
+    const { product_id, quantity } = field;
+
+    // Fetch current quantity from product_inventory
+    const { data, error: fetchError } = await supabase
+      .from("product_inventory")
+      .select("quantity")
+      .eq("branch_id", selectedBranch)
+      .eq("product_id", product_id)
+      .single();
+
+    if (fetchError && fetchError.code !== "PGRST116") {
+      // PGRST116 = No rows found
       toast({
-        title: "Error",
-        description: "Please select a branch",
+        title: "Error fetching current quantity",
+        description: fetchError.message,
         variant: "destructive",
       });
       return;
     }
 
-    if (
-      productFields.some(
-        (field) =>
-          !field.product_id || field.quantity === "" || field.quantity < 0
-      )
-    ) {
-      toast({
-        title: "Error",
-        description: "Please fill all fields correctly",
-        variant: "destructive",
-      });
-      return;
-    }
+    const currentQuantity = data?.quantity || 0;
+    const newQuantity = currentQuantity + Number(quantity);
 
-    const updates = productFields.map((field) => ({
-      branch_id: selectedBranch,
-      product_id: field.product_id,
-      quantity: field.quantity,
-    }));
+    if (data) {
+      // Row exists → update it
+      const { error: updateError } = await supabase
+        .from("product_inventory")
+        .update({ quantity: newQuantity })
+        .eq("branch_id", selectedBranch)
+        .eq("product_id", product_id);
 
-    let error = null;
-    try {
+      if (updateError) {
+        toast({
+          title: "Error updating product quantity",
+          description: updateError.message,
+          variant: "destructive",
+        });
+        return;
+      }
+    } else {
+      // Row does NOT exist → insert new one
       const { error: insertError } = await supabase
         .from("product_inventory")
-        .insert(updates)
-        .select("*")
-        .single();
-      error = insertError;
-    } catch (err) {
-      console.error("Error inserting product quantities:", err);
-      error = err;
-    }
+        .insert({
+          branch_id: selectedBranch,
+          product_id,
+          quantity: newQuantity,
+        });
 
-    if (error) {
-      toast({
-        title: "Error",
-        description: error.message,
-        variant: "destructive",
-      });
-      return;
+      if (insertError) {
+        toast({
+          title: "Error inserting new product inventory",
+          description: insertError.message,
+          variant: "destructive",
+        });
+        return;
+      }
     }
+  }
 
-    toast({
-      title: "Success",
-      description: "Product quantities inserted successfully",
-      variant: "default",
-    });
-    onSuccess();
-    onOpenChange(false);
-  };
+  toast({
+    title: "Success",
+    description: "Product quantities updated successfully",
+    variant: "default",
+  });
+
+  onSuccess();
+  onOpenChange(false);
+};
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
