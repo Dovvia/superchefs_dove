@@ -6,7 +6,7 @@ import {
   DialogTitle,
   DialogContentText,
 } from "@mui/material";
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
+import { AlertDialog, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { toast } from "@/hooks/use-toast";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -20,7 +20,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Package, Utensils } from "lucide-react";
 import { useUserBranch } from "@/hooks/user-branch";
-import { useProductionContext } from "@/context/ProductionContext";
+// import { useProductionContext } from "@/context/ProductionContext";
 import { Input } from "@/components/ui/input";
 
 interface RecipeMaterial {
@@ -47,6 +47,7 @@ interface Recipe {
   product: {
     name: string;
     id: string;
+    weight: string;
   };
   recipe_materials: RecipeMaterial[];
 }
@@ -66,7 +67,7 @@ export const productionData = async (
 const Production = () => {
   const queryClient = useQueryClient();
   const { data: userBranch } = useUserBranch();
-  const { addProductionRecord } = useProductionContext();
+  // const { addProductionRecord } = useProductionContext();
 
   // Fetch current material quantities
   const { data: materialQtyData, isLoading: isMaterialQtyLoading } = useQuery({
@@ -136,7 +137,7 @@ const Production = () => {
     queryFn: async () => {
       const { data, error } = await supabase.from("product_recipes").select(`
         *,
-        product:products(name, id),
+        product:products(name, id, weight),
         recipe_materials(
           id,
           product_id,
@@ -192,7 +193,7 @@ const Production = () => {
   const produceMutation = useMutation({
     mutationFn: async (recipe: Recipe) => {
       try {
-        const timestamp = new Date().toISOString();
+        // const timestamp = new Date().toISOString();
 
         for (const material of recipe.recipe_materials) {
           if (material.material_id && material.material) {
@@ -406,7 +407,7 @@ const Production = () => {
                       handleYieldChange(recipe.id, Number(e.target.value))
                     }
                     className="w-full border rounded px-1 text-center"
-                  />
+                  /> <p>{recipe.product.weight}</p>
                 </div>
               </CardDescription>
             </CardHeader>

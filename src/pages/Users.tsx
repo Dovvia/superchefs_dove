@@ -84,30 +84,30 @@ const Users = () => {
 
       <div className="flex space-x-4">
         <select
-          value={selectedRole || ""}
-          onChange={(e) => setSelectedRole(e.target.value || null)}
-          className="border p-2 rounded"
-        >
-          <option value="">All Roles</option>
-          {Array.from(new Set(users?.map((user) => user.role))).map((role) => (
-            <option key={role} value={role}>
-              {role}
-            </option>
-          ))}
-        </select>
+  value={selectedRole || ""}
+  onChange={(e) => setSelectedRole(e.target.value === "all" ? null : e.target.value)}
+  className="border p-2 rounded"
+>
+  <option value="all">All Roles</option>
+  {Array.from(new Set(users?.map((user) => user.role).filter(Boolean))).map((role) => (
+    <option key={role} value={role}>
+      {role}
+    </option>
+  ))}
+</select>
 
-        <select
-          value={selectedBranch || ""}
-          onChange={(e) => setSelectedBranch(e.target.value || null)}
-          className="border p-2 rounded"
-        >
-          <option value="">All Branches</option>
-          {Array.from(new Set(users?.map((user) => user.branch?.name))).map((branch) => (
-            <option key={branch} value={branch}>
-              {branch}
-            </option>
-          ))}
-        </select>
+<select
+  value={selectedBranch || ""}
+  onChange={(e) => setSelectedBranch(e.target.value === "" ? null : e.target.value)}
+  className="border p-2 rounded"
+>
+  <option value="">All Branches</option>
+  {Array.from(new Set(users?.map((user) => user.branch?.name).filter(Boolean))).map((branch) => (
+    <option key={branch} value={branch}>
+      {branch}
+    </option>
+  ))}
+</select>
       </div>
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">

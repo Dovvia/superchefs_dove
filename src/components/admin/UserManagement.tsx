@@ -202,22 +202,9 @@ const UserManagement = () => {
 
   // Ensure users and branches are defined before filtering
   const filteredUsers = users
-    ? users.filter((user) => {
-        const profile: UserWithDetails["profile"] = user.profile || {
-          first_name: "N/A",
-          last_name: "N/A",
-          email: "N/A",
-          password: "N/A",
-          branch_id: undefined,
-          user_id: "N/A",
-          phone: 234,
-          address: "N/A",
-          salary: 0,
-          nin: 123,
-          employment_date: "N/A",
-          education: "N/A",
-          role: "N/A",
-        };
+  ? users.filter((user) => {
+      const profile = user.profile;
+      if (!profile) return false;
         const matchesName = `${profile.first_name || ""} ${
           profile.last_name || ""
         }`
