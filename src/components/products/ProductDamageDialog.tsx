@@ -52,9 +52,10 @@ export const ProductDamageDialog = ({
   });
 
   // Determine which branch to use
-  const branchToUse = userBranch?.role === "HEAD OFFICE" 
-    ? undefined // HEAD OFFICE might allow selecting a branch elsewhere
-    : userBranch?.id;
+  const branchToUse =
+    userBranch?.name === "HEAD OFFICE"
+      ? undefined // HEAD OFFICE might allow selecting a branch elsewhere
+      : userBranch?.id;
 
   const handleSubmit = async (values: {
     product: string;
@@ -125,7 +126,13 @@ export const ProductDamageDialog = ({
         </DialogHeader>
         <ProductDamageForm
           products={products}
-          onSubmit={handleSubmit}
+          onSubmit={async (values) => {
+            const finalValues = {
+              ...values,
+              branch: branchToUse,
+            };
+            await handleSubmit(finalValues);
+          }}
           branchId={branchToUse ?? ""}
           isLoading={isLoading}
           onCancel={() => onOpenChange(false)}

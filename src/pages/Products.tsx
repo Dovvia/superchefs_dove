@@ -36,7 +36,6 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
-import { Branch } from "@/types/branch";
 
 type CumulativeProductView = {
   total_transfer_out_quantity: number;
@@ -81,7 +80,7 @@ const Products = () => {
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [addComplimentaryOpen, setAddComplimentaryOpen] = useState(false);
   const [addDamageOpen, setAddDamageOpen] = useState(false);
-  const [addTransferOpen, setAddTransferOpen] = useState(false);
+  // const [addTransferOpen, setAddTransferOpen] = useState(false);
   const [isPriceDialogOpen, setIsPriceDialogOpen] = useState(false);
   const [isQuantityDialogOpen, setIsQuantityDialogOpen] = useState(false);
   const [isTransferDialogOpen, setIsTransferDialogOpen] = useState(false);
@@ -255,9 +254,9 @@ const Products = () => {
     return name.toLowerCase().includes(searchTerm.toLowerCase());
   });
 
-  function refetchTransfers() {
-    throw new Error("Function not implemented.");
-  }
+  // function refetchTransfers() {
+  //   throw new Error("Function not implemented.");
+  // }
 
   return (
     <div className="space-y-6 p-2 bg-transparent rounded-lg shadow-md w-full mx-auto margin-100">

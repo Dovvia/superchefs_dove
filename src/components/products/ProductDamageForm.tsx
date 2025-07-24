@@ -1,7 +1,7 @@
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
-import React, { useState, useMemo } from "react";
+import { useState, useMemo } from "react";
 import {
   Form,
   FormControl,
@@ -25,7 +25,6 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import {
   AlertDialog,
-  AlertDialogAction,
   AlertDialogCancel,
   AlertDialogContent,
   AlertDialogDescription,
@@ -154,11 +153,7 @@ export const ProductDamageForm = ({
                   <Select
                     {...field}
                     onValueChange={(e) => {
-                      const product = products?.find(
-                        (product) => product?.id === e
-                      );
                       form.setValue("product", e);
-                      form.setValue("branch", product?.branch_id || "");
                       field.onChange(e);
                     }}
                   >
